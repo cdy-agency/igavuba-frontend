@@ -1,4 +1,8 @@
 export { useAssessments } from './useAssessments';
+export { useAssessmentsByModule } from './useAssessmentsByModule';
+export { useInstructorCourses } from './useInstructorCourses';
+export { useCourseModules } from './useCourseModules';
+export { useSubmissionById } from './useSubmissionById';
 export { useAssessmentById } from './useAssessmentById';
 export { useCreateAssessment } from './useCreateAssessment';
 export { useStartAttempt } from './useStartAttempt';
@@ -7,3 +11,5 @@ export { useSubmitAssessment } from './useSubmitAssessment';
 export { useGradeSubmission } from './useGradeSubmission';
 export { usePublishResults } from './usePublishResults';
 export { useAssessmentSubmissions } from './useAssessmentSubmissions';
+export { useUpdateAssessmentQuestion } from './useUpdateAssessmentQuestion';
+export { useAddAssessmentQuestions } from './useAddAssessmentQuestions';

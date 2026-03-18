@@ -34,6 +34,7 @@ export function createAssessment(payload: {
   description?: string;
   type: 'QUIZ' | 'EXAM' | 'ASSIGNMENT';
   course: string;
+  module?: string; // required for QUIZ/ASSIGNMENT
   totalMarks: number;
   duration?: number;
   dueDate?: string;
@@ -48,8 +49,28 @@ export function getAssessmentsByCourse(courseId: string): Promise<ApiResult<Asse
   return request<Assessment[]>(() => axiosInstance.get(`${BASE}/course/${courseId}`));
 }
 
+export function getAssessmentsByModule(moduleId: string): Promise<ApiResult<Assessment[]>> {
+  return request<Assessment[]>(() => axiosInstance.get(`${BASE}/module/${moduleId}`));
+}
+
 export function getAssessmentById(id: string): Promise<ApiResult<Assessment>> {
   return request<Assessment>(() => axiosInstance.get(`${BASE}/${id}`));
+}
+
+export function updateAssessmentQuestion(
+  assessmentId: string,
+  questionId: string,
+  payload: {
+    questionText?: string;
+    type?: 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'ESSAY' | 'TEXT';
+    options?: { text: string; isCorrect: boolean }[];
+    marks?: number;
+    order?: number;
+  }
+): Promise<ApiResult<AssessmentQuestion>> {
+  return request<AssessmentQuestion>(() =>
+    axiosInstance.patch(`${BASE}/${assessmentId}/questions/${questionId}`, payload)
+  );
 }
 
 export function addAssessmentQuestions(
@@ -93,6 +114,27 @@ export function getAssessmentSubmissions(
 ): Promise<ApiResult<AssessmentSubmission[]>> {
   return request<AssessmentSubmission[]>(() =>
     axiosInstance.get(`${BASE}/${assessmentId}/submissions`)
+  );
+}
+
+export interface SubmissionWithDetails extends AssessmentSubmission {
+  attempt?: { student?: { name?: string; email?: string }; _id?: string };
+  answers?: Array<{
+    _id: string;
+    question?: { questionText?: string; type?: string; marks?: number };
+    selectedOptions?: string[];
+    textAnswer?: string;
+    fileUrl?: string;
+    autoScore?: number;
+    manualScore?: number;
+  }>;
+}
+
+export function getSubmissionById(
+  submissionId: string
+): Promise<ApiResult<SubmissionWithDetails>> {
+  return request<SubmissionWithDetails>(() =>
+    axiosInstance.get(`${BASE}/submissions/${submissionId}`)
   );
 }
 
