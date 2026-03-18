@@ -2,8 +2,6 @@
 
 import {
   CheckCircle,
-  Circle,
-  CircleDot,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -14,12 +12,15 @@ import {
   X,
   Play,
   Award,
+  FileQuestion,
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { use, useEffect, useState } from "react";
-import { fetchStundentModulesByCourseId } from "@/lib/api/courses";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useStudentCourseModules } from "@/lib/hooks/useStudentCourseModules";
+import { getAssessmentsByModule } from "@/lib/api/assessments.api";
 import { cn } from "@/lib/utils";
+import type { AssessmentWithAttemptStatus } from "@/lib/types/assessment-unified";
 
 // Progress tracking utilities (same as in page content)
 const getProgressKey = (courseId: string) => `course_progress_${courseId}`
@@ -40,68 +41,116 @@ export default function CourseModulesPage({
 }) {
   const { courseId } = use(params);
   const [openModules, setOpenModules] = useState<Record<string, boolean>>({});
-  const [courseModules, setCourseModules] = useState<any[]>([]);
-  const [userAccess, setUserAccess] = useState<any>(null);
+
+  const {
+    data: modulesData,
+    isLoading: modulesLoading,
+    isError: modulesError,
+    error: modulesErr,
+  } = useStudentCourseModules(courseId);
+
+  const courseModules = modulesData?.modules ?? [];
+  const userAccess = modulesData?.userAccess ?? null;
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [modalStatus, setModalStatus] = useState<"mode" | "pending" | "approved">("mode");
-  const [courseProgress, setCourseProgress] = useState(0);
+  const [assessmentsBlockedMessage, setAssessmentsBlockedMessage] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await fetchStundentModulesByCourseId(courseId);
-        setCourseModules(data.modules || []);
-        setUserAccess(data.userAccess);
-        
-        // Auto-open first module
-        if (data.modules && data.modules.length > 0) {
-          setOpenModules({ [`${data.modules[0]._id}-0`]: true });
-        }
-        
-        // Calculate progress
-        calculateProgress(data.modules || []);
-      } catch (error: any) {
-        if (error.isRestricted) {
-          setShowPaymentModal(true);
-        }
-        setCourseModules([]);
-      }
-    };
-    load();
-  }, [courseId]);
+    if (modulesError && (modulesErr as { isRestricted?: boolean })?.isRestricted) {
+      setShowPaymentModal(true);
+      setModalStatus("mode");
+    }
+  }, [modulesError, modulesErr]);
 
-  const calculateProgress = (modules: any[]) => {
-    const allLessons = modules.flatMap((m) => m.items || m.lessons || []);
-    const completed = getCompletedLessons(courseId);
-    const progressPercent = allLessons.length > 0 
-      ? Math.round((completed.length / allLessons.length) * 100) 
-      : 0;
-    setCourseProgress(progressPercent);
+  const assessmentQueries = useQueries({
+    queries: courseModules.map((mod: { _id?: string; id?: string }) => {
+      const mid = mod._id || mod.id;
+      return {
+        queryKey: ["assessments-by-module", mid] as const,
+        queryFn: () => getAssessmentsByModule(mid!),
+        enabled: !!mid && courseModules.length > 0,
+      };
+    }),
+  });
+
+  const moduleAssessments: Record<string, AssessmentWithAttemptStatus[]> = {};
+  assessmentQueries.forEach((q, i) => {
+    const mod = courseModules[i];
+    const mid = mod?._id || mod?.id;
+    if (mid && q.data?.ok && Array.isArray(q.data.data)) {
+      moduleAssessments[mid] = q.data.data as AssessmentWithAttemptStatus[];
+    }
+  });
+
+  useEffect(() => {
+    if (courseModules.length > 0) {
+      const firstKey = `${(courseModules[0]._id || courseModules[0].id)}-0`;
+      setOpenModules((prev) => (prev[firstKey] ? prev : { ...prev, [firstKey]: true }));
+    }
+  }, [courseModules]);
+
+  const totalLessons = courseModules.reduce(
+    (acc: number, module: { items?: unknown[]; lessons?: unknown[] }) =>
+      acc + (module.items || module.lessons || []).length,
+    0
+  );
+  const completedLessons = getCompletedLessons(courseId).length;
+  const courseProgress =
+    totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+  const allAssessmentsAttempted = (modId: string) => {
+    const list = moduleAssessments[modId] || [];
+    if (list.length === 0) return true;
+    return list.every((a) => a.attempted);
   };
 
-  const toggleModule = (moduleId: string, isLocked: boolean, status: string) => {
+  const toggleModule = (
+    moduleKey: string,
+    moduleId: string,
+    moduleIndex: number,
+    isLocked: boolean,
+    status: string
+  ) => {
     if (isLocked) {
       setModalStatus(status as "mode" | "pending" | "approved");
       setShowPaymentModal(true);
       return;
     }
-    setOpenModules((prev) => ({ ...prev, [moduleId]: !prev[moduleId] }));
+    if (moduleIndex > 0) {
+      const prevModule = courseModules[moduleIndex - 1];
+      const prevId = prevModule?._id || prevModule?.id;
+      if (prevId && !allAssessmentsAttempted(prevId)) {
+        setAssessmentsBlockedMessage(
+          `Please complete the quiz/assignment in "${prevModule?.title ?? "the previous module"}" before continuing. You can continue even if you don't pass.`
+        );
+        setShowPaymentModal(true);
+        return;
+      }
+    }
+    const willOpen = !openModules[moduleKey];
+    setOpenModules((prev) => ({ ...prev, [moduleKey]: willOpen }));
+    if (willOpen && moduleId) {
+      queryClient.refetchQueries({ queryKey: ["assessments-by-module", moduleId] });
+    }
   };
 
-  const handleModalClose = async () => {
-    setShowPaymentModal(false);
+  const handleModalClose = () => {
+    closeModal();
     if (modalStatus === "approved") {
-      try {
-        const data = await fetchStundentModulesByCourseId(courseId);
-        setCourseModules(data.modules || []);
-        setUserAccess(data.userAccess);
-      } catch (error: any) {
-        console.error("Error reloading modules:", error);
-      }
+      queryClient.invalidateQueries({ queryKey: ["student-course-modules", courseId] });
     }
   };
 
   const getModalContent = () => {
+    if (assessmentsBlockedMessage) {
+      return {
+        icon: <ClipboardList className="h-5 w-5 text-amber-500" />,
+        title: "Complete assessments first",
+        message: assessmentsBlockedMessage,
+        showPaymentButton: false,
+      };
+    }
     switch (modalStatus) {
       case "mode":
         return {
@@ -135,6 +184,11 @@ export default function CourseModulesPage({
   };
 
   const modalContent = getModalContent();
+
+  const closeModal = () => {
+    setShowPaymentModal(false);
+    setAssessmentsBlockedMessage(null);
+  };
 
   // Calculate total lessons and completed
   const totalLessons = courseModules.reduce(
@@ -229,10 +283,13 @@ export default function CourseModulesPage({
       <main className="flex-1 p-6">
         <div className="max-w-6xl mx-auto space-y-4">
           {courseModules.map((module, index) => {
-            const moduleKey = `${module.id}-${index}`;
+            const moduleId = module._id || module.id;
+            const moduleKey = `${moduleId}-${index}`;
             const isLocked = module.isLocked || false;
             const status = module.moduleStatus || "mode";
             const moduleItems = module.items || module.lessons || [];
+            const assessments = moduleId ? (moduleAssessments[moduleId] || []) : [];
+            const allAttempted = moduleId ? allAssessmentsAttempted(moduleId) : true;
             
             // Calculate module progress
             const completedInModule = moduleItems.filter((item: any) =>
@@ -276,7 +333,7 @@ export default function CourseModulesPage({
                       ? "bg-gray-50 hover:bg-gray-100" 
                       : "hover:bg-blue-50"
                   )}
-                  onClick={() => toggleModule(moduleKey, isLocked, status)}
+                  onClick={() => toggleModule(moduleKey, moduleId, index, isLocked, status)}
                 >
                   <div className="flex items-center gap-3 flex-1">
                     {/* Icon */}
@@ -414,6 +471,44 @@ export default function CourseModulesPage({
                           </Link>
                         );
                       })}
+                      {assessments.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                            <FileQuestion className="h-4 w-4" />
+                            Quiz / Assignment
+                          </p>
+                          <div className="space-y-2">
+                            {assessments.map((a) => (
+                              <Link
+                                key={a._id}
+                                href={`/student/assessments/${a._id}?courseId=${courseId}&moduleId=${moduleId}`}
+                                className={cn(
+                                  "flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
+                                  a.attempted
+                                    ? "bg-green-50 border-green-200 hover:bg-green-100"
+                                    : "bg-amber-50 border-amber-200 hover:bg-amber-100"
+                                )}
+                              >
+                                <span className="text-sm font-medium text-gray-900">{a.title}</span>
+                                {a.attempted ? (
+                                  <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-1 rounded-full">
+                                    Done
+                                  </span>
+                                ) : (
+                                  <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">
+                                    Required
+                                  </span>
+                                )}
+                              </Link>
+                            ))}
+                          </div>
+                          {!allAttempted && (
+                            <p className="text-xs text-amber-700 mt-2">
+                              Complete the above to continue to the next module. You can continue even if you don&apos;t pass.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

@@ -39,9 +39,7 @@ const navigation = [
     icon: UserCheck, 
     badge: null,
     subItems: [
-      { name: "Assignments", href: "/instructor/assignments" },
-      { name: "Exams", href: "/instructor/exams" },
-      { name: "Quizzes", href: "/instructor/quizzes" },
+      { name: "Assessments", href: "/instructor/assessments" },
       // { name: "Resources", href: "/instructor/resources" },
     ]
   },

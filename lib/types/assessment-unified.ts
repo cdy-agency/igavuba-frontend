@@ -21,6 +21,7 @@ export interface Assessment {
   description?: string;
   type: AssessmentType;
   course: UUID;
+  module?: UUID; // required for QUIZ/ASSIGNMENT; EXAM is course-level only
   questions: UUID[];
   totalMarks: number;
   duration?: number;
@@ -31,6 +32,16 @@ export interface Assessment {
   maxAttempts?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** Assessment returned by getAssessmentById (questions populated) */
+export interface AssessmentWithQuestions extends Assessment {
+  questions: AssessmentQuestion[];
+}
+
+/** Assessment with attempt status (for student module view) */
+export interface AssessmentWithAttemptStatus extends Assessment {
+  attempted?: boolean;
 }
 
 export interface AssessmentQuestion {
