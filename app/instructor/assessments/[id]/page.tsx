@@ -29,6 +29,11 @@ import type {
   QuestionOption,
 } from "@/lib/types/assessment-unified";
 
+type NormalisedOption = { text: string; isCorrect: boolean };
+
+const normaliseOptions = (opts: QuestionOption[]): NormalisedOption[] =>
+  opts.map((o) => ({ text: o.text, isCorrect: o.isCorrect ?? false }));
+
 function QuestionCard({
   assessmentId,
   question,
@@ -43,8 +48,10 @@ function QuestionCard({
   const [questionText, setQuestionText] = useState(question.questionText);
   const [marks, setMarks] = useState(question.marks);
   const [type, setType] = useState(question.type);
-  const [options, setOptions] = useState<QuestionOption[]>(
-    question.options ?? [{ text: "", isCorrect: false }],
+  const [options, setOptions] = useState<NormalisedOption[]>(
+    question.options?.length
+      ? normaliseOptions(question.options)
+      : [{ text: "", isCorrect: false }],
   );
 
   useEffect(() => {
@@ -53,7 +60,7 @@ function QuestionCard({
     setType(question.type);
     setOptions(
       question.options?.length
-        ? question.options
+        ? normaliseOptions(question.options)
         : [{ text: "", isCorrect: false }],
     );
   }, [
@@ -75,6 +82,7 @@ function QuestionCard({
       { onSuccess: (r) => { if (!r.ok) toast.error(r.message); } },
     );
   };
+
   const saveMarks = () => {
     if (marks === question.marks) return;
     updateQuestion.mutate(
@@ -82,18 +90,17 @@ function QuestionCard({
       { onSuccess: (r) => { if (!r.ok) toast.error(r.message); } },
     );
   };
+
   const saveType = (newType: AssessmentQuestion["type"]) => {
     setType(newType);
     updateQuestion.mutate(
-      {
-        assessmentId,
-        questionId: question._id,
-        payload: { type: newType },
-      },
+      { assessmentId, questionId: question._id, payload: { type: newType } },
       { onSuccess: (r) => { if (!r.ok) toast.error(r.message); } },
     );
   };
-  const saveOptions = (newOpts: QuestionOption[]) => {
+
+  // All options passed here are already NormalisedOption — isCorrect is always boolean
+  const saveOptions = (newOpts: NormalisedOption[]) => {
     const valid = newOpts.filter((o) => o.text.trim());
     if (
       valid.length < 2 &&
@@ -103,6 +110,7 @@ function QuestionCard({
     const correctCount = valid.filter((o) => o.isCorrect).length;
     if (type === "MULTIPLE_CHOICE" && correctCount !== 1) return;
     if (type === "MULTI_SELECT" && correctCount < 1) return;
+
     updateQuestion.mutate(
       { assessmentId, questionId: question._id, payload: { options: valid } },
       {
@@ -115,11 +123,11 @@ function QuestionCard({
   };
 
   const setOptionText = (i: number, text: string) => {
-    const next = options.map((o, j) => (j === i ? { ...o, text } : o));
-    setOptions(next);
+    setOptions((prev) => prev.map((o, j) => (j === i ? { ...o, text } : o)));
   };
+
   const setOptionCorrect = (i: number, isCorrect: boolean) => {
-    const next =
+    const next: NormalisedOption[] =
       type === "MULTIPLE_CHOICE"
         ? options.map((o, j) => ({ ...o, isCorrect: j === i }))
         : options.map((o, j) => (j === i ? { ...o, isCorrect } : o));
@@ -127,9 +135,11 @@ function QuestionCard({
     const valid = next.filter((o) => o.text.trim());
     if (valid.length >= 2) saveOptions(valid);
   };
+
   const addOption = () => {
     setOptions((prev) => [...prev, { text: "", isCorrect: false }]);
   };
+
   const applyOptions = () => {
     const valid = options.filter((o) => o.text.trim());
     if (valid.length >= 2) saveOptions(valid);
@@ -223,6 +233,9 @@ function QuestionCard({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 export default function InstructorAssessmentDetailPage() {
   const params = useParams();
   const id = params?.id as string;
@@ -230,6 +243,7 @@ export default function InstructorAssessmentDetailPage() {
   const publishResults = usePublishResults();
   const updateQuestion = useUpdateAssessmentQuestion();
   const addQuestions = useAddAssessmentQuestions();
+
   const assessment: Assessment | null = res?.ok ? res.data : null;
   const questions: AssessmentQuestion[] = Array.isArray(
     (assessment as any)?.questions,

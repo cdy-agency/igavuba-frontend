@@ -2,9 +2,13 @@
 
 export type UUID = string;
 
-export type AssessmentType = 'QUIZ' | 'EXAM' | 'ASSIGNMENT';
-export type QuestionType = 'MULTIPLE_CHOICE' | 'MULTI_SELECT' | 'ESSAY' | 'TEXT';
-export type SubmissionType = 'TEXT' | 'DOCUMENT' | 'BOTH';
+export type AssessmentType = "QUIZ" | "EXAM" | "ASSIGNMENT";
+export type QuestionType =
+  | "MULTIPLE_CHOICE"
+  | "MULTI_SELECT"
+  | "ESSAY"
+  | "TEXT";
+export type SubmissionType = "TEXT" | "DOCUMENT" | "BOTH";
 
 export interface AssignmentSettings {
   submissionType: SubmissionType;
@@ -35,7 +39,7 @@ export interface Assessment {
 }
 
 /** Assessment returned by getAssessmentById (questions populated) */
-export interface AssessmentWithQuestions extends Assessment {
+export interface AssessmentWithQuestions extends Omit<Assessment, "questions"> {
   questions: AssessmentQuestion[];
 }
 
@@ -62,7 +66,7 @@ export interface AssessmentAttempt {
   startedAt: string;
   submittedAt?: string;
   expiresAt?: string;
-  status: 'IN_PROGRESS' | 'SUBMITTED' | 'EXPIRED';
+  status: "IN_PROGRESS" | "SUBMITTED" | "EXPIRED";
   questionOrder?: UUID[];
 }
 

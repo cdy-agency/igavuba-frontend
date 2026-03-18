@@ -83,7 +83,7 @@ export default function NewAssessmentPage() {
       toast.success('Assessment created');
       router.push(`/instructor/assessments/${res.data._id}`);
     } else {
-      toast.error(res.message ?? 'Failed to create');
+      toast.error(res.ok ?? 'Failed to create');
     }
   };
 
