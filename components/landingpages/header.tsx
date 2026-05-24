@@ -35,7 +35,7 @@ export default function LandingHeader() {
 
   const navItems = [
     { href: "/", label: "HOME" },
-    { href: "/course", label: "COURSES" },
+    { href: "/courses", label: "COURSES" },
     { href: "/contact", label: "CONTACT" },
   ];
 
