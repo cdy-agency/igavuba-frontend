@@ -35,7 +35,7 @@ export default function LandingCta() {
               asChild
               className="bg-white text-[#083580] hover:bg-gray-100 rounded-sm px-6 py-2.5 text-sm font-medium"
             >
-              <Link href="/auth/signup">Get started</Link>
+              <Link href="/register">Get started</Link>
             </Button>
           </div>
 

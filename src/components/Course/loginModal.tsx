@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Eye, EyeOff, Lock, LogIn, Mail, X } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { getApiErrorMessage } from '@/lib/auth';
+import { toast } from '@/lib/toast';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -12,44 +14,32 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: LoginModalProps) {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
     if (!email || !password) {
       toast.error('Please fill in all fields');
       return;
     }
 
     setIsLoading(true);
+
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      // Store token — adapt to your auth system (e.g. next-auth, zustand, context)
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-
-      toast.success('Logged in successfully!');
+      await login(email, password);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      toast.error(error.message || 'Invalid credentials. Please try again.');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Invalid credentials. Please try again.'));
     } finally {
       setIsLoading(false);
     }
@@ -57,17 +47,10 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
 
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-[100] backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-[100] backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-full max-w-md px-4">
         <div className="bg-white rounded-sm shadow-2xl overflow-hidden">
-
-          {/* Header */}
           <div className="bg-primary px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <LogIn className="h-5 w-5 text-white" />
@@ -81,9 +64,7 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
             </button>
           </div>
 
-          {/* Body */}
           <div className="px-6 py-6">
-            {/* Context message */}
             {redirectMessage && (
               <p className="text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded-sm px-4 py-3 mb-5">
                 {redirectMessage}
@@ -91,7 +72,6 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Email */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5">
                   Email
@@ -101,7 +81,7 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(event) => setEmail(event.target.value)}
                     placeholder="you@example.com"
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                     disabled={isLoading}
@@ -109,7 +89,6 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
                 </div>
               </div>
 
-              {/* Password */}
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5">
                   Password
@@ -119,14 +98,14 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="********"
                     className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-sm text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                     disabled={isLoading}
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowPassword((value) => !value)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -134,7 +113,6 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
                 </div>
               </div>
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={isLoading}
@@ -151,13 +129,9 @@ export function LoginModal({ isOpen, onClose, onSuccess, redirectMessage }: Logi
               </button>
             </form>
 
-            {/* Footer links */}
-            <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-              <a href="/forgot-password" className="hover:text-primary transition-colors">
-                Forgot password?
-              </a>
+            <div className="mt-4 flex items-center justify-end text-xs text-gray-500">
               <a href="/register" className="hover:text-primary transition-colors font-medium">
-                Create an account →
+                Create an account
               </a>
             </div>
           </div>
