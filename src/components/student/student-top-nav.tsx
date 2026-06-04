@@ -72,20 +72,20 @@ export default function StudentTopNav() {
   }, [])
 
   return (
-    <div className="sticky top-0 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div className="sticky top-0 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-12 w-full items-center px-2 sm:h-14 sm:px-16">
 
         {/* LEFT SIDE */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <span className="hidden text-sm font-medium text-gray-800 sm:inline lg:text-base">
+          <span className="hidden text-sm font-medium text-foreground sm:inline lg:text-base">
             {title}
           </span>
         </div>
 
         {/* CENTER SEARCH (MOBILE) */}
         <div className="flex-1 mx-2 sm:hidden">
-          <div className="flex items-center gap-2 rounded-md border bg-white px-2 py-1">
-            <Search className="h-4 w-4 text-gray-500 flex-shrink-0" />
+          <div className="flex items-center gap-2 rounded-md border bg-background px-2 py-1">
+            <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <Input
               className="h-6 border-0 p-0 shadow-none focus-visible:ring-0 text-sm"
               placeholder="Search"
@@ -97,8 +97,8 @@ export default function StudentTopNav() {
         <div className="ml-auto flex items-center gap-3">
 
           {/* DESKTOP SEARCH */}
-          <div className="hidden sm:flex min-w-[200px] lg:min-w-[240px] items-center gap-2 rounded-md border bg-white px-2">
-            <Search className="h-4 w-4 text-gray-500 flex-shrink-0" />
+          <div className="hidden sm:flex min-w-[200px] lg:min-w-[240px] items-center gap-2 rounded-md border bg-background px-2">
+            <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <Input
               className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
               placeholder="Search courses..."
@@ -108,7 +108,7 @@ export default function StudentTopNav() {
           {/* USER DROPDOWN */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="inline-flex items-center gap-3 rounded-full outline-none ring-0 focus-visible:ring-2 focus-visible:ring-blue-300 transition-all duration-200 hover:scale-105">
+              <button className="inline-flex items-center gap-3 rounded-full outline-none ring-0 focus-visible:ring-2 focus-visible:ring-primary-light transition-all duration-200 hover:scale-105">
 
                 {/* Avatar */}
                 <Avatar className="h-8 w-8">
@@ -118,10 +118,10 @@ export default function StudentTopNav() {
 
                 {/* Name + Email */}
                 <div className="hidden sm:flex flex-col text-left leading-tight">
-                  <span className="text-[13px] font-semibold text-gray-800">
+                  <span className="text-[13px] font-semibold text-foreground">
                     {name}
                   </span>
-                  <span className="text-[11px] text-gray-500">
+                  <span className="text-[11px] text-muted-foreground">
                     {email}
                   </span>
                 </div>
@@ -147,7 +147,12 @@ export default function StudentTopNav() {
 
               <DropdownMenuSeparator />
 
-              <DropdownMenuItem onClick={logout}>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  void logout();
+                }}
+              >
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>

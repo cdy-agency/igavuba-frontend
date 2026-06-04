@@ -45,9 +45,9 @@ export default function AccountOverview() {
 
   const getPaymentStatusBadge = (status: string) => {
     const badges = {
-      paid: { color: "bg-green-100 text-green-800 border-green-200", icon: Check, text: "Paid" },
-      pending: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Clock, text: "Pending" },
-      unpaid: { color: "bg-red-100 text-red-800 border-red-200", icon: X, text: "Unpaid" },
+      paid: { color: "bg-success/20 text-success border-success/30", icon: Check, text: "Paid" },
+      pending: { color: "bg-accent/20 text-accent border-accent/30", icon: Clock, text: "Pending" },
+      unpaid: { color: "bg-destructive/20 text-destructive border-destructive/30", icon: X, text: "Unpaid" },
     };
     const badge = badges[status as keyof typeof badges] || badges.pending;
     const Icon = badge.icon;
@@ -61,63 +61,63 @@ export default function AccountOverview() {
     );
   };
 
-  if (loading) return <p className="text-gray-600">Loading account overview...</p>;
-  if (error) return <p className="text-red-600">Error: {error}</p>;
-  if (!overview) return <p className="text-gray-600">No account data found.</p>;
+  if (loading) return <p className="text-muted-foreground">Loading account overview...</p>;
+  if (error) return <p className="text-destructive">Error: {error}</p>;
+  if (!overview) return <p className="text-muted-foreground">No account data found.</p>;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Personal Info Card */}
-      <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Personal Information</h2>
+      <div className="lg:col-span-2 bg-background rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-6">Personal Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <p className="text-gray-900 font-medium">{overview.personalInfo.name}</p>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Full Name</label>
+            <p className="text-foreground font-medium">{overview.personalInfo.name}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-            <p className="text-gray-900">{overview.personalInfo.email}</p>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Email Address</label>
+            <p className="text-foreground">{overview.personalInfo.email}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-            <p className="text-gray-900">{overview.personalInfo.phone || "Not provided"}</p>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Phone Number</label>
+            <p className="text-foreground">{overview.personalInfo.phone || "Not provided"}</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Member Since</label>
-            <p className="text-gray-900">
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Member Since</label>
+            <p className="text-foreground">
                 <DateFormatter value={overview.personalInfo.memberSince} />
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Account Age</label>
-            <p className="text-gray-900">{overview.personalInfo.accountAge}</p>
+            <label className="block text-sm font-medium text-foreground-muted mb-1">Account Age</label>
+            <p className="text-foreground">{overview.personalInfo.accountAge}</p>
           </div>
         </div>
       </div>
 
       {/* Account Status Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Status</h2>
+      <div className="bg-background rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Account Status</h2>
         <div className="text-center py-6">
-          <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <CreditCard className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <div className="mb-4">{getPaymentStatusBadge(overview.accountStatus.paymentStatus)}</div>
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-muted-foreground mb-2">
             {overview.accountStatus.isActive ? "Account is active" : "Account is inactive"}
           </p>
-          <p className="text-gray-900">
+          <p className="text-foreground">
             <DateFormatter value={overview.accountStatus.lastUpdated} />
         </p>
         </div>
       </div>
 
       {/* Profile Completion Card */}
-      <div className="lg:col-span-3 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Profile Completion</h2>
+      <div className="lg:col-span-3 bg-background rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Profile Completion</h2>
         <div className="mb-2">
-          <div className="w-full bg-gray-200 rounded-full h-4">
+          <div className="w-full bg-muted rounded-full h-4">
             <div
-              className="bg-blue-600 h-4 rounded-full text-xs text-white text-center"
+              className="bg-primary h-4 rounded-full text-xs text-panel-foreground text-center"
               style={{ width: `${overview.profileCompletion.percentage}%` }}
             >
               {overview.profileCompletion.percentage}%
@@ -125,7 +125,7 @@ export default function AccountOverview() {
           </div>
         </div>
         {overview.profileCompletion.missingFields.length > 0 && (
-          <p className="text-sm text-gray-600 mt-2">
+          <p className="text-sm text-muted-foreground mt-2">
             Missing: {overview.profileCompletion.missingFields.join(", ")}
           </p>
         )}

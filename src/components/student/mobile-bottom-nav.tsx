@@ -18,7 +18,7 @@ export default function MobileBottomNav() {
 	const pathname = usePathname()
 
 	return (
-		<nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+		<nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 			<ul className="mx-auto flex max-w-6xl items-stretch justify-between gap-1 px-1">
 				{items.map(({ href, label, icon: Icon }) => {
 					const active = pathname === href || pathname.startsWith(href + "/")
@@ -28,7 +28,7 @@ export default function MobileBottomNav() {
 								href={href}
 								className={cn(
 									"flex h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-									active ? "text-blue-600" : "text-gray-600 hover:text-gray-900"
+									active ? "text-primary" : "text-muted-foreground hover:text-foreground"
 								)}
 								aria-current={active ? "page" : undefined}
 							>

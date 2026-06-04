@@ -19,10 +19,10 @@ const PREVIEW_LIMIT = 5;
 function getDueBadge(dueDate: string) {
   const due = new Date(dueDate);
   const now = new Date();
-  if (isPast(due)) return { label: "Overdue", cls: "bg-red-100 text-red-700" };
+  if (isPast(due)) return { label: "Overdue", cls: "bg-destructive/20 text-destructive" };
   if (isWithinInterval(due, { start: now, end: addDays(now, 3) }))
-    return { label: "Due soon", cls: "bg-orange-100 text-orange-700" };
-  return { label: "Upcoming", cls: "bg-blue-100 text-blue-700" };
+    return { label: "Due soon", cls: "bg-accent/20 text-accent" };
+  return { label: "Upcoming", cls: "bg-primary-muted text-primary-hover" };
 }
 
 function stripHtml(html: string) {
@@ -55,9 +55,9 @@ export default function Assignments({ assignments }: AssignmentsProps) {
 
   if (!active.length) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Assignments</h2>
-        <div className="flex flex-col items-center justify-center py-10 gap-2 text-gray-400">
+      <div className="bg-background rounded-2xl p-6 shadow-sm border border-border">
+        <h2 className="text-xl font-bold text-foreground mb-4">Assignments</h2>
+        <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
           <ClipboardList className="w-8 h-8 opacity-40" />
           <p className="text-sm font-medium">No pending assignments</p>
         </div>
@@ -66,11 +66,11 @@ export default function Assignments({ assignments }: AssignmentsProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <div className="bg-background rounded-2xl p-6 shadow-sm border border-border">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">Assignments</h2>
-        <span className="text-xs font-semibold bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full">
+        <h2 className="text-xl font-bold text-foreground">Assignments</h2>
+        <span className="text-xs font-semibold bg-accent/20 text-accent px-2.5 py-1 rounded-full">
           {active.length} pending
         </span>
       </div>
@@ -86,16 +86,16 @@ export default function Assignments({ assignments }: AssignmentsProps) {
             <div
               key={item._id}
               onClick={() => router.push(`/student/assignments/${item._id}`)}
-              className="flex items-start gap-3 p-3.5 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors border border-gray-100 group"
+              className="flex items-start gap-3 p-3.5 rounded-xl hover:bg-surface cursor-pointer transition-colors border border-border group"
             >
-              <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <ClipboardList className="w-4 h-4 text-indigo-600" />
+              <div className="w-8 h-8 bg-primary-subtle rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <ClipboardList className="w-4 h-4 text-primary" />
               </div>
 
               <div className="flex-1 min-w-0">
                 {/* Title + due badge */}
                 <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                  <h3 className="font-semibold text-gray-900 text-sm truncate">
+                  <h3 className="font-semibold text-foreground text-sm truncate">
                     {item.title}
                   </h3>
                   <span
@@ -105,27 +105,27 @@ export default function Assignments({ assignments }: AssignmentsProps) {
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-500 truncate mb-1">
+                <p className="text-xs text-muted-foreground truncate mb-1">
                   {preview}…
                 </p>
 
                 {/* Course title · due · points */}
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="flex items-center gap-1 text-[11px] text-gray-400 font-medium truncate">
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium truncate">
                     <BookOpen className="w-3 h-3 flex-shrink-0" />
                     {item.course_id?.title ?? "—"}
                   </span>
-                  <span className="flex items-center gap-1 text-[11px] text-gray-400 flex-shrink-0">
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground flex-shrink-0">
                     <Clock className="w-3 h-3" />
                     {timeLeft}
                   </span>
-                  <span className="text-[11px] font-semibold text-indigo-600 flex-shrink-0">
+                  <span className="text-[11px] font-semibold text-primary flex-shrink-0">
                     {item.points} pts
                   </span>
                 </div>
               </div>
 
-              <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors flex-shrink-0 mt-1" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground transition-colors flex-shrink-0 mt-1" />
             </div>
           );
         })}
@@ -135,7 +135,7 @@ export default function Assignments({ assignments }: AssignmentsProps) {
       {hasMore && (
         <button
           onClick={() => router.push("/student/assignments")}
-          className="w-full mt-4 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors"
+          className="w-full mt-4 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-border text-sm font-medium text-muted-foreground hover:bg-surface hover:border-border transition-colors"
         >
           View all {active.length} assignments
           <ChevronRight className="w-4 h-4" />

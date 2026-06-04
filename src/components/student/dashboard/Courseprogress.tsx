@@ -20,14 +20,14 @@ export default function CourseProgress({ enrollments }: CourseProgressProps) {
   };
 
   return (
-    <div className="bg-white p-2">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">
+    <div className="bg-background p-2">
+      <h2 className="text-xl font-bold text-foreground mb-6">
         Course You&apos;re Taking
       </h2>
 
       {/* Table Header */}
       {enrollments.length > 0 && (
-        <div className="grid grid-cols-12 gap-4 pb-3 mb-4 border-b border-gray-100 text-sm text-gray-500 font-medium">
+        <div className="grid grid-cols-12 gap-4 pb-3 mb-4 border-b border-border text-sm text-muted-foreground font-medium">
           <div className="col-span-4">Course Title</div>
           <div className="col-span-3">Lessons Completed</div>
           <div className="col-span-3">Duration</div>
@@ -51,11 +51,11 @@ export default function CourseProgress({ enrollments }: CourseProgressProps) {
               <div
                 key={enrollment._id}
                 onClick={() => handleCourseClick(enrollment.course_id?._id)}
-                className="grid grid-cols-12 gap-4 items-center p-2 rounded hover:bg-gray-100 cursor-pointer transition-colors border border-gray-100"
+                className="grid grid-cols-12 gap-4 items-center p-2 rounded hover:bg-muted cursor-pointer transition-colors border border-border"
               >
                 {/* Course Title with Icon */}
                 <div className="col-span-4 flex items-center gap-3">
-                  <div className="relative w-7 h-7 rounded overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600 flex-shrink-0">
+                  <div className="relative w-7 h-7 rounded overflow-hidden bg-gradient-to-br from-accent to-accent flex-shrink-0">
                     <Image
                       src={
                         enrollment?.course_id?.thumbnail ||
@@ -68,21 +68,21 @@ export default function CourseProgress({ enrollments }: CourseProgressProps) {
                     />
                   </div>
 
-                  <span className="text-sm font-semibold text-gray-900 line-clamp-1">
+                  <span className="text-sm font-semibold text-foreground line-clamp-1">
                     {enrollment.course_id?.title || "Course Title"}
                   </span>
                 </div>
 
                 {/* Lessons Progress */}
                 <div className="col-span-3">
-                  <span className="text-gray-700 font-medium text-sm">
+                  <span className="text-foreground-muted font-medium text-sm">
                     {completionPercentage}%
                   </span>
                 </div>
 
                 {/* Duration */}
                 <div className="col-span-3">
-                  <span className="text-gray-600">
+                  <span className="text-muted-foreground">
                     {calculateDuration(
                       enrollment.enrolled_at,
                       enrollment.lastAccessed,
@@ -92,13 +92,15 @@ export default function CourseProgress({ enrollments }: CourseProgressProps) {
 
                 {/* Instructor */}
                 <div className="col-span-2 flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                    <span className="text-white text-xs font-semibold">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-light to-primary flex items-center justify-center">
+                    <span className="text-panel-foreground text-xs font-semibold">
                       {getInitials(enrollment.course_id?.instructor_id)}
                     </span>
                   </div>
-                  <span className="text-gray-700 text-sm truncate">
-                    {enrollment.course_id?.instructor_id || "Instructor"}
+                  <span className="text-foreground-muted text-sm truncate">
+                    {enrollment.course_id?.instructor_id?.user_id?.name ||
+                      enrollment.course_id?.instructor_id?.name ||
+                      "Instructor"}
                   </span>
                 </div>
               </div>
@@ -115,12 +117,12 @@ export default function CourseProgress({ enrollments }: CourseProgressProps) {
                 className="object-cover"
               />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               No courses yet
             </h3>
             <Link
               href="/course"
-              className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              className="px-6 py-2 bg-primary text-panel-foreground rounded hover:bg-primary-hover transition-colors"
             >
               Browse Courses
             </Link>

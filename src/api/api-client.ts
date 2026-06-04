@@ -111,7 +111,11 @@ apiClient.interceptors.response.use(undefined, async (error) => {
     originalRequest.url?.includes('/auth/signup') ||
     originalRequest.url?.includes('/auth/verify-email') ||
     originalRequest.url?.includes('/auth/resend-verification') ||
-    originalRequest.url?.includes('/auth/refresh')
+    originalRequest.url?.includes('/auth/forgot-password') ||
+    originalRequest.url?.includes('/auth/verify-reset-otp') ||
+    originalRequest.url?.includes('/auth/reset-password') ||
+    originalRequest.url?.includes('/auth/refresh') ||
+    originalRequest.url?.includes('/auth/invitation')
   ) {
     return Promise.reject(error);
   }

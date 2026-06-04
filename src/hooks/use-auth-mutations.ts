@@ -26,3 +26,21 @@ export function useResendVerificationMutation() {
     mutationFn: authApi.resendVerification,
   });
 }
+
+export function useForgotPasswordMutation() {
+  return useMutation({
+    mutationFn: authApi.forgotPassword,
+  });
+}
+
+export function useVerifyResetOtpMutation() {
+  return useMutation({
+    mutationFn: authApi.verifyResetOtp,
+  });
+}
+
+export function useResetPasswordMutation() {
+  return useMutation({
+    mutationFn: authApi.resetPassword,
+  });
+}

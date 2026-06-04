@@ -106,38 +106,38 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
     switch (toast.type) {
       case 'success':
         return {
-          accent: 'bg-green-500',
-          icon: 'text-green-600',
+          accent: 'bg-success/100',
+          icon: 'text-success',
           iconComponent: <CheckCircle className="h-5 w-5" />,
         };
       case 'error':
         return {
-          accent: 'bg-red-500',
-          icon: 'text-red-600',
+          accent: 'bg-destructive/100',
+          icon: 'text-destructive',
           iconComponent: <XCircle className="h-5 w-5" />,
         };
       case 'warning':
         return {
-          accent: 'bg-yellow-500',
-          icon: 'text-yellow-600',
+          accent: 'bg-accent/100',
+          icon: 'text-accent',
           iconComponent: <AlertCircle className="h-5 w-5" />,
         };
       case 'info':
         return {
-          accent: 'bg-blue-500',
-          icon: 'text-blue-600',
+          accent: 'bg-primary-light',
+          icon: 'text-primary',
           iconComponent: <Info className="h-5 w-5" />,
         };
       case 'loading':
         return {
-          accent: 'bg-gray-500',
-          icon: 'text-gray-600',
+          accent: 'bg-surface0',
+          icon: 'text-muted-foreground',
           iconComponent: <Loader2 className="h-5 w-5 animate-spin" />,
         };
       default:
         return {
-          accent: 'bg-gray-500',
-          icon: 'text-gray-600',
+          accent: 'bg-surface0',
+          icon: 'text-muted-foreground',
           iconComponent: <Info className="h-5 w-5" />,
         };
     }
@@ -148,7 +148,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   return (
     <div
       className={cn(
-        'relative min-w-[320px] max-w-[420px] bg-white rounded-xl shadow-lg border border-gray-200 p-4 transition-all duration-300 ease-out',
+        'relative min-w-[320px] max-w-[420px] bg-background rounded-xl shadow-lg border border-border p-4 transition-all duration-300 ease-out',
         isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
       )}
     >
@@ -160,13 +160,13 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       <div className="flex items-start space-x-3">
         <div className={cn('flex-shrink-0', styles.icon)}>{styles.iconComponent}</div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{toast.title}</p>
-          {toast.description && <p className="text-sm text-gray-600 mt-1">{toast.description}</p>}
+          <p className="text-sm font-semibold text-foreground">{toast.title}</p>
+          {toast.description && <p className="text-sm text-muted-foreground mt-1">{toast.description}</p>}
         </div>
         <button
           type="button"
           onClick={handleRemove}
-          className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+          className="flex-shrink-0 text-muted-foreground hover:text-muted-foreground transition-colors p-1 rounded-full hover:bg-muted"
         >
           <X className="h-4 w-4" />
         </button>

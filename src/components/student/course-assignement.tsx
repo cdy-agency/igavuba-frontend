@@ -236,17 +236,17 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "not-started":
-        return "text-gray-600 bg-gray-50 border-gray-200";
+        return "text-muted-foreground bg-surface border-border";
       case "in-progress":
-        return "text-blue-600 bg-blue-50 border-blue-200";
+        return "text-primary bg-primary-subtle border-primary-muted";
       case "submitted":
-        return "text-green-600 bg-green-50 border-green-200";
+        return "text-success bg-success/10 border-success/30";
       case "graded":
-        return "text-purple-600 bg-purple-50 border-purple-200";
+        return "text-secondary bg-secondary/10 border-secondary/30";
       case "overdue":
-        return "text-red-600 bg-red-50 border-red-200";
+        return "text-destructive bg-destructive/10 border-destructive/30";
       default:
-        return "text-gray-600 bg-gray-50 border-gray-200";
+        return "text-muted-foreground bg-surface border-border";
     }
   };
 
@@ -280,14 +280,14 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
   // Assignment Detail Component
   const AssignmentDetail = ({ assignment }: { assignment: IAssignment }) => (
     <div className="max-w-6xl mx-auto">
-      <div className="bg-white">
+      <div className="bg-background">
         {/* Assignment Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-blue-900 mb-4">
+            <h1 className="text-2xl font-bold text-primary-active mb-4">
               {assignment.title}
             </h1>
-            <div className="flex items-center space-x-6 text-sm text-gray-700">
+            <div className="flex items-center space-x-6 text-sm text-foreground-muted">
               <div>
                 <span className="font-medium">Due</span> {assignment.dueDate}
               </div>
@@ -306,12 +306,12 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="bg-blue-800 text-white px-4 py-2 text-sm font-medium hover:bg-blue-900">
+            <button className="bg-primary-active text-panel-foreground px-4 py-2 text-sm font-medium hover:bg-primary-active">
               Start Assignment
             </button>
             <button
               onClick={() => setSelectedAssignment(null)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-muted-foreground hover:text-muted-foreground"
             >
               <XCircle className="w-6 h-6" />
             </button>
@@ -324,32 +324,32 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
             <div className="space-y-8">
               {/* Introduction */}
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4">
+                <h2 className="text-lg font-bold text-foreground mb-4">
                   Introduction
                 </h2>
-                <p className="text-gray-700 leading-relaxed text-sm">
+                <p className="text-foreground-muted leading-relaxed text-sm">
                   {assignment.introduction}
                 </p>
               </div>
 
               {/* Instructions */}
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-4">
+                <h2 className="text-lg font-bold text-foreground mb-4">
                   Instructions:
                 </h2>
                 <div className="space-y-6">
                   {assignment.instructions?.map((instruction, index) => (
                     <div key={index}>
-                      <h3 className="font-bold text-gray-900 mb-2 text-sm">
+                      <h3 className="font-bold text-foreground mb-2 text-sm">
                         {instruction.step}
                       </h3>
-                      <p className="text-gray-700 leading-relaxed text-sm">
+                      <p className="text-foreground-muted leading-relaxed text-sm">
                         {instruction.content}
                       </p>
                       {instruction.step.includes("Step 3") && (
-                        <p className="text-blue-600 text-sm mt-2">
+                        <p className="text-primary text-sm mt-2">
                           Submit a three-sentence topic proposal using{" "}
-                          <a href="#" className="text-blue-600 underline">
+                          <a href="#" className="text-primary underline">
                             this link
                           </a>{" "}
                           (to be reviewed by your learning coach). Ensure to include
@@ -366,7 +366,7 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
               {/* Detailed Instructions */}
               {assignment.detailedInstructions && (
                 <div>
-                  <p className="text-gray-700 leading-relaxed text-sm">
+                  <p className="text-foreground-muted leading-relaxed text-sm">
                     Create a plot map or outline of your podcast using different plot mapping techniques that you have learned during this topic. In your podcast, discuss your opinions around the topic that you have selected.
                   </p>
                 </div>
@@ -374,12 +374,12 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
 
               {/* Comments Section */}
               {assignment.comments && (
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-bold text-foreground mb-4">
                     Comments:
                   </h3>
-                  <div className="bg-gray-50 p-4 text-sm">
-                    <p className="text-gray-700">{assignment.comments}</p>
+                  <div className="bg-surface p-4 text-sm">
+                    <p className="text-foreground-muted">{assignment.comments}</p>
                   </div>
                 </div>
               )}
@@ -391,14 +391,14 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
             <div className="space-y-6">
               {/* Submission Status */}
               <div>
-                <h3 className="text-sm font-bold text-red-600 mb-2">Submission</h3>
+                <h3 className="text-sm font-bold text-destructive mb-2">Submission</h3>
                 <div className="flex items-center space-x-2 mb-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  <span className="text-sm font-bold text-red-600">
+                  <XCircle className="w-4 h-4 text-destructive" />
+                  <span className="text-sm font-bold text-destructive">
                     Not Submitted!
                   </span>
                 </div>
-                <div className="text-sm text-gray-600 space-y-1">
+                <div className="text-sm text-muted-foreground space-y-1">
                   <div>
                     <span className="font-medium">Available</span> {assignment.availableAfter}
                   </div>
@@ -411,7 +411,7 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                 </div>
                 {assignment.viewRubric && (
                   <div className="mt-3">
-                    <a href="#" className="text-blue-600 text-sm underline">
+                    <a href="#" className="text-primary text-sm underline">
                       View Rubric Evaluation
                     </a>
                   </div>
@@ -420,8 +420,8 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
 
               {/* Submission Details */}
               <div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">Submission Details</h3>
-                <div className="text-sm text-gray-600">
+                <h3 className="text-sm font-bold text-foreground mb-2">Submission Details</h3>
+                <div className="text-sm text-muted-foreground">
                   <p>Available after Jun 6 at 12am</p>
                 </div>
               </div>
@@ -433,27 +433,27 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
   );
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-surface min-h-screen">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-foreground">
                   {courseInfo.title}
                 </h1>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   {courseInfo.code} • {courseInfo.semester} •{" "}
                   {courseInfo.credits} Credits
                 </p>
               </div>
               <div className="flex items-center space-x-4">
-                <div className="text-right text-sm text-gray-600">
+                <div className="text-right text-sm text-muted-foreground">
                   <p>{courseInfo.instructor}</p>
                   <p>{courseInfo.schedule}</p>
                 </div>
-                <Bell className="w-5 h-5 text-gray-400 cursor-pointer hover:text-blue-600" />
+                <Bell className="w-5 h-5 text-muted-foreground cursor-pointer hover:text-primary" />
               </div>
             </div>
           </div>
@@ -463,7 +463,7 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Navigation Tabs */}
         <div className="mb-8">
-          <div className="border-b border-gray-200">
+          <div className="border-b border-border">
             <nav className="-mb-px flex space-x-8">
               {[
                 { key: "overview", label: "Overview", icon: BookOpen },
@@ -476,8 +476,8 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                   onClick={() => setActiveTab(key)}
                   className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
                     activeTab === key
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground-muted hover:border-border"
                   }`}
                 >
                   <Icon className="w-4 h-4 mr-2" />
@@ -498,42 +498,42 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
                   {/* Current Assignment Spotlight */}
-                  <div className="bg-white border border-gray-200 rounded-lg">
-                    <div className="px-6 py-4 bg-blue-50 border-b border-gray-200 rounded-t-lg">
+                  <div className="bg-background border border-border rounded-lg">
+                    <div className="px-6 py-4 bg-primary-subtle border-b border-border rounded-t-lg">
                       <div className="flex items-center justify-between">
-                        <h2 className="text-lg font-semibold text-gray-900">
+                        <h2 className="text-lg font-semibold text-foreground">
                           Current Assignment
                         </h2>
-                        <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
+                        <span className="bg-destructive/20 text-destructive text-xs px-2 py-1 rounded-full font-medium">
                           Due Soon
                         </span>
                       </div>
                     </div>
                     <div className="p-6">
-                      <h3 className="text-xl font-medium text-gray-900 mb-2">
+                      <h3 className="text-xl font-medium text-foreground mb-2">
                         {currentAssignment.title}
                       </h3>
                       <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
                         <div>
-                          <span className="text-gray-500">Due:</span>
-                          <div className="font-medium text-red-600">
+                          <span className="text-muted-foreground">Due:</span>
+                          <div className="font-medium text-destructive">
                             {currentAssignment.dueDate}
                           </div>
                         </div>
                         <div>
-                          <span className="text-gray-500">Points:</span>
+                          <span className="text-muted-foreground">Points:</span>
                           <div className="font-medium">
                             {currentAssignment.points} pts
                           </div>
                         </div>
                         <div>
-                          <span className="text-gray-500">Available:</span>
+                          <span className="text-muted-foreground">Available:</span>
                           <div className="font-medium">
                             {currentAssignment.availableAfter}
                           </div>
                         </div>
                         <div>
-                          <span className="text-gray-500">Attempts:</span>
+                          <span className="text-muted-foreground">Attempts:</span>
                           <div className="font-medium">
                             {currentAssignment.attempts}/
                             {currentAssignment.allowedAttempts}
@@ -541,25 +541,25 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                         </div>
                       </div>
                       <div className="mb-4">
-                        <span className="text-gray-500 text-sm">Submission:</span>
-                        <div className="text-sm text-gray-700">
+                        <span className="text-muted-foreground text-sm">Submission:</span>
+                        <div className="text-sm text-foreground-muted">
                           {currentAssignment.submissionType}
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded border font-medium">
+                          <span className="bg-accent/20 text-accent text-xs px-2 py-1 rounded border font-medium">
                             Not Submitted
                           </span>
                           {currentAssignment.gradedAnonymously && (
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               Graded Anonymously
                             </span>
                           )}
                         </div>
                         <button
                           onClick={() => setSelectedAssignment(currentAssignment)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700"
+                          className="bg-primary text-panel-foreground px-4 py-2 rounded text-sm font-medium hover:bg-primary-hover"
                         >
                           Start Assignment
                         </button>
@@ -568,21 +568,21 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                   </div>
 
                   {/* Recent Assignments */}
-                  <div className="bg-white border border-gray-200 rounded-lg">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                      <h2 className="text-lg font-semibold text-gray-900">
+                  <div className="bg-background border border-border rounded-lg">
+                    <div className="px-6 py-4 bg-surface border-b border-border rounded-t-lg">
+                      <h2 className="text-lg font-semibold text-foreground">
                         Recent Assignments
                       </h2>
                     </div>
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-border">
                       {recentAssignments.map((assignment) => (
                         <div
                           key={assignment.id}
-                          className="p-6 hover:bg-gray-50 cursor-pointer"
+                          className="p-6 hover:bg-surface cursor-pointer"
                           onClick={() => setSelectedAssignment(assignment)}
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-medium text-gray-900">
+                            <h3 className="font-medium text-foreground">
                               {assignment.title}
                             </h3>
                             <span
@@ -593,7 +593,7 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                               {getStatusLabel(assignment.status)}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between text-sm text-gray-600">
+                          <div className="flex items-center justify-between text-sm text-muted-foreground">
                             <span>Due: {formatDate(assignment.dueDate)}</span>
                             <span>
                               {assignment.status === "graded" &&
@@ -608,31 +608,31 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                   </div>
 
                   {/* Announcements */}
-                  <div className="bg-white border border-gray-200 rounded-lg">
-                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                      <h2 className="text-lg font-semibold text-gray-900">
+                  <div className="bg-background border border-border rounded-lg">
+                    <div className="px-6 py-4 bg-surface border-b border-border rounded-t-lg">
+                      <h2 className="text-lg font-semibold text-foreground">
                         Announcements
                       </h2>
                     </div>
-                    <div className="divide-y divide-gray-200">
+                    <div className="divide-y divide-border">
                       {announcements.map((announcement) => (
                         <div key={announcement.id} className="p-6">
                           <div className="flex items-start space-x-3">
                             {announcement.urgent ? (
-                              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                              <AlertCircle className="w-5 h-5 text-destructive mt-0.5" />
                             ) : (
-                              <Bell className="w-5 h-5 text-blue-500 mt-0.5" />
+                              <Bell className="w-5 h-5 text-link mt-0.5" />
                             )}
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <h3 className="font-medium text-gray-900">
+                                <h3 className="font-medium text-foreground">
                                   {announcement.title}
                                 </h3>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-muted-foreground">
                                   {announcement.date}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 {announcement.content}
                               </p>
                             </div>
@@ -646,46 +646,46 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                 {/* Sidebar */}
                 <div className="space-y-6">
                   {/* Quick Stats */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <div className="bg-background border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">
                       Quick Stats
                     </h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Overall Grade</span>
-                        <span className="font-semibold text-green-600">
+                        <span className="text-sm text-muted-foreground">Overall Grade</span>
+                        <span className="font-semibold text-success">
                           B+ (87%)
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">
+                        <span className="text-sm text-muted-foreground">
                           Assignments Completed
                         </span>
                         <span className="font-semibold">8/12</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Attendance</span>
-                        <span className="font-semibold text-green-600">95%</span>
+                        <span className="text-sm text-muted-foreground">Attendance</span>
+                        <span className="font-semibold text-success">95%</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Upcoming Deadlines */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <div className="bg-background border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">
                       Upcoming Deadlines
                     </h3>
                     <div className="space-y-3">
                       {upcomingDeadlines.map((deadline, index) => (
                         <div key={index} className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                            <Calendar className="w-5 h-5 text-blue-600" />
+                          <div className="w-12 h-12 bg-primary-subtle rounded-lg flex items-center justify-center">
+                            <Calendar className="w-5 h-5 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">
+                            <p className="text-sm font-medium text-foreground truncate">
                               {deadline.title}
                             </p>
-                            <p className="text-sm text-gray-500">{deadline.date}</p>
+                            <p className="text-sm text-muted-foreground">{deadline.date}</p>
                           </div>
                         </div>
                       ))}
@@ -693,26 +693,26 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
                   </div>
 
                   {/* Course Info */}
-                  <div className="bg-white border border-gray-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <div className="bg-background border border-border rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-foreground mb-4">
                       Course Information
                     </h3>
                     <div className="space-y-3 text-sm">
                       <div>
-                        <span className="text-gray-500">Instructor:</span>
+                        <span className="text-muted-foreground">Instructor:</span>
                         <div className="font-medium">{courseInfo.instructor}</div>
                       </div>
                       <div>
-                        <span className="text-gray-500">Location:</span>
+                        <span className="text-muted-foreground">Location:</span>
                         <div className="font-medium">{courseInfo.location}</div>
                       </div>
                       <div>
-                        <span className="text-gray-500">Schedule:</span>
+                        <span className="text-muted-foreground">Schedule:</span>
                         <div className="font-medium">{courseInfo.schedule}</div>
                       </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <button className="w-full bg-gray-100 text-gray-700 py-2 px-4 rounded text-sm font-medium hover:bg-gray-200">
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <button className="w-full bg-muted text-foreground-muted py-2 px-4 rounded text-sm font-medium hover:bg-muted">
                         View Syllabus
                       </button>
                     </div>
@@ -722,14 +722,14 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
             )}
 
             {activeTab === "assignments" && (
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                  <h2 className="text-lg font-semibold text-gray-900">
+              <div className="bg-background border border-border rounded-lg">
+                <div className="px-6 py-4 bg-surface border-b border-border rounded-t-lg">
+                  <h2 className="text-lg font-semibold text-foreground">
                     All Assignments
                   </h2>
                 </div>
                 <div className="p-6">
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     View your assignments in the dedicated assignments section.
                   </p>
                 </div>
@@ -737,12 +737,12 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
             )}
 
             {activeTab === "grades" && (
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                  <h2 className="text-lg font-semibold text-gray-900">Grades</h2>
+              <div className="bg-background border border-border rounded-lg">
+                <div className="px-6 py-4 bg-surface border-b border-border rounded-t-lg">
+                  <h2 className="text-lg font-semibold text-foreground">Grades</h2>
                 </div>
                 <div className="p-6">
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     Your grade breakdown and detailed feedback will appear here.
                   </p>
                 </div>
@@ -750,14 +750,14 @@ const StudentCourseHome = ({ courseId }: { courseId?: string }) => {
             )}
 
             {activeTab === "discussions" && (
-              <div className="bg-white border border-gray-200 rounded-lg">
-                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                  <h2 className="text-lg font-semibold text-gray-900">
+              <div className="bg-background border border-border rounded-lg">
+                <div className="px-6 py-4 bg-surface border-b border-border rounded-t-lg">
+                  <h2 className="text-lg font-semibold text-foreground">
                     Discussions
                   </h2>
                 </div>
                 <div className="p-6">
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     Participate in course discussions and forums here.
                   </p>
                 </div>

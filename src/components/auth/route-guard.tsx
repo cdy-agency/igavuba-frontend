@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
+import { getStoredAuthState } from '@/lib/auth';
 import { GUEST_ROUTES, PROTECTED_ROUTES, isGuestRoute, isProtectedRoute } from '@/lib/routes';
 
 interface RouteGuardProps {
@@ -25,7 +26,10 @@ export function RouteGuard({ children }: RouteGuardProps) {
       return;
     }
 
-    if (isGuestRoute(pathname) && isAuthenticated) {
+    // Only send guests to dashboard when a session still exists in storage.
+    // Prevents bouncing back to /dashboard right after logout clears storage
+    // while React auth state hasn't caught up yet.
+    if (isGuestRoute(pathname) && isAuthenticated && getStoredAuthState()) {
       router.replace(PROTECTED_ROUTES.DASHBOARD);
     }
   }, [isAuthenticated, isLoading, pathname, router]);

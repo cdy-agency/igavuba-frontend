@@ -40,7 +40,7 @@ export function DatePicker({ onChange, value, label, error }: DatePickerProps) {
             className={cn(
               "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground",
-              error && "border-red-500"
+              error && "border-destructive"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -56,7 +56,7 @@ export function DatePicker({ onChange, value, label, error }: DatePickerProps) {
           />
         </PopoverContent>
       </Popover>
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   )
 }

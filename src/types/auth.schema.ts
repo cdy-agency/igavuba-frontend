@@ -51,14 +51,19 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
 });
 
+export const verifyResetPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  otp: z
+    .string()
+    .trim()
+    .length(6, "OTP code must be 6 digits")
+    .regex(/^\d{6}$/, "OTP code must contain only digits"),
+});
+
 export const resetPasswordSchema = z
   .object({
-    token: z.string().min(1, "Reset token is required"),
-    newPassword: z
-      .string()
-      .min(6, "Password must be at least 6 characters")
-      .regex(/[a-zA-Z]/, "Password must contain at least one letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
+    resetToken: z.string().min(1, "Reset token is required"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
@@ -77,4 +82,5 @@ export type SignupFormData = z.infer<typeof signupSchema>;
 export type VerifyEmailFormData = z.infer<typeof verifyEmailSchema>;
 export type ResendVerificationFormData = z.infer<typeof resendVerificationSchema>;
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+export type VerifyResetPasswordFormData = z.infer<typeof verifyResetPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;

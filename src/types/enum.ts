@@ -285,13 +285,13 @@ export const ReminderChannelLabels: Record<ReminderChannel, string> = {
 
 // Optional: Color mappings for UI
 export const MeetingStatusColors: Record<MeetingStatus, string> = {
-  [MeetingStatus.SCHEDULED]: 'border-blue-200 bg-blue-50 text-blue-700',
+  [MeetingStatus.SCHEDULED]: 'border-primary-muted bg-primary-subtle text-primary-hover',
 
-  [MeetingStatus.ONGOING]: 'border-green-200 bg-green-50 text-green-700',
+  [MeetingStatus.ONGOING]: 'border-success/30 bg-success/10 text-success',
 
-  [MeetingStatus.COMPLETED]: 'border-gray-200 bg-gray-100 text-gray-700',
+  [MeetingStatus.COMPLETED]: 'border-border bg-muted text-foreground-muted',
 
-  [MeetingStatus.CANCELLED]: 'border-red-200 bg-red-50 text-red-700',
+  [MeetingStatus.CANCELLED]: 'border-destructive/30 bg-destructive/10 text-destructive',
 };
 
 export enum ReminderUnit {

@@ -12,6 +12,7 @@ interface SlideData {
   industry: string
   bgImage: string
   consultationImage: string
+  overlayClass: string
 }
 
 const slides: SlideData[] = [
@@ -23,6 +24,7 @@ const slides: SlideData[] = [
     industry: "Platform Overview",
     bgImage: "/e-learning.jpg",
     consultationImage: "/images/consultation-intro.png",
+    overlayClass: "hero-overlay-default",
   },
   {
     id: "ai_course",
@@ -32,6 +34,7 @@ const slides: SlideData[] = [
     industry: "AI & Data Science",
     bgImage: "/ai.png",
     consultationImage: "/images/consultation-ai.png",
+    overlayClass: "hero-overlay-ai",
   },
   {
     id: "fintech_course",
@@ -41,6 +44,7 @@ const slides: SlideData[] = [
     industry: "Financial Technology",
     bgImage: "/finance.webp",
     consultationImage: "/images/consultation-fintech.png",
+    overlayClass: "hero-overlay-fintech",
   },
   {
     id: "cybersecurity_course",
@@ -50,6 +54,7 @@ const slides: SlideData[] = [
     industry: "Cybersecurity",
     bgImage: "/cyber.jpg",
     consultationImage: "/images/consultation-cyber.png",
+    overlayClass: "hero-overlay-cyber",
   },
 ]
 
@@ -119,12 +124,18 @@ export default function HeroSection() {
     return slides.slice(currentSlide + 1)
   }
 
+  const getUpcomingSidebarClass = (index: number) => {
+    if (index === 0) return "hero-sidebar-upcoming-1"
+    if (index === 1) return "hero-sidebar-upcoming-2"
+    return "hero-sidebar-upcoming-3"
+  }
+
   if (!mounted) {
     return (
       <div className="relative h-[calc(100vh-120px)] md:h-[calc(100vh-80px)] bg-black overflow-hidden m-2 md:m-4 rounded-lg">
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 hero-overlay-default" />
         <div className="relative z-10 h-full flex p-2 md:p-4 items-center justify-center">
-          <div className="text-white">Loading...</div>
+          <div className="text-panel-foreground">Loading...</div>
         </div>
       </div>
     )
@@ -141,22 +152,22 @@ export default function HeroSection() {
           className="object-cover transition-opacity duration-1000"
           priority
         />
-        <div className="absolute inset-0 bg-black/50" />
+        <div className={`absolute inset-0 transition-opacity duration-1000 ${currentSlideData.overlayClass}`} />
       </div>
 
       {/* Main Content Container */}
       <div className="relative z-10 h-full flex flex-col lg:flex-row p-2 md:p-4">
         {/* Mobile Top Navigation */}
-        <div className="lg:hidden flex items-center justify-between p-4 text-white/70 text-sm">
+        <div className="lg:hidden flex items-center justify-between p-4 text-primary-foreground/70 text-sm">
           <span className="truncate">{currentSlideData.industry}</span>
           <div className="flex gap-2 ml-4">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className="relative w-2 h-2 rounded-full bg-white/30 hover:bg-white/50 transition-colors"
+                className="relative w-2 h-2 rounded-full bg-primary-foreground/30 hover:bg-primary-foreground/50 transition-colors"
               >
-                {index === currentSlide && <div className="absolute inset-0 bg-white rounded-full" />}
+                {index === currentSlide && <div className="absolute inset-0 bg-primary-foreground rounded-full" />}
               </button>
             ))}
           </div>
@@ -164,8 +175,8 @@ export default function HeroSection() {
 
         {/* Mobile Progress Bar */}
         <div className="lg:hidden px-4 mb-4">
-          <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-            <div className="h-full bg-white transition-all duration-75 ease-linear" style={{ width: `${progress}%` }} />
+          <div className="w-full h-1 bg-primary-foreground/20 rounded-full overflow-hidden">
+            <div className="h-full bg-primary-foreground transition-all duration-75 ease-linear" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
@@ -177,10 +188,10 @@ export default function HeroSection() {
               <button
                 key={slide.id}
                 onClick={() => goToSlide(index)}
-                className="w-12 xl:w-16 h-full bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center text-white relative transition-all duration-500 hover:bg-slate-800/90 border-r border-white/10"
+                className="w-12 xl:w-16 h-full hero-sidebar-previous backdrop-blur-sm flex flex-col items-center justify-center text-primary-foreground relative transition-all duration-500 border-r border-primary-foreground/10"
               >
                 <div className="absolute top-6 left-2 xl:left-4">
-                  <div className="w-2 h-2 rounded-full bg-white/40" />
+                  <div className="w-2 h-2 rounded-full bg-primary-foreground/40" />
                 </div>
                 <div className="transform -rotate-90 whitespace-nowrap text-xs font-medium tracking-wide opacity-70">
                   {slide.industry.length > 15 ? slide.industry.substring(0, 12) + "..." : slide.industry}
@@ -199,14 +210,14 @@ export default function HeroSection() {
               <div className="max-w-3xl">
                 <h1
                   key={currentSlide}
-                  className="text-3xl xl:text-5xl 2xl:text-6xl font-semibold text-white leading-[1.15] mb-4 xl:mb-6 animate-in fade-in slide-in-from-right-4 duration-1000 tracking-tight"
+                  className="text-3xl xl:text-5xl 2xl:text-6xl font-semibold text-primary-foreground leading-[1.15] mb-4 xl:mb-6 animate-in fade-in slide-in-from-right-4 duration-1000 tracking-tight"
                 >
                   {currentSlideData.title}
                 </h1>
 
                 <p
                   key={`${currentSlide}-subtitle`}
-                  className="text-base xl:text-lg text-gray-200 leading-relaxed max-w-2xl animate-in fade-in slide-in-from-right-4 duration-1000 delay-200"
+                  className="text-base xl:text-lg text-primary-foreground/80 leading-relaxed max-w-2xl animate-in fade-in slide-in-from-right-4 duration-1000 delay-200"
                 >
                   {currentSlideData.subtitle}
                 </p>
@@ -215,16 +226,16 @@ export default function HeroSection() {
 
             {/* Awards Section */}
             <div className="mt-auto">
-              <h3 className="text-white text-base xl:text-lg mb-4 xl:mb-6">Awards</h3>
+              <h3 className="text-primary-foreground text-base xl:text-lg mb-4 xl:mb-6">Awards</h3>
               <div className="flex gap-3 xl:gap-4">
-                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/10">
-                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-white/30 rounded-full" />
+                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/10">
+                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-primary-foreground/30 rounded-full" />
                 </div>
-                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/10">
-                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-white/30 rounded-full" />
+                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/10">
+                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-primary-foreground/30 rounded-full" />
                 </div>
-                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/10">
-                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-white/30 rounded-full" />
+                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/10">
+                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-primary-foreground/30 rounded-full" />
                 </div>
               </div>
             </div>
@@ -233,16 +244,16 @@ export default function HeroSection() {
           {/* Center-Right - Navigation Area */}
           <div className="w-80 xl:w-96 flex flex-col relative">
             {/* Top Navigation Indicator */}
-            <div className="p-4 xl:p-6 flex items-center justify-between text-white/70 text-sm">
+            <div className="p-4 xl:p-6 flex items-center justify-between text-primary-foreground/70 text-sm">
               <span className="truncate">{currentSlideData.industry}</span>
               <div className="flex gap-2 ml-4">
                 {slides.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => goToSlide(index)}
-                    className="relative w-2 h-2 rounded-full bg-white/30 hover:bg-white/50 transition-colors"
+                    className="relative w-2 h-2 rounded-full bg-primary-foreground/30 hover:bg-primary-foreground/50 transition-colors"
                   >
-                    {index === currentSlide && <div className="absolute inset-0 bg-white rounded-full" />}
+                    {index === currentSlide && <div className="absolute inset-0 bg-primary-foreground rounded-full" />}
                   </button>
                 ))}
               </div>
@@ -250,9 +261,9 @@ export default function HeroSection() {
 
             {/* Progress Bar - Under the dots */}
             <div className="px-4 xl:px-6 mb-4">
-              <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
+              <div className="w-full h-1 bg-primary-foreground/20 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-white transition-all duration-75 ease-linear"
+                  className="h-full bg-primary-foreground transition-all duration-75 ease-linear"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -264,7 +275,7 @@ export default function HeroSection() {
                 onClick={prevSlide}
                 variant="outline"
                 size="icon"
-                className="rounded-full border-white/30 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm"
+                className="rounded-full border-primary-foreground/30 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground backdrop-blur-sm"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -272,7 +283,7 @@ export default function HeroSection() {
                 onClick={nextSlide}
                 variant="outline"
                 size="icon"
-                className="rounded-full border-white/30 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm"
+                className="rounded-full border-primary-foreground/30 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground backdrop-blur-sm"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -287,22 +298,16 @@ export default function HeroSection() {
                 <div key={slide.id}>
                   <button
                     onClick={() => goToSlide(slideIndex)}
-                    className={`w-12 xl:w-20 h-full backdrop-blur-sm flex flex-col items-center justify-center text-white relative transition-all duration-500 group border-l border-white/10 ${
-                      index === 0
-                        ? "bg-slate-700/90 hover:bg-slate-600/95"
-                        : index === 1
-                          ? "bg-slate-600/90 hover:bg-slate-500/95"
-                          : "bg-slate-500/90 hover:bg-slate-400/95"
-                    }`}
+                    className={`w-12 xl:w-20 h-full backdrop-blur-sm flex flex-col items-center justify-center text-primary-foreground relative transition-all duration-500 group border-l border-primary-foreground/10 ${getUpcomingSidebarClass(index)}`}
                   >
                     <div className="absolute top-6 right-2 xl:right-4">
-                      <div className="w-2 h-2 rounded-full bg-white/60 group-hover:bg-white/80 transition-colors" />
+                      <div className="w-2 h-2 rounded-full bg-primary-foreground/60 group-hover:bg-primary-foreground/80 transition-colors" />
                     </div>
                     <div className="transform -rotate-90 whitespace-nowrap text-xs xl:text-sm font-medium tracking-wide">
                       {slide.industry.length > 15 ? slide.industry.substring(0, 12) + "..." : slide.industry}
                     </div>
                     <div
-                      className="absolute bottom-6 text-white hover:bg-white/20 rounded-full transition-all duration-300 group-hover:scale-110"
+                      className="absolute bottom-6 text-primary-foreground hover:bg-primary-foreground/20 rounded-full transition-all duration-300 group-hover:scale-110"
                     >
                       <Plus className="h-3 w-3 xl:h-4 xl:w-4" />
                     </div>
@@ -320,14 +325,14 @@ export default function HeroSection() {
             <div className="w-full">
               <h1
                 key={currentSlide}
-                className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white leading-[1.15] mb-4 animate-in fade-in slide-in-from-right-4 duration-1000 tracking-tight"
+                className="text-2xl sm:text-3xl md:text-4xl font-semibold text-primary-foreground leading-[1.15] mb-4 animate-in fade-in slide-in-from-right-4 duration-1000 tracking-tight"
               >
                 {currentSlideData.title}
               </h1>
 
               <p
                 key={`${currentSlide}-subtitle`}
-                className="text-base sm:text-lg text-gray-200 leading-relaxed animate-in fade-in slide-in-from-right-4 duration-1000 delay-200"
+                className="text-base sm:text-lg text-primary-foreground/80 leading-relaxed animate-in fade-in slide-in-from-right-4 duration-1000 delay-200"
               >
                 {currentSlideData.subtitle}
               </p>
@@ -340,7 +345,7 @@ export default function HeroSection() {
               onClick={prevSlide}
               variant="outline"
               size="icon"
-              className="rounded-full border-white/30 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm"
+              className="rounded-full border-primary-foreground/30 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground backdrop-blur-sm"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -348,7 +353,7 @@ export default function HeroSection() {
               onClick={nextSlide}
               variant="outline"
               size="icon"
-              className="rounded-full border-white/30 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm"
+              className="rounded-full border-primary-foreground/30 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground backdrop-blur-sm"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -362,7 +367,7 @@ export default function HeroSection() {
                 <button
                   key={slide.id}
                   onClick={() => goToSlide(slideIndex)}
-                  className="px-3 py-1 text-xs bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-colors"
+                  className="px-3 py-1 text-xs bg-primary-foreground/20 backdrop-blur-sm rounded-full text-primary-foreground hover:bg-primary-foreground/30 transition-colors"
                 >
                   {slide.industry.length > 10 ? slide.industry.substring(0, 8) + "..." : slide.industry}
                 </button>

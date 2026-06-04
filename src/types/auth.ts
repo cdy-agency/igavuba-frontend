@@ -19,6 +19,20 @@ export interface ResendVerificationDto {
   email: string;
 }
 
+export interface ForgotPasswordDto {
+  email: string;
+}
+
+export interface VerifyResetOtpDto {
+  email: string;
+  otp: string;
+}
+
+export interface ResetPasswordDto {
+  resetToken: string;
+  newPassword: string;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -46,10 +60,19 @@ export interface VerifyEmailResponse extends AuthSuccessResponse {}
 
 export interface ResendVerificationResponse extends AuthSuccessResponse {}
 
+export interface ForgotPasswordResponse extends AuthSuccessResponse {}
+
+export interface VerifyResetOtpResponse extends AuthSuccessResponse {
+  resetToken: string;
+}
+
+export interface ResetPasswordResponse extends AuthSuccessResponse {}
+
 export interface RefreshTokenResponse {
   accessToken: string;
   refreshToken: string;
   userId: string;
+  user?: AuthUser;
 }
 
 export interface ApiErrorResponse {

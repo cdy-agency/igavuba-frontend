@@ -9,6 +9,13 @@ export const GUEST_ROUTES = {
   LOGIN: '/login',
   REGISTER: '/register',
   VERIFY_EMAIL: '/veryfy-email',
+  FORGOT_PASSWORD: '/forgot-password',
+  VERIFY_RESET_PASSWORD: '/verify-reset-password',
+  RESET_PASSWORD: '/reset-password',
+} as const;
+
+export const PUBLIC_AUTH_ROUTES = {
+  ACTIVATE_ACCOUNT: '/admin/activate-account',
 } as const;
 
 export const PROTECTED_ROUTES = {
@@ -40,7 +47,15 @@ export const isPublicRoute = (pathname: string): boolean => {
   if (pathname === '/') return true;
   if (pathname === '/courses' || pathname.startsWith('/courses/')) return true;
   if (pathname === '/contact') return true;
-  if (pathname === '/login' || pathname === '/register' || pathname === '/veryfy-email') {
+  if (pathname.startsWith('/admin/activate-account')) return true;
+  if (
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/veryfy-email' ||
+    pathname === '/forgot-password' ||
+    pathname === '/verify-reset-password' ||
+    pathname === '/reset-password'
+  ) {
     return true;
   }
 

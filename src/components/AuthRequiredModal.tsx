@@ -17,7 +17,7 @@ export default function AuthRequiredModal() {
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-center text-gray-600">
+        <p className="text-center text-muted-foreground">
           You must be logged in to continue.
         </p>
 

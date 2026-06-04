@@ -1,10 +1,10 @@
 export default function LoadingState() {
   return (
-    <div className="min-h-screen bg-gray-50/50 flex items-center justify-center">
+    <div className="min-h-screen bg-surface/50 flex items-center justify-center">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-900 font-semibold">Loading your dashboard...</p>
-        <p className="text-gray-500 text-sm mt-1">Please wait</p>
+        <div className="w-16 h-16 border-4 border-border border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-foreground font-semibold">Loading your dashboard...</p>
+        <p className="text-muted-foreground text-sm mt-1">Please wait</p>
       </div>
     </div>
   );

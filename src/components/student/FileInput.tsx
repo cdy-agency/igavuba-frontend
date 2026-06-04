@@ -12,7 +12,7 @@ export function FileInput({id,accept,onFileSelected,className,}: {id?: string;ac
         const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
         onFileSelected(f);
     }}
-        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 hover:file:bg-slate-200"
+        className="block w-full text-sm text-panel-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-muted hover:file:bg-surface"
         />
         </div>
         );

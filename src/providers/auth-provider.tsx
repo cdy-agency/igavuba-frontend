@@ -95,8 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const response = await authApi.refresh(storedState.refreshToken);
-      updateStoredTokens(response.accessToken, response.refreshToken);
-      setUser(mapUser(storedState.user));
+      const refreshedUser = response.user ?? storedState.user;
+      persistAuthState({
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken ?? storedState.refreshToken,
+        user: refreshedUser,
+      });
+      setUser(mapUser(refreshedUser));
       return true;
     } catch {
       clearStoredAuthState();
@@ -144,9 +149,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     clearStoredAuthState();
     setUser(null);
-    queryClient.removeQueries({ queryKey: ['auth-user'] });
+    queryClient.clear();
     toast.success('Logged out successfully');
-    router.push(GUEST_ROUTES.LOGIN);
+    router.replace(GUEST_ROUTES.LOGIN);
   }, [queryClient, router]);
 
   const openAuthModal = useCallback(() => setShowAuthModal(true), []);

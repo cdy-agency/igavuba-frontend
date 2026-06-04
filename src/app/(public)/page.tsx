@@ -1,20 +1,20 @@
 "use client"
 
 import HeroSection from "@/components/heroSection"
-import LandingHeader from "@/components/landingpages/header"
-import LandingCategories from "@/components/landingpages/categories"
-import LandingCta from "@/components/landingpages/cta"
+import LandingHeader from "@/components/landing-pages/header"
+import LandingCategories from "@/components/landing-pages/categories"
+import LandingCta from "@/components/landing-pages/cta"
 import HelpNotification from "@/components/help-notification";
-import { WorkflowSection } from "@/components/landingpages/howItWorks"
-import LandingCourses from "@/components/landingpages/landingCourses"
-import { LandingFooter } from "@/components/landingpages/landingFooter"
-import { FAQSection } from "@/components/landingpages/faq-section"
+import { WorkflowSection } from "@/components/landing-pages/howItWorks"
+import LandingCourses from "@/components/landing-pages/landingCourses"
+import { LandingFooter } from "@/components/landing-pages/landingFooter"
+import { FAQSection } from "@/components/landing-pages/faq-section"
 
 
 export default function ELearningLanding() {
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       <LandingHeader />
       <HeroSection />
       <WorkflowSection />

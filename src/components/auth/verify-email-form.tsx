@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ChevronLeft } from 'lucide-react';
 import { OtpVerification } from '@/components/ui/otp-verification';
 import {
   useResendVerificationMutation,
@@ -76,42 +75,39 @@ export function VerifyEmailForm() {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <Link
-          href={GUEST_ROUTES.LOGIN}
-          className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-blue-200 transition hover:text-white"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to login
-        </Link>
-        <h1 className="text-4xl font-semibold text-white">Secure your account</h1>
-        <p className="mt-3 max-w-lg text-base leading-7 text-blue-100/80">
-          Confirm your email with the OTP we just sent. This keeps sign-up secure and activates your
-          account.
+        <h1 className="text-3xl font-bold text-panel-foreground mb-2">Verify your email</h1>
+        <p className="text-panel-muted">
+          Enter the 6-digit code sent to your email.{' '}
+          <Link href={GUEST_ROUTES.LOGIN} className="text-link hover:text-link-hover ml-1 underline">
+            Back to login
+          </Link>
         </p>
+        {email ? (
+          <p className="mt-2 text-sm text-panel-muted">
+            Code sent to <span className="text-panel-subtle">{email}</span>
+          </p>
+        ) : null}
       </div>
 
       <form onSubmit={onSubmit} className="space-y-6">
         <input type="hidden" {...form.register('email')} />
 
-        <div className="space-y-2">
-          <Controller
-            control={form.control}
-            name="otp"
-            render={({ field }) => (
-              <OtpVerification
-                email={email}
-                value={field.value}
-                onChange={field.onChange}
-                disabled={verifyMutation.isPending}
-                error={form.formState.errors.otp?.message}
-                isSubmitting={verifyMutation.isPending}
-                isResending={resendMutation.isPending}
-                onSubmit={() => void onSubmit()}
-                onResend={() => void handleResend()}
-              />
-            )}
-          />
-        </div>
+        <Controller
+          control={form.control}
+          name="otp"
+          render={({ field }) => (
+            <OtpVerification
+              value={field.value}
+              onChange={field.onChange}
+              disabled={verifyMutation.isPending}
+              error={form.formState.errors.otp?.message}
+              isSubmitting={verifyMutation.isPending}
+              isResending={resendMutation.isPending}
+              onSubmit={() => void onSubmit()}
+              onResend={() => void handleResend()}
+            />
+          )}
+        />
       </form>
     </div>
   );

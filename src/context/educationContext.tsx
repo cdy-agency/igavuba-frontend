@@ -1,110 +1,108 @@
-// import React, { createContext, useState, useContext, useEffect } from "react";
-// import { IInstitution, ICourse, IEnrollment } from "@/types/education";
-// import axios from "axios";
-// import { API_URL } from "@/lib/axios";
+"use client";
 
-// interface EducationContextTypes {
-//   institution: IInstitution[];
-//   selectedInstitution: IInstitution | null;
-//   setSelectedInstitution: (institution: IInstitution | null) => void;
-//   course: ICourse[];
-//   enrollment: IEnrollment[];
-//   fetchInstitution: () => Promise<void>; 
-//   fetchCourseByInstitution: (id: string) => void;
-//   getEnrolledCourse:() => void
-//   enrollInCourse: (courseId: string) => Promise<void>;
-//   loadingEducation: boolean;
-// }
+import React, { createContext, useContext, useState } from "react";
+import type { Course, Institution } from "@/lib/api";
 
-// const EducationContext = createContext<EducationContextTypes | undefined>(undefined);
+interface Enrollment {
+  _id: string;
+  course_id: Course;
+}
 
-// export const EducationProvider = ({ children }: { children: React.ReactNode }) => {
-//   const [institution, setInstitution] = useState<IInstitution[]>([]);
-//   const [selectedInstitution, setSelectedInstitution] = useState<IInstitution | null>(null);
-//   const [course, setCourse] = useState<ICourse[]>([]);
-//   const [enrollment, setEnrollment] = useState<IEnrollment[]>([]);
-//   const [loadingEducation, setLoadingEducation] = useState<boolean>(false);
+interface EducationContextTypes {
+  institution: Institution[];
+  selectedInstitution: Institution | null;
+  setSelectedInstitution: (institution: Institution | null) => void;
+  course: Course[];
+  enrollment: Enrollment[];
+  fetchInstitution: () => Promise<void>;
+  fetchCourseByInstitution: (id: string) => Promise<void>;
+  getEnrolledCourse: () => Promise<void>;
+  enrollInCourse: (courseId: string) => Promise<void>;
+  loadingEducation: boolean;
+}
 
-//   const fetchInstitution = async () => {
-//     setLoadingEducation(true);
-//     try {
-//       const res = await axios.get(`${API_URL}/api/institutions`);
-//       setInstitution(res.data);  
-//     } catch (error) {
-//       console.log("Failed to fetch institutions", error);
-//     } finally {
-//       setLoadingEducation(false);
-//     }
-//   };
+const EducationContext = createContext<EducationContextTypes | undefined>(
+  undefined
+);
 
-//   const fetchCourseByInstitution = async (id: string) => {  
-//     try {
-//       const res = await axios.get(`${API_URL}/api/institutions/${id}`);
-//       setCourse(res.data);
-//     } catch (error) {
-//       console.error("Failed to fetch courses", error);
-//     } finally {
-//       setLoadingEducation(false);
-//     }
-//   };
+export function EducationProvider({ children }: { children: React.ReactNode }) {
+  const [institution, setInstitution] = useState<Institution[]>([]);
+  const [selectedInstitution, setSelectedInstitution] =
+    useState<Institution | null>(null);
+  const [course, setCourse] = useState<Course[]>([]);
+  const [enrollment, setEnrollment] = useState<Enrollment[]>([]);
+  const [loadingEducation, setLoadingEducation] = useState(false);
 
-//   const enrollInCourse = async (courseId: string,) => {
-//     setLoadingEducation(true);
-//     try {
-//       const res = await axios.post(`${API_URL}/api/enrollement/${courseId}`,{},{
-//         headers:{
-//           "Authorization":`Bearer ${localStorage.getItem('token')}`
-//         }
-//       }); 
-//       setEnrollment((prev) => [...prev, res.data]);
-//     } catch (error:any) {
-//       console.error("Enrollment failed", error.message);
-//     } finally {
-//       setLoadingEducation(false);
-//     }
-//   };
+  const fetchInstitution = async () => {
+    setLoadingEducation(true);
+    try {
+      const response = await fetch("/api/institutions");
+      const payload = response.ok ? await response.json() : [];
+      setInstitution(Array.isArray(payload) ? payload : payload?.data ?? []);
+    } finally {
+      setLoadingEducation(false);
+    }
+  };
 
-//   const getEnrolledCourse = async()=>{
-//     setLoadingEducation(true)
-//     try {
-//       const res = await axios.get(`${API_URL}/api/enrollement`,{
-//         headers:{
-//           "Authorization":`Bearer ${localStorage.getItem('token')}`
-//         }
-//       })
-//       setEnrollment(res.data)
-//     } catch (error) {
-//       console.log("Failed to get enrolled courses")
-//     }finally{
-//       setLoadingEducation(false)
-//     }
-//   }
+  const fetchCourseByInstitution = async (id: string) => {
+    setLoadingEducation(true);
+    try {
+      const response = await fetch(`/api/institutions/${id}/courses`);
+      const payload = response.ok ? await response.json() : [];
+      setCourse(Array.isArray(payload) ? payload : payload?.data ?? []);
+    } finally {
+      setLoadingEducation(false);
+    }
+  };
 
-//   const value: EducationContextTypes = {
-//     institution,
-//     selectedInstitution,
-//     setSelectedInstitution,
-//     course,
-//     enrollment,
-//     fetchInstitution,
-//     fetchCourseByInstitution,
-//     enrollInCourse,
-//     loadingEducation,
-//     getEnrolledCourse
-//   };
+  const getEnrolledCourse = async () => {
+    setLoadingEducation(true);
+    try {
+      const response = await fetch("/api/enrollement");
+      const payload = response.ok ? await response.json() : [];
+      setEnrollment(Array.isArray(payload) ? payload : payload?.data ?? []);
+    } finally {
+      setLoadingEducation(false);
+    }
+  };
 
-//   return (
-//     <EducationContext.Provider value={value}>
-//       {children}
-//     </EducationContext.Provider>
-//   );
-// };
+  const enrollInCourse = async (courseId: string) => {
+    setLoadingEducation(true);
+    try {
+      await fetch(`/api/enrollement/${courseId}`, {
+        method: "POST",
+      });
+    } finally {
+      setLoadingEducation(false);
+    }
+  };
 
-// // Custom hook
-// export const useEducation = () => {
-//   const context = useContext(EducationContext);
-//   if (context === undefined) {
-//     throw new Error("useEducation must be used within an EducationProvider");
-//   }
-//   return context;
-// };
+  return (
+    <EducationContext.Provider
+      value={{
+        institution,
+        selectedInstitution,
+        setSelectedInstitution,
+        course,
+        enrollment,
+        fetchInstitution,
+        fetchCourseByInstitution,
+        getEnrolledCourse,
+        enrollInCourse,
+        loadingEducation,
+      }}
+    >
+      {children}
+    </EducationContext.Provider>
+  );
+}
+
+export function useEducation() {
+  const context = useContext(EducationContext);
+
+  if (!context) {
+    throw new Error("useEducation must be used within an EducationProvider");
+  }
+
+  return context;
+}

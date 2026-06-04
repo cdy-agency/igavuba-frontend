@@ -18,13 +18,13 @@ export default function CourseView({
   const hasNext = currentIndex < chapterPages.length - 1;
 
   return (
-    <div className="max-w-4xl mx-auto bg-white px-6 py-8 mt-6 rounded shadow">
-      <button onClick={onClose} className="mb-4 text-blue-600 text-sm hover:underline">
+    <div className="max-w-4xl mx-auto bg-background px-6 py-8 mt-6 rounded shadow">
+      <button onClick={onClose} className="mb-4 text-primary text-sm hover:underline">
         ← Back to Course Modules
       </button>
 
       <h1 className="text-2xl font-bold">{page.title}</h1>
-      <p className="text-gray-800 mt-4">{page.content}</p>
+      <p className="text-foreground mt-4">{page.content}</p>
 
       {/* Resources */}
       {(page.resources ?? []).length > 0 && (
@@ -33,7 +33,7 @@ export default function CourseView({
           <ul className="list-disc ml-6 mt-2">
             {page.resources?.map((res, idx) => (
               <li key={idx}>
-                <a href={res.url} className="text-blue-600 hover:underline" target="_blank">
+                <a href={res.url} className="text-primary hover:underline" target="_blank">
                   {res.name}
                 </a>
               </li>
@@ -47,7 +47,7 @@ export default function CourseView({
         <button
           onClick={() => hasPrevious && onNavigate(chapterPages[currentIndex - 1])}
           disabled={!hasPrevious}
-          className="text-blue-600 disabled:text-gray-400"
+          className="text-primary disabled:text-muted-foreground"
         >
           ← Previous
         </button>
@@ -55,7 +55,7 @@ export default function CourseView({
         <button
           onClick={() => hasNext && onNavigate(chapterPages[currentIndex + 1])}
           disabled={!hasNext}
-          className="text-blue-600 disabled:text-gray-400"
+          className="text-primary disabled:text-muted-foreground"
         >
           Next →
         </button>

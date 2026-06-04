@@ -14,7 +14,7 @@ export default function CourseModule({ chapters = [], onSelectPage }: CourseModu
   return (
     <div className="max-w-6xl mx-auto py-6">
       {chapters.map((chapter, index) => (
-        <div key={chapter.id} className="border rounded mb-4 bg-white">
+        <div key={chapter.id} className="border rounded mb-4 bg-background">
           <div className="flex justify-between items-center px-4 py-3">
             <div className="flex items-center space-x-3">
               <button onClick={() => setExpandedChapterId(expandedChapterId === chapter.id ? null : chapter.id)}>
@@ -29,7 +29,7 @@ export default function CourseModule({ chapters = [], onSelectPage }: CourseModu
                 <button
                   key={page.id}
                   onClick={() => onSelectPage(page)}
-                  className="block text-left w-full py-1 text-sm text-blue-700 hover:underline"
+                  className="block text-left w-full py-1 text-sm text-primary-hover hover:underline"
                 >
                   {page.title}
                 </button>

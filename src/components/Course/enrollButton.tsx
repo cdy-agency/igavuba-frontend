@@ -1,11 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { toast } from 'react-toastify';
-import { BookOpen, Loader2 } from 'lucide-react';
-import { useAuth } from '@/lib/hooks/use-auth';
-import { enrollInCourse } from '@/lib/api';
+import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { toast } from "react-toastify";
+import { BookOpen, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 interface EnrollButtonProps {
   courseId: string;
@@ -18,7 +17,7 @@ export function EnrollButton({
   courseId,
   courseName,
   isEnrolled = false,
-  className = '',
+  className = "",
 }: EnrollButtonProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -27,12 +26,11 @@ export function EnrollButton({
   const [enrolling, setEnrolling] = useState(false);
   const [enrolled, setEnrolled] = useState(isEnrolled);
 
-  // Already enrolled — show Continue Learning
   if (enrolled === true) {
     return (
       <button
         onClick={() => router.push(`/student/courses/${courseId}/modules`)}
-        className={`w-full bg-primary hover:bg-cyan-600 text-white py-2 px-4 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 ${className}`}
+        className={`w-full bg-primary hover:bg-primary text-panel-foreground py-2 px-4 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 ${className}`}
       >
         <BookOpen className="h-4 w-4" />
         Continue Learning
@@ -48,19 +46,27 @@ export function EnrollButton({
 
     setEnrolling(true);
     try {
-      await enrollInCourse(courseId);
+      const response = await fetch(`/api/courses/${courseId}/enroll`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to enroll. Please try again.");
+      }
+
       setEnrolled(true);
       toast.success(
         courseName
           ? `You've enrolled in "${courseName}"!`
           : "You've successfully enrolled!"
       );
-    } catch (error: any) {
-      const message = error?.message || 'Failed to enroll. Please try again.';
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Failed to enroll. Please try again.";
 
-      if (message.toLowerCase().includes('already enrolled')) {
+      if (message.toLowerCase().includes("already enrolled")) {
         setEnrolled(true);
-        toast.info('You are already enrolled in this course.');
+        toast.info("You are already enrolled in this course.");
       } else {
         toast.error(message);
       }
@@ -73,7 +79,7 @@ export function EnrollButton({
     <button
       onClick={handleEnroll}
       disabled={enrolling}
-      className={`w-full bg-primary hover:bg-cyan-600 disabled:opacity-60 disabled:cursor-not-allowed text-white py-2 px-4 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 ${className}`}
+      className={`w-full bg-primary hover:bg-primary disabled:opacity-60 disabled:cursor-not-allowed text-panel-foreground py-2 px-4 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2 ${className}`}
     >
       {enrolling ? (
         <>
@@ -81,7 +87,7 @@ export function EnrollButton({
           Enrolling...
         </>
       ) : (
-        'Enroll Now'
+        "Enroll Now"
       )}
     </button>
   );

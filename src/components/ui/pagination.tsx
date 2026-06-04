@@ -65,7 +65,7 @@ export function Pagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700/50">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-border dark:border-border-muted/50">
       {/* Results info */}
       <div className="text-sm text-muted-foreground">
         Showing <span className="font-medium text-foreground">{startItem}</span> to{' '}
@@ -81,7 +81,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="h-9 w-9 p-0 bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-accent"
+          className="h-9 w-9 p-0 bg-muted hover:bg-muted dark:bg-transparent dark:hover:bg-accent"
           aria-label="First page"
         >
           <ChevronsLeft className="h-4 w-4" />
@@ -93,7 +93,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-9 w-9 p-0 bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-accent"
+          className="h-9 w-9 p-0 bg-muted hover:bg-muted dark:bg-transparent dark:hover:bg-accent"
           aria-label="Previous page"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -123,7 +123,7 @@ export function Pagination({
                   'h-9 min-w-9 px-3',
                   isActive
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-accent',
+                    : 'bg-muted hover:bg-muted dark:bg-transparent dark:hover:bg-accent',
                 )}
                 aria-label={`Page ${pageNum}`}
                 aria-current={isActive ? 'page' : undefined}
@@ -140,7 +140,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          className="h-9 w-9 p-0 bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-accent"
+          className="h-9 w-9 p-0 bg-muted hover:bg-muted dark:bg-transparent dark:hover:bg-accent"
           aria-label="Next page"
         >
           <ChevronRight className="h-4 w-4" />
@@ -152,7 +152,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage >= totalPages}
-          className="h-9 w-9 p-0 bg-gray-100 hover:bg-gray-200 dark:bg-transparent dark:hover:bg-accent"
+          className="h-9 w-9 p-0 bg-muted hover:bg-muted dark:bg-transparent dark:hover:bg-accent"
           aria-label="Last page"
         >
           <ChevronsRight className="h-4 w-4" />

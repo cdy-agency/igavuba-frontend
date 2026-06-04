@@ -28,23 +28,23 @@ const TYPE_CONFIG: Record<
 > = {
   urgent: {
     label: "Urgent",
-    className: "text-red-600 bg-red-50 border-red-200",
+    className: "text-destructive bg-destructive/10 border-destructive/30",
   },
   assignment: {
     label: "Assignment",
-    className: "text-blue-600 bg-blue-50 border-blue-200",
+    className: "text-primary bg-primary-subtle border-primary-muted",
   },
   grade: {
     label: "Grade",
-    className: "text-green-600 bg-green-50 border-green-200",
+    className: "text-success bg-success/10 border-success/30",
   },
   reminder: {
     label: "Reminder",
-    className: "text-yellow-600 bg-yellow-50 border-yellow-200",
+    className: "text-accent bg-accent/10 border-accent/30",
   },
   general: {
     label: "General",
-    className: "text-gray-600 bg-gray-50 border-gray-200",
+    className: "text-muted-foreground bg-surface border-border",
   },
 };
 
@@ -60,7 +60,7 @@ function stripHtml(html: string) {
 }
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`bg-gray-100 animate-pulse rounded ${className}`} />;
+  return <div className={`bg-muted animate-pulse rounded ${className}`} />;
 }
 
 // Component
@@ -107,25 +107,25 @@ export default function CourseAnnouncements({
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-surface min-h-screen">
       <div className="max-w-6xl mx-auto p-6">
         {/* ── Header ── */}
-        <div className="bg-white border border-gray-200 mb-4 rounded-lg overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+        <div className="bg-background border border-border mb-4 rounded-lg overflow-hidden">
+          <div className="px-6 py-4 bg-surface border-b border-border">
             <div className="flex justify-between items-center">
-              <h1 className="text-lg font-semibold text-gray-900">
+              <h1 className="text-lg font-semibold text-foreground">
                 Announcements
               </h1>
               <div className="flex items-center gap-4">
                 {unreadCount > 0 && (
-                  <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full font-semibold">
+                  <span className="bg-primary-muted text-primary-hover text-xs px-2.5 py-1 rounded-full font-semibold">
                     {unreadCount} unread
                   </span>
                 )}
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllRead}
-                    className="text-xs text-gray-500 hover:text-blue-600 transition-colors"
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
                   >
                     Mark all as read
                   </button>
@@ -135,15 +135,15 @@ export default function CourseAnnouncements({
           </div>
 
           {/* Filter tabs */}
-          <div className="px-6 flex gap-6 border-b border-gray-200 bg-white">
+          <div className="px-6 flex gap-6 border-b border-border bg-background">
             {(["all", "unread", "pinned"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setFilter(tab)}
                 className={`text-sm py-3 border-b-2 capitalize transition-colors ${
                   filter === tab
-                    ? "border-blue-500 text-blue-600 font-semibold"
-                    : "border-transparent text-gray-500 hover:text-gray-800"
+                    ? "border-primary text-primary font-semibold"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {tab === "all"
@@ -163,7 +163,7 @@ export default function CourseAnnouncements({
                 {[1, 2, 3, 4].map((i) => (
                   <div
                     key={i}
-                    className="bg-white border border-gray-200 rounded-lg p-4 space-y-2"
+                    className="bg-background border border-border rounded-lg p-4 space-y-2"
                   >
                     <Skeleton className="w-24 h-4" />
                     <Skeleton className="w-3/4 h-4" />
@@ -172,12 +172,12 @@ export default function CourseAnnouncements({
                 ))}
               </div>
             ) : filtered.length === 0 ? (
-              <div className="bg-white border border-gray-200 rounded-lg p-12 flex flex-col items-center gap-3 text-gray-400">
+              <div className="bg-background border border-border rounded-lg p-12 flex flex-col items-center gap-3 text-muted-foreground">
                 <Bell className="w-10 h-10 opacity-30" />
                 <p className="text-sm">No announcements match this filter</p>
               </div>
             ) : (
-              <div className="rounded-lg overflow-hidden border border-gray-200 divide-y divide-gray-100">
+              <div className="rounded-lg overflow-hidden border border-border divide-y divide-border">
                 {filtered.map((a) => {
                   const cfg = getConfig(a.type);
                   const isActive = selectedId === a.id;
@@ -185,9 +185,9 @@ export default function CourseAnnouncements({
                     <div
                       key={a.id}
                       onClick={() => handleSelect(a)}
-                      className={`px-5 py-4 cursor-pointer transition-colors hover:bg-gray-50
-                        ${!a.isRead ? "bg-blue-50 hover:bg-blue-50/80" : "bg-white"}
-                        ${isActive ? "ring-2 ring-inset ring-blue-400" : ""}
+                      className={`px-5 py-4 cursor-pointer transition-colors hover:bg-surface
+                        ${!a.isRead ? "bg-primary-subtle hover:bg-primary-subtle/80" : "bg-background"}
+                        ${isActive ? "ring-2 ring-inset ring-primary-light" : ""}
                       `}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -195,7 +195,7 @@ export default function CourseAnnouncements({
                           {/* Badges row */}
                           <div className="flex items-center gap-2 mb-1.5">
                             {a.isPinned && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
                                 Pinned
                               </span>
                             )}
@@ -205,21 +205,21 @@ export default function CourseAnnouncements({
                               {cfg.label}
                             </span>
                             {!a.isRead && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                              <div className="w-2 h-2 bg-primary-light rounded-full flex-shrink-0" />
                             )}
                           </div>
 
                           <h3
-                            className={`text-sm font-semibold mb-1 truncate ${!a.isRead ? "text-gray-900" : "text-gray-700"}`}
+                            className={`text-sm font-semibold mb-1 truncate ${!a.isRead ? "text-foreground" : "text-foreground-muted"}`}
                           >
                             {a.title}
                           </h3>
 
-                          <p className="text-xs text-gray-500 line-clamp-1 mb-2">
+                          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
                             {a.content}
                           </p>
 
-                          <div className="flex items-center justify-between text-[11px] text-gray-400">
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                             <span>By {a.author}</span>
                             <span>
                               {new Date(a.date).toLocaleDateString("en-US", {
@@ -233,9 +233,9 @@ export default function CourseAnnouncements({
 
                         <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
                           {a.hasAttachment && (
-                            <Paperclip className="w-3.5 h-3.5 text-gray-300" />
+                            <Paperclip className="w-3.5 h-3.5 text-foreground-subtle" />
                           )}
-                          <ChevronRight className="w-4 h-4 text-gray-300" />
+                          <ChevronRight className="w-4 h-4 text-foreground-subtle" />
                         </div>
                       </div>
                     </div>
@@ -248,8 +248,8 @@ export default function CourseAnnouncements({
           {/* ── Detail panel ── */}
           <div className="lg:col-span-1">
             {selected ? (
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden sticky top-6">
-                <div className="px-5 py-4 bg-gray-50 border-b border-gray-200">
+              <div className="bg-background border border-border rounded-lg overflow-hidden sticky top-6">
+                <div className="px-5 py-4 bg-surface border-b border-border">
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${getConfig(selected.type).className}`}
@@ -258,28 +258,28 @@ export default function CourseAnnouncements({
                     </span>
                     <button
                       onClick={() => setSelectedId(null)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-muted-foreground hover:text-muted-foreground transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
-                  <h2 className="text-base font-semibold text-gray-900 leading-snug">
+                  <h2 className="text-base font-semibold text-foreground leading-snug">
                     {selected.title}
                   </h2>
                 </div>
 
                 <div className="px-5 py-4">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-medium text-foreground-muted">
                       From: {selected.author}
                     </span>
                     {selected.isPinned && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full uppercase">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 bg-primary-muted text-primary-hover rounded-full uppercase">
                         Pinned
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mb-4">
+                  <p className="text-xs text-muted-foreground mb-4">
                     {new Date(selected.date).toLocaleDateString("en-US", {
                       weekday: "long",
                       year: "numeric",
@@ -288,13 +288,13 @@ export default function CourseAnnouncements({
                     })}
                   </p>
 
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-sm text-foreground-muted leading-relaxed whitespace-pre-wrap">
                     {selected.content}
                   </p>
 
                   {selected.hasAttachment && (
-                    <div className="mt-4 pt-4 border-t border-gray-100">
-                      <button className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 transition-colors">
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <button className="flex items-center gap-1.5 text-xs text-primary hover:text-primary-active transition-colors">
                         <Paperclip className="w-3.5 h-3.5" />
                         View Attachment
                       </button>
@@ -303,7 +303,7 @@ export default function CourseAnnouncements({
                 </div>
               </div>
             ) : (
-              <div className="bg-white border border-gray-200 rounded-lg p-10 flex flex-col items-center gap-3 text-gray-400 sticky top-6">
+              <div className="bg-background border border-border rounded-lg p-10 flex flex-col items-center gap-3 text-muted-foreground sticky top-6">
                 <Bell className="w-10 h-10 opacity-20" />
                 <p className="text-xs text-center">
                   Select an announcement to read it
