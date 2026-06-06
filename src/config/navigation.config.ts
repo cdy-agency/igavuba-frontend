@@ -62,7 +62,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Courses',
     href: '/dashboard/courses',
     icon: BookOpen,
-    roles: [UserRole.INSTITUTION_ADMIN],
+    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
   },
   {
     title: 'Modules',

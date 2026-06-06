@@ -1,4 +1,5 @@
 import { InstitutionStatus, UserStatus } from '@/types/enum';
+import { CourseLifecycleStatus, COURSE_LIFECYCLE_LABELS } from '@/types/course-status';
 
 const USER_STATUS_LABELS: Record<UserStatus, string> = {
   ACTIVE: 'Active',
@@ -35,4 +36,8 @@ export function getInstitutionStatusClassName(status: InstitutionStatus): string
 
 export function isUserActiveStatus(status: UserStatus): boolean {
   return status === UserStatus.ACTIVE;
+}
+
+export function getCourseLifecycleLabel(status: CourseLifecycleStatus): string {
+  return COURSE_LIFECYCLE_LABELS[status] ?? status;
 }

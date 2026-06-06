@@ -47,10 +47,10 @@ export function LandingFooter() {
   return (
     <footer
       id="contact"
-      className="relative bg-panel text-panel-foreground scroll-mt-20 dark:bg-panel container px-6 md:px-8 lg:px-32"
+      className="relative w-full bg-panel text-panel-foreground scroll-mt-20 dark:bg-panel"
     >
-      <div className="container">
-        <div className="container-inner">
+      <div className="container mx-auto px-6 md:px-8 lg:px-32">
+        <div>
           {/* Main Footer Content */}
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 py-10">
             {/* Left Section - Branding */}
