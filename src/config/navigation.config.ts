@@ -65,12 +65,6 @@ export const navigationConfig: NavigationItem[] = [
     roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
   },
   {
-    title: 'Modules',
-    href: '/dashboard/modules',
-    icon: Layers,
-    roles: [UserRole.INSTITUTION_ADMIN],
-  },
-  {
     title: 'Lecturers',
     href: '/dashboard/lecturers',
     icon: GraduationCap,
@@ -207,7 +201,6 @@ const WORKSPACE_PATHS = new Set([
   '/dashboard/institution-admins',
   '/dashboard/users',
   '/dashboard/courses',
-  '/dashboard/modules',
   '/dashboard/lecturers',
   '/dashboard/students',
   '/dashboard/departments',

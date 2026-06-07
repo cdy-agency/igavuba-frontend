@@ -33,12 +33,30 @@ export interface ResetPasswordDto {
   newPassword: string;
 }
 
+export interface AuthInstitution {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   status: string;
   role?: string;
+  institutionId?: string | null;
+  profileImage?: string | null;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  institution?: AuthInstitution | null;
+}
+
+export interface MeResponse {
+  success: boolean;
+  message: string;
+  user: AuthUser;
 }
 
 export interface AuthSuccessResponse {

@@ -26,6 +26,35 @@ const SIDEBAR_WIDTH_MOBILE = "85vw"
 const SIDEBAR_WIDTH_ICON = "6rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
+/** Skip sidebar shortcuts while the user is typing in a field or rich-text editor. */
+function shouldIgnoreSidebarShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (
+    target.isContentEditable ||
+    target.closest('[contenteditable="true"]') !== null
+  ) {
+    return true
+  }
+
+  const tag = target.tagName
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+    return true
+  }
+
+  if (
+    target.closest(
+      '.tiptap-editor-wrapper, .ProseMirror, [role="textbox"]',
+    ) !== null
+  ) {
+    return true
+  }
+
+  return false
+}
+
 type SidebarContext = {
   state: "expanded" | "collapsed"
   open: boolean
@@ -103,6 +132,10 @@ const SidebarProvider = React.forwardRef<
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
           (event.metaKey || event.ctrlKey)
         ) {
+          if (shouldIgnoreSidebarShortcut(event.target)) {
+            return
+          }
+
           event.preventDefault()
           toggleSidebar()
         }

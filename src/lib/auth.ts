@@ -50,8 +50,65 @@ export function clearStoredAuthState() {
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
 }
 
+/** Buffer before expiry to refresh early and avoid 401s mid-request. */
+export const ACCESS_TOKEN_REFRESH_BUFFER_SECONDS = 60;
+
+interface AccessTokenPayload {
+  exp?: number;
+  sub?: string;
+}
+
+export function parseAccessTokenPayload(token: string): AccessTokenPayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const decoded = decodeBase64Url(parts[1]);
+    if (!decoded) {
+      return null;
+    }
+
+    return JSON.parse(decoded) as AccessTokenPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function isAccessTokenExpired(
+  token: string,
+  bufferSeconds = ACCESS_TOKEN_REFRESH_BUFFER_SECONDS,
+): boolean {
+  const payload = parseAccessTokenPayload(token);
+  if (!payload?.exp) {
+    return true;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  return payload.exp <= now + bufferSeconds;
+}
+
 export function getAccessToken() {
-  return getStoredAuthState()?.accessToken ?? getAuthToken();
+  const storedState = getStoredAuthState();
+  const storedToken = storedState?.accessToken ?? null;
+  const cookieToken = getAuthToken();
+
+  if (storedToken && !isAccessTokenExpired(storedToken, 0)) {
+    return storedToken;
+  }
+
+  if (cookieToken && !isAccessTokenExpired(cookieToken, 0)) {
+    if (storedState) {
+      persistAuthState({
+        ...storedState,
+        accessToken: cookieToken,
+      });
+    }
+    return cookieToken;
+  }
+
+  return storedToken ?? cookieToken ?? null;
 }
 
 export function getRefreshToken() {

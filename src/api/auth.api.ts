@@ -3,6 +3,7 @@ import type {
   ForgotPasswordResponse,
   LoginDto,
   LoginResponse,
+  MeResponse,
   RefreshTokenResponse,
   ResendVerificationDto,
   ResendVerificationResponse,
@@ -72,6 +73,11 @@ export const authApi = {
       { refreshToken },
       { skipAuthRefresh: true } as AxiosRequestConfig,
     );
+    return response.data;
+  },
+
+  async getMe() {
+    const response = await apiClient.get<MeResponse>('/auth/me');
     return response.data;
   },
 };

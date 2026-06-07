@@ -1,69 +1,69 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { format } from 'date-fns';
-import {
-  Archive,
-  LayoutGrid,
-  List,
-  MoreHorizontal,
-  Pencil,
-  Plus,
-  Trash2,
-} from 'lucide-react';
-import { DataTable, type DataTableColumn } from '@/components/data-table/data-table';
-import { DataTableToolbar } from '@/components/data-table/data-table-toolbar';
-import { Pagination } from '@/components/ui/pagination';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/dialog/ConfirmDialog';
 import { DeleteDialog } from '@/components/dialog/delete-dialog';
 import { CourseCard } from '@/components/dashboard/courses/course-card';
 import { CourseCardsGridSkeleton } from '@/components/dashboard/courses/course-card-skeleton';
-import {
-  CourseStatusTabs,
-  type CourseStatusTab,
-} from '@/components/dashboard/courses/course-status-tabs';
+import { CourseListItem } from '@/components/dashboard/courses/course-list-item';
+import { CourseListSkeleton } from '@/components/dashboard/courses/course-list-skeleton';
+import { CoursesPageHeader } from '@/components/dashboard/courses/courses-page-header';
+import { CoursesPaginationFooter } from '@/components/dashboard/courses/courses-pagination-footer';
+import { type CourseStatusTab } from '@/components/dashboard/courses/course-status-tabs';
+import { useCourseStatusCounts } from '@/hooks/use-course-status-counts';
 import {
   useArchiveCourse,
   useCoursesList,
   usePermanentlyDeleteCourse,
 } from '@/hooks/use-courses';
-import type { Course } from '@/types/course';
+import type { Course, CourseDepartment } from '@/types/course';
+import { CourseLevel } from '@/types/course';
 import { CourseLifecycleStatus } from '@/types/course-status';
-import {
-  getCourseAccessTypeLabel,
-  getCourseLevelLabel,
-  getCourseStatusClassName,
-} from '@/lib/course-utils';
-import { getCourseLifecycleLabel } from '@/lib/status-utils';
 import { getApiErrorMessage } from '@/lib/auth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
 
-type ViewMode = 'table' | 'cards';
+type ViewMode = 'list' | 'cards';
 
 function toStatusFilter(tab: CourseStatusTab): CourseLifecycleStatus | undefined {
   return tab === 'ALL' ? undefined : tab;
 }
 
+function extractDepartments(courses: Course[]): CourseDepartment[] {
+  const map = new Map<string, CourseDepartment>();
+  for (const course of courses) {
+    if (course.department) {
+      map.set(course.department.id, course.department);
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function CoursesTable() {
+  const isMobile = useIsMobile();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [statusTab, setStatusTab] = useState<CourseStatusTab>('ALL');
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [levelFilter, setLevelFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewModeTouched, setViewModeTouched] = useState(false);
   const [courseToArchive, setCourseToArchive] = useState<Course | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+
+  const level =
+    levelFilter === 'all' ? undefined : (levelFilter as CourseLevel);
+  const departmentId = departmentFilter === 'all' ? undefined : departmentFilter;
+
+  useEffect(() => {
+    if (!viewModeTouched && isMobile) {
+      setViewMode('cards');
+    }
+  }, [isMobile, viewModeTouched]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -73,11 +73,26 @@ export function CoursesTable() {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
+  const { data: departmentSource } = useCoursesList({ limit: 100, page: 1 });
+
+  const departments = useMemo(
+    () => extractDepartments(departmentSource?.data ?? []),
+    [departmentSource],
+  );
+
+  const { counts: statusCounts, isLoading: isLoadingCounts } = useCourseStatusCounts({
+    search: search || undefined,
+    level,
+    departmentId,
+  });
+
   const { data, isPending, isFetching, isError, error } = useCoursesList({
     page,
     limit: PAGE_SIZE,
     search: search || undefined,
     status: toStatusFilter(statusTab),
+    level,
+    departmentId,
   });
 
   const archiveCourseMutation = useArchiveCourse();
@@ -89,96 +104,9 @@ export function CoursesTable() {
     }
   }, [isError, error]);
 
-  const columns = useMemo<DataTableColumn<Course>[]>(
-    () => [
-      {
-        id: 'title',
-        header: 'Course',
-        skeleton: 'double',
-        cell: (row) => (
-          <div className="min-w-[12rem]">
-            <p className="font-medium text-foreground">{row.title}</p>
-            <p className="text-xs text-muted-foreground">{row.slug}</p>
-          </div>
-        ),
-      },
-      {
-        id: 'status',
-        header: 'Status',
-        skeleton: 'badge',
-        cell: (row) => (
-          <Badge variant="outline" className={getCourseStatusClassName(row.status)}>
-            {getCourseLifecycleLabel(row.status)}
-          </Badge>
-        ),
-      },
-      {
-        id: 'level',
-        header: 'Level',
-        className: 'text-muted-foreground',
-        skeleton: 'text',
-        cell: (row) => getCourseLevelLabel(row.level),
-      },
-      {
-        id: 'access',
-        header: 'Access',
-        className: 'text-muted-foreground',
-        skeleton: 'text',
-        cell: (row) => getCourseAccessTypeLabel(row.accessType),
-      },
-      {
-        id: 'updated',
-        header: 'Updated',
-        className: 'text-muted-foreground whitespace-nowrap',
-        skeleton: 'text',
-        cell: (row) => format(new Date(row.updatedAt), 'MMM d, yyyy'),
-      },
-      {
-        id: 'actions',
-        header: '',
-        headerClassName: 'text-right w-[4rem]',
-        className: 'text-right',
-        skeleton: 'narrow',
-        cell: (row) => (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem asChild>
-                <Link href={`/dashboard/courses/${row.slug}`}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </Link>
-              </DropdownMenuItem>
-              {row.status !== CourseLifecycleStatus.ARCHIVED ? (
-                <DropdownMenuItem onClick={() => setCourseToArchive(row)}>
-                  <Archive className="mr-2 h-4 w-4" />
-                  Archive Course
-                </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setCourseToDelete(row)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Permanently
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ),
-      },
-    ],
-    [],
-  );
-
   const courses: Course[] = data?.data ?? [];
   const pagination = data?.pagination;
-  const isLoading = isPending || isFetching;
-  const showCardsSkeleton = isPending || (isFetching && courses.length === 0);
+  const showInitialSkeleton = isPending || (isFetching && courses.length === 0);
 
   const handleConfirmArchive = async () => {
     if (!courseToArchive) return;
@@ -192,121 +120,112 @@ export function CoursesTable() {
     setCourseToDelete(null);
   };
 
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewModeTouched(true);
+    setViewMode(mode);
+  };
+
+  const handleStatusChange = (value: CourseStatusTab) => {
+    setStatusTab(value);
+    setPage(1);
+  };
+
+  const handleDepartmentChange = (value: string) => {
+    setDepartmentFilter(value);
+    setPage(1);
+  };
+
+  const handleLevelChange = (value: string) => {
+    setLevelFilter(value);
+    setPage(1);
+  };
+
   return (
     <div className="space-y-4">
-      <CourseStatusTabs
-        value={statusTab}
-        onChange={(value) => {
-          setStatusTab(value);
-          setPage(1);
-        }}
+      <CoursesPageHeader
+        searchValue={searchInput}
+        onSearchChange={setSearchInput}
+        statusTab={statusTab}
+        onStatusChange={handleStatusChange}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        departmentId={departmentFilter}
+        onDepartmentChange={handleDepartmentChange}
+        level={levelFilter}
+        onLevelChange={handleLevelChange}
+        departments={departments}
+        statusCounts={statusCounts}
+        isLoadingCounts={isLoadingCounts}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border border-border p-1">
-          <Button
-            type="button"
-            variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('table')}
-          >
-            <List className="mr-2 h-4 w-4" />
-            Table
-          </Button>
-          <Button
-            type="button"
-            variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
-            size="sm"
-            onClick={() => setViewMode('cards')}
-          >
-            <LayoutGrid className="mr-2 h-4 w-4" />
-            Cards
-          </Button>
-        </div>
-
-        <Button asChild>
-          <Link href="/dashboard/courses/new">
-            <Plus className="mr-2 h-4 w-4" />
-            New course
-          </Link>
-        </Button>
-      </div>
-
-      {viewMode === 'table' ? (
-        <DataTable
-          columns={columns}
-          data={courses}
-          getRowKey={(row) => row.id}
-          isLoading={isLoading}
-          skeletonRowCount={PAGE_SIZE}
-          emptyMessage="No courses found for the selected filters."
-          searchValue={searchInput}
-          onSearchChange={setSearchInput}
-          searchPlaceholder="Search courses..."
-          currentPage={pagination?.page ?? page}
-          totalPages={pagination?.totalPages ?? 1}
-          totalItems={pagination?.total ?? 0}
-          itemsPerPage={pagination?.limit ?? PAGE_SIZE}
-          onPageChange={setPage}
-        />
-      ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <DataTableToolbar
-            searchValue={searchInput}
-            onSearchChange={setSearchInput}
-            searchPlaceholder="Search courses..."
-          />
-          <div className="p-4">
-            {showCardsSkeleton ? (
-              <CourseCardsGridSkeleton count={PAGE_SIZE} />
-            ) : courses.length === 0 ? (
-              <div className="px-2 py-12 text-center text-sm text-muted-foreground">
-                No courses found for the selected filters.
-              </div>
-            ) : (
-              <div
-                className={
-                  isFetching ? 'pointer-events-none grid gap-4 opacity-60 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
-                }
-              >
-                {courses.map((course) => (
-                  <CourseCard
-                    key={course.id}
-                    course={course}
-                    onArchive={setCourseToArchive}
-                    onPermanentDelete={setCourseToDelete}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-3">
-            {(pagination?.total ?? 0) > 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {pagination?.total ?? 0}{' '}
-                {(pagination?.total ?? 0) === 1 ? 'result' : 'results'}
+      {viewMode === 'list' ? (
+        <div className="space-y-3">
+          {showInitialSkeleton ? (
+            <CourseListSkeleton count={PAGE_SIZE} />
+          ) : courses.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center shadow-sm">
+              <p className="text-sm font-medium text-foreground">No courses found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try adjusting your search or filters.
               </p>
-            ) : (
-              <span />
-            )}
-            {isFetching && courses.length === 0 ? (
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
-                <div className="h-9 w-16 animate-pulse rounded-md bg-muted" />
-                <div className="h-9 w-9 animate-pulse rounded-md bg-muted" />
-              </div>
-            ) : (pagination?.totalPages ?? 1) > 1 ? (
-              <Pagination
-                currentPage={pagination?.page ?? page}
-                totalPages={pagination?.totalPages ?? 1}
-                onPageChange={setPage}
-                itemsPerPage={pagination?.limit ?? PAGE_SIZE}
-                totalItems={pagination?.total ?? 0}
-              />
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                'space-y-3',
+                isFetching && 'pointer-events-none opacity-60',
+              )}
+            >
+              {courses.map((course) => (
+                <CourseListItem
+                  key={course.id}
+                  course={course}
+                  onArchive={setCourseToArchive}
+                  onPermanentDelete={setCourseToDelete}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {showInitialSkeleton ? (
+            <CourseCardsGridSkeleton count={PAGE_SIZE} />
+          ) : courses.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border bg-card px-6 py-14 text-center shadow-sm">
+              <p className="text-sm font-medium text-foreground">No courses found</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try adjusting your search or filters.
+              </p>
+            </div>
+          ) : (
+            <div
+              className={cn(
+                'grid gap-3 sm:grid-cols-2 xl:grid-cols-3',
+                isFetching && 'pointer-events-none opacity-60',
+              )}
+            >
+              {courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onArchive={setCourseToArchive}
+                  onPermanentDelete={setCourseToDelete}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
+
+      <CoursesPaginationFooter
+        total={pagination?.total ?? 0}
+        page={pagination?.page ?? page}
+        totalPages={pagination?.totalPages ?? 1}
+        limit={pagination?.limit ?? PAGE_SIZE}
+        onPageChange={setPage}
+        isLoading={showInitialSkeleton}
+      />
 
       <ConfirmDialog
         isOpen={Boolean(courseToArchive)}

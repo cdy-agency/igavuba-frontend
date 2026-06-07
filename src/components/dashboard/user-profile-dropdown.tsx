@@ -30,7 +30,7 @@ function getInitials(name?: string, email?: string) {
 }
 
 export function UserProfileDropdown() {
-  const { user, role } = useDashboard();
+  const { user, role, institution } = useDashboard();
   const { logout } = useAuth();
 
   return (
@@ -64,6 +64,9 @@ export function UserProfileDropdown() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-semibold leading-none">{user?.name ?? 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+            {institution ? (
+              <p className="text-xs leading-none text-muted-foreground">{institution.name}</p>
+            ) : null}
             {role ? (
               <span className="mt-2 inline-flex w-fit rounded-md bg-primary-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                 {getRoleLabel(role)}

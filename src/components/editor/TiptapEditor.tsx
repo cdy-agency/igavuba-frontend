@@ -44,6 +44,8 @@ interface TiptapEditorProps {
   isPreview?: boolean;
   autoPreview?: boolean;
   previewClassName?: string;
+  /** When false, toolbar scrolls with content (recommended inside dashboard forms). */
+  stickyToolbar?: boolean;
 }
 
 function stripFontFamilyFromInlineStyles(html: string): string {
@@ -355,6 +357,7 @@ export default function TiptapEditor({
   isPreview = false,
   autoPreview = false,
   previewClassName = '',
+  stickyToolbar = true,
 }: TiptapEditorProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -584,7 +587,13 @@ export default function TiptapEditor({
         className={`relative ${shouldShowPreview ? 'preview-mode' : 'edit-mode bg-card rounded-lg border border-border'}`}
       >
         {!shouldShowPreview && isReady && (
-          <div className="sticky top-0 z-20 bg-card rounded-t-lg">
+          <div
+            className={
+              stickyToolbar
+                ? 'sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90 rounded-t-lg'
+                : 'border-b border-border bg-card rounded-t-lg'
+            }
+          >
             <MenuBar editor={editor} onUploadError={onUploadError} />
           </div>
         )}

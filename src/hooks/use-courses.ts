@@ -78,6 +78,22 @@ export function useUpdateCourse(idOrSlug: string) {
   });
 }
 
+export function usePublishCourse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (courseId: string) =>
+      updateCourseStatus(courseId, CourseLifecycleStatus.PUBLISHED),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Course published successfully.');
+      queryClient.invalidateQueries({ queryKey: courseQueryKeys.all });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to publish course.'));
+    },
+  });
+}
+
 export function useArchiveCourse() {
   const queryClient = useQueryClient();
 

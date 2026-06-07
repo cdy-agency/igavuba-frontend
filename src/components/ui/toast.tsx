@@ -1,9 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Info, X, Loader2 } from 'lucide-react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const MAX_TOASTS = 4;
+const DEFAULT_DURATION = 4000;
 
 interface Toast {
   id: string;
@@ -41,23 +44,12 @@ export function ToastProvider({ children, onToastAdded }: ToastProviderProps) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const addToast = useCallback(
-    (toast: Omit<Toast, 'id'>) => {
-      const id = Math.random().toString(36).substr(2, 9);
-      const newToast = { ...toast, id };
-      setToasts((prev) => [...prev, newToast]);
+  const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
+    const id = crypto.randomUUID();
+    const newToast = { ...toast, id };
+    setToasts((prev) => [newToast, ...prev].slice(0, MAX_TOASTS));
+  }, []);
 
-      // Auto remove toast after duration
-      if (toast.duration !== 0) {
-        setTimeout(() => {
-          removeToast(id);
-        }, toast.duration || 4000);
-      }
-    },
-    [removeToast],
-  );
-
-  // Set up global toast function via callback
   useEffect(() => {
     if (onToastAdded) {
       onToastAdded(addToast);
@@ -76,7 +68,11 @@ function ToastContainer() {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div
+      className="pointer-events-none fixed right-4 top-4 z-[200] flex w-[min(calc(100vw-2rem),400px)] flex-col gap-3 sm:right-6 sm:top-6"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />
       ))}
@@ -89,108 +85,135 @@ interface ToastItemProps {
   onRemove: (id: string) => void;
 }
 
+const toastVariants = {
+  success: {
+    icon: CheckCircle2,
+    iconWrap: 'bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/15',
+    progress: 'bg-emerald-500',
+  },
+  error: {
+    icon: XCircle,
+    iconWrap: 'bg-red-50 text-red-600 ring-1 ring-red-500/15',
+    progress: 'bg-red-500',
+  },
+  warning: {
+    icon: AlertTriangle,
+    iconWrap: 'bg-amber-50 text-amber-600 ring-1 ring-amber-500/15',
+    progress: 'bg-amber-500',
+  },
+  info: {
+    icon: Info,
+    iconWrap: 'bg-blue-50 text-blue-600 ring-1 ring-blue-500/15',
+    progress: 'bg-blue-500',
+  },
+  loading: {
+    icon: Loader2,
+    iconWrap: 'bg-slate-50 text-slate-600 ring-1 ring-slate-500/10',
+    progress: 'bg-slate-400',
+  },
+} as const;
+
 function ToastItem({ toast, onRemove }: ToastItemProps) {
-  const [isVisible, setIsVisible] = React.useState(false);
+  const [isLeaving, setIsLeaving] = React.useState(false);
+  const [isPaused, setIsPaused] = React.useState(false);
+  const duration = toast.duration ?? DEFAULT_DURATION;
+  const variant = toastVariants[toast.type] ?? toastVariants.info;
+  const Icon = variant.icon;
+  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remainingMs = useRef(duration);
+  const pausedAt = useRef<number | null>(null);
 
-  React.useEffect(() => {
-    // Trigger entrance animation
-    setTimeout(() => setIsVisible(true), 10);
-  }, []);
+  const handleRemove = useCallback(() => {
+    if (isLeaving) return;
+    setIsLeaving(true);
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    setTimeout(() => onRemove(toast.id), 220);
+  }, [isLeaving, onRemove, toast.id]);
 
-  const handleRemove = () => {
-    setIsVisible(false);
-    setTimeout(() => onRemove(toast.id), 300);
+  const startDismissTimer = useCallback(
+    (ms: number) => {
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+      if (toast.type === 'loading' || ms <= 0) return;
+      dismissTimer.current = setTimeout(handleRemove, ms);
+    },
+    [handleRemove, toast.type],
+  );
+
+  useEffect(() => {
+    remainingMs.current = duration;
+    startDismissTimer(duration);
+    return () => {
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    };
+  }, [duration, startDismissTimer]);
+
+  const handlePause = () => {
+    if (toast.type === 'loading' || duration <= 0 || pausedAt.current !== null) return;
+    pausedAt.current = Date.now();
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    setIsPaused(true);
   };
 
-  const getToastStyles = () => {
-    switch (toast.type) {
-      case 'success':
-        return {
-          accent: 'bg-success/100',
-          icon: 'text-success',
-          iconComponent: <CheckCircle className="h-5 w-5" />,
-        };
-      case 'error':
-        return {
-          accent: 'bg-destructive/100',
-          icon: 'text-destructive',
-          iconComponent: <XCircle className="h-5 w-5" />,
-        };
-      case 'warning':
-        return {
-          accent: 'bg-accent/100',
-          icon: 'text-accent',
-          iconComponent: <AlertCircle className="h-5 w-5" />,
-        };
-      case 'info':
-        return {
-          accent: 'bg-primary-light',
-          icon: 'text-primary',
-          iconComponent: <Info className="h-5 w-5" />,
-        };
-      case 'loading':
-        return {
-          accent: 'bg-surface0',
-          icon: 'text-muted-foreground',
-          iconComponent: <Loader2 className="h-5 w-5 animate-spin" />,
-        };
-      default:
-        return {
-          accent: 'bg-surface0',
-          icon: 'text-muted-foreground',
-          iconComponent: <Info className="h-5 w-5" />,
-        };
-    }
+  const handleResume = () => {
+    if (toast.type === 'loading' || duration <= 0 || pausedAt.current === null) return;
+    const pausedFor = Date.now() - pausedAt.current;
+    remainingMs.current = Math.max(0, remainingMs.current - pausedFor);
+    pausedAt.current = null;
+    setIsPaused(false);
+    startDismissTimer(remainingMs.current);
   };
-
-  const styles = getToastStyles();
 
   return (
     <div
+      role="status"
+      onMouseEnter={handlePause}
+      onMouseLeave={handleResume}
       className={cn(
-        'relative min-w-[320px] max-w-[420px] bg-background rounded-xl shadow-lg border border-border p-4 transition-all duration-300 ease-out',
-        isVisible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0',
+        'toast-enter pointer-events-auto relative overflow-hidden rounded-2xl border border-black/[0.06] bg-white',
+        'shadow-[0_12px_40px_-8px_rgba(15,23,42,0.18)]',
+        isLeaving && 'toast-exit',
       )}
     >
-      {/* Colored accent on bottom right */}
-      <div
-        className={cn('absolute bottom-0 right-0 w-2 h-2 rounded-tl-lg opacity-20', styles.accent)}
-      />
-
-      <div className="flex items-start space-x-3">
-        <div className={cn('flex-shrink-0', styles.icon)}>{styles.iconComponent}</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">{toast.title}</p>
-          {toast.description && <p className="text-sm text-muted-foreground mt-1">{toast.description}</p>}
+      <div className="flex items-start gap-3 p-4 pr-3">
+        <div
+          className={cn(
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+            variant.iconWrap,
+          )}
+        >
+          <Icon className={cn('h-[18px] w-[18px]', toast.type === 'loading' && 'animate-spin')} />
         </div>
+
+        <div className="min-w-0 flex-1 pt-0.5">
+          <p className="text-[13px] font-semibold leading-snug tracking-tight text-slate-900">
+            {toast.title}
+          </p>
+          {toast.description ? (
+            <p className="mt-1 text-[12px] leading-relaxed text-slate-500">{toast.description}</p>
+          ) : null}
+        </div>
+
         <button
           type="button"
           onClick={handleRemove}
-          className="flex-shrink-0 text-muted-foreground hover:text-muted-foreground transition-colors p-1 rounded-full hover:bg-muted"
+          className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Dismiss notification"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
+
+      {toast.type !== 'loading' && duration > 0 ? (
+        <div className="h-[3px] w-full bg-slate-100">
+          <div
+            className={cn('toast-progress-shrink h-full rounded-full', variant.progress)}
+            style={{
+              animationDuration: `${duration}ms`,
+              animationPlayState: isPaused ? 'paused' : 'running',
+            }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
-
-// Convenience functions
-export const toast = {
-  success: (title: string, description?: string, duration?: number) => {
-    // This will be called from the context
-    return { type: 'success' as const, title, description, duration };
-  },
-  error: (title: string, description?: string, duration?: number) => {
-    return { type: 'error' as const, title, description, duration };
-  },
-  warning: (title: string, description?: string, duration?: number) => {
-    return { type: 'warning' as const, title, description, duration };
-  },
-  info: (title: string, description?: string, duration?: number) => {
-    return { type: 'info' as const, title, description, duration };
-  },
-  loading: (title: string, description?: string) => {
-    return { type: 'loading' as const, title, description, duration: 0 };
-  },
-};

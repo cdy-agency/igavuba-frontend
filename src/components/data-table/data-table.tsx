@@ -83,6 +83,7 @@ export function DataTable<T>({
         )}
       >
         <DataTableToolbarSkeleton showSort={!!toolbar} />
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -103,6 +104,7 @@ export function DataTable<T>({
             <DataTableBodySkeleton columns={columns} rowCount={rowCount} />
           </TableBody>
         </Table>
+        </div>
         {showPagination ? <DataTablePaginationSkeleton /> : null}
       </div>
     );
@@ -128,6 +130,7 @@ export function DataTable<T>({
       ) : null}
 
       <div className={cn(isLoading && data.length > 0 && 'pointer-events-none opacity-60')}>
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -169,6 +172,7 @@ export function DataTable<T>({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {showPagination && !isLoading ? (

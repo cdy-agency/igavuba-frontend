@@ -4,7 +4,7 @@ const AUTH_SESSION_KEY = 'auth-session';
 export const setAuthToken = (token: string) => {
   if (typeof window !== 'undefined') {
     // Store access token in a cookie (shared across tabs)
-    const maxAge = 3600; // 1 hour (matches JWT expiry)
+    const maxAge = 900; // 15 minutes (matches JWT expiry)
     // biome-ignore lint/suspicious/noDocumentCookie: Access token cookie for cross-tab session sharing
     document.cookie = `${ACCESS_TOKEN_KEY}=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
 

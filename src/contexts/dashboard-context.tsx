@@ -6,6 +6,7 @@ import {
   useMemo,
   type ReactNode,
 } from 'react';
+import { useCurrentUser } from '@/hooks/use-current-user';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { getNavigationForRole } from '@/config/navigation.config';
 import { getPermissionsForRole } from '@/lib/permissions';
@@ -16,26 +17,41 @@ const DashboardContext = createContext<DashboardContextValue | undefined>(undefi
 
 interface DashboardProviderProps {
   children: ReactNode;
-  institution?: Institution | null;
 }
 
-export function DashboardProvider({
-  children,
-  institution = null,
-}: DashboardProviderProps) {
-  const { user, isLoading } = useAuth();
-  const role = parseUserRole(user?.role);
+function mapInstitution(
+  institution?: { id: string; name: string; slug: string } | null,
+): Institution | null {
+  if (!institution) {
+    return null;
+  }
+
+  return {
+    id: institution.id,
+    name: institution.name,
+    slug: institution.slug,
+  };
+}
+
+export function DashboardProvider({ children }: DashboardProviderProps) {
+  const { user: authUser, isLoading: isAuthLoading, isAuthenticated } = useAuth();
+  const { data: meResponse, isPending: isMePending } = useCurrentUser(isAuthenticated);
+
+  const profileUser = meResponse?.user ?? authUser;
+  const role = parseUserRole(profileUser?.role);
+  const institution = mapInstitution(profileUser?.institution ?? null);
+  const isLoading = isAuthLoading || (isAuthenticated && isMePending && !meResponse);
 
   const value = useMemo<DashboardContextValue>(
     () => ({
-      user,
+      user: profileUser,
       role,
       institution,
       navigation: getNavigationForRole(role),
       permissions: getPermissionsForRole(role),
       isLoading,
     }),
-    [user, role, institution, isLoading],
+    [profileUser, role, institution, isLoading],
   );
 
   return (

@@ -1,49 +1,59 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  ChevronsLeft,
-  ChevronsRight,
-  GraduationCap,
-  HelpCircle,
-  MessageSquare,
-  Search,
-} from 'lucide-react';
+import { HelpCircle, MessageSquare, PanelLeft, X } from 'lucide-react';
 import { useDashboard } from '@/contexts/dashboard-context';
-import { getRoleLabel } from '@/lib/role-utils';
 import {
   getFooterNavigationForRole,
   getNavigationGroupsForRole,
 } from '@/config/navigation.config';
-import { SidebarNavGroup } from '@/components/dashboard/sidebar/sidebar-nav-group';
 import { SidebarNavLink } from '@/components/dashboard/sidebar/sidebar-nav-link';
-import { SidebarUpgradeCard } from '@/components/dashboard/sidebar/sidebar-upgrade-card';
 import { useSidebar } from '@/components/ui/sidebar';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
 } from '@/components/ui/sidebar';
-import { cn } from '@/lib/utils';
+import type { NavigationItem } from '@/types/dashboard';
 import { PUBLIC_ROUTES } from '@/lib/routes';
+import Image from 'next/image';
 
-const utilityLinks = [
-  { title: 'Help center', href: PUBLIC_ROUTES.CONTACT, icon: HelpCircle },
-  { title: 'Feedback', href: PUBLIC_ROUTES.CONTACT, icon: MessageSquare },
-] as const;
+const utilityLinks: NavigationItem[] = [
+  {
+    title: 'Help',
+    href: PUBLIC_ROUTES.CONTACT,
+    icon: HelpCircle,
+    roles: [],
+  },
+  {
+    title: 'Feedback',
+    href: PUBLIC_ROUTES.CONTACT,
+    icon: MessageSquare,
+    roles: [],
+  },
+];
+
+function getLogoInitials(name?: string | null): string {
+  if (!name) return 'EL';
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) {
+    return `${words[0][0] ?? ''}${words[1][0] ?? ''}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { institution, role } = useDashboard();
+  const { institution, role, user } = useDashboard();
   const { state, toggleSidebar, isMobile } = useSidebar();
-  const [searchQuery, setSearchQuery] = useState('');
   const navGroups = getNavigationGroupsForRole(role);
   const footerNav = getFooterNavigationForRole(role);
+  const navItems = navGroups.flatMap((group) => group.items);
+  const bottomItems = [...utilityLinks, ...footerNav];
   const collapsed = state === 'collapsed' && !isMobile;
+  const logoInitials = getLogoInitials(institution?.name);
 
   const isItemActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
@@ -52,125 +62,83 @@ export function AppSidebar() {
     <Sidebar
       collapsible="icon"
       variant="sidebar"
-      className="border-r border-sidebar-border bg-sidebar"
+      className="dashboard-rail-sidebar border-r-0 text-sidebar-foreground"
     >
-      <SidebarHeader className="border-b border-sidebar-border p-0">
-        {collapsed ? (
-          <div className="flex flex-col items-center gap-3 px-2 py-4">
-            <Link
-              href="/dashboard"
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-              title="E-Learning"
-            >
-              <GraduationCap className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              onClick={toggleSidebar}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              aria-label="Expand sidebar"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 px-4 py-4">
-            <div className="flex items-center justify-between gap-2">
-              <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <GraduationCap className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-foreground">E-Learning</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {institution?.name ?? 'Platform Workspace'}
-                  </p>
-                </div>
-              </Link>
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                aria-label="Collapse sidebar"
-              >
-                <ChevronsLeft className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search"
-                className="dashboard-sidebar-search cursor-text"
-                aria-label="Search dashboard"
+      <SidebarHeader className="dashboard-rail-header shrink-0 p-0">
+        <div className="flex items-center justify-center px-2 py-4">
+          <Link href="/dashboard" className="dashboard-rail-logo" title="E-Learning">
+            {user?.institution?.logo ? (
+              <Image
+                src={user.institution.logo}
+                alt={user.institution.name}
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-full object-cover"
               />
-              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground">
-                ⌘K
-              </kbd>
-            </div>
-          </div>
-        )}
+            ) : (
+              <span className="dashboard-rail-logo-text">{logoInitials}</span>
+            )}
+          </Link>
+        </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-4 overflow-y-auto py-4">
-        {navGroups.map((group) => (
-          <SidebarNavGroup key={group.id} group={group} />
-        ))}
+      <SidebarContent className="custom-scrollbar custom-scrollbar-dark min-h-0 flex-1 overflow-y-auto py-1 group-data-[collapsible=icon]:!overflow-y-auto">
+        <nav className="flex w-full flex-col">
+          <ul className="flex w-full flex-col">
+            {navItems.map((item) => (
+              <SidebarNavLink
+                key={item.href}
+                href={item.href}
+                title={item.title}
+                icon={item.icon}
+                isActive={isItemActive(item.href)}
+                badge={item.badge}
+              />
+            ))}
+
+            {bottomItems.length > 0 ? (
+              <>
+                <li
+                  className="mx-2 my-1.5 border-t border-sidebar-border"
+                  role="presentation"
+                  aria-hidden="true"
+                />
+                {bottomItems.map((item) => (
+                  <SidebarNavLink
+                    key={`${item.href}-${item.title}`}
+                    href={item.href}
+                    title={item.title}
+                    icon={item.icon}
+                    isActive={isItemActive(item.href)}
+                    badge={item.badge}
+                  />
+                ))}
+              </>
+            ) : null}
+          </ul>
+        </nav>
       </SidebarContent>
 
-      <SidebarFooter className="gap-3 border-t border-sidebar-border p-4">
-        {!collapsed ? (
-          <>
-            <ul className="flex flex-col gap-0.5">
-              {utilityLinks.map((link) => (
-                <SidebarNavLink
-                  key={link.title}
-                  href={link.href}
-                  title={link.title}
-                  icon={link.icon}
-                  isActive={pathname === link.href}
-                />
-              ))}
-              {footerNav.map((item) => (
-                <SidebarNavLink
-                  key={item.href}
-                  href={item.href}
-                  title={item.title}
-                  icon={item.icon}
-                  isActive={isItemActive(item.href)}
-                />
-              ))}
-            </ul>
-
-            {/* <SidebarUpgradeCard /> */}
-
-            {role ? (
-              <p className="text-center text-[10px] text-muted-foreground">
-                {getRoleLabel(role)} workspace
-              </p>
-            ) : null}
-          </>
-        ) : (
-          <nav className="px-2">
-            <ul className="flex flex-col gap-0.5">
-              {[...utilityLinks, ...footerNav].map((item) => (
-                <SidebarNavLink
-                  key={item.title}
-                  href={item.href}
-                  title={item.title}
-                  icon={item.icon}
-                  isActive={isItemActive(item.href)}
-                />
-              ))}
-            </ul>
-          </nav>
-        )}
+      <SidebarFooter className="shrink-0 border-t border-sidebar-border p-0">
+        <button
+          type="button"
+          onClick={toggleSidebar}
+          className="dashboard-rail-toggle"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? (
+            <>
+              <PanelLeft className="h-5 w-5" />
+              <span className="dashboard-rail-nav-label">Menu</span>
+            </>
+          ) : (
+            <>
+              <X className="h-5 w-5" />
+              <span className="dashboard-rail-nav-label">Close</span>
+            </>
+          )}
+        </button>
       </SidebarFooter>
-
-      <SidebarRail />
     </Sidebar>
   );
 }

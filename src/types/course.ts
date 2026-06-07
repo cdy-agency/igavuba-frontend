@@ -83,6 +83,8 @@ export interface CourseListQueryParams {
   limit?: number;
   search?: string;
   status?: CourseLifecycleStatus;
+  level?: CourseLevel;
+  departmentId?: string;
 }
 
 export interface CreateCoursePayload {

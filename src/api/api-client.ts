@@ -3,9 +3,9 @@ import {
   clearStoredAuthState,
   getAccessToken,
   getRefreshToken,
-  updateStoredTokens,
 } from '@/lib/auth';
 import { decryptResponse, encryptAESKeyOnly, encryptPayload } from '@/lib/crypto';
+import { ensureValidAccessToken, refreshSessionTokens } from '@/lib/session-token';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const encryptionEnabled = !!process.env.NEXT_PUBLIC_RSA_PUBLIC_KEY;
@@ -17,6 +17,43 @@ type ExtendedAxiosRequestConfig = InternalAxiosRequestConfig & {
 
 const aesKeyMap = new WeakMap<InternalAxiosRequestConfig, CryptoKey>();
 
+function setAuthorizationHeader(config: InternalAxiosRequestConfig, token: string | null) {
+  if (!token) {
+    if (typeof config.headers?.delete === 'function') {
+      config.headers.delete('Authorization');
+    } else if (config.headers) {
+      delete config.headers.Authorization;
+    }
+    return;
+  }
+
+  const value = `Bearer ${token}`;
+  if (typeof config.headers?.set === 'function') {
+    config.headers.set('Authorization', value);
+  } else if (config.headers) {
+    config.headers.Authorization = value;
+  }
+}
+
+function shouldSkipAuthRefresh(config: ExtendedAxiosRequestConfig) {
+  if (config.skipAuthRefresh) {
+    return true;
+  }
+
+  const url = config.url ?? '';
+  return (
+    url.includes('/auth/login') ||
+    url.includes('/auth/signup') ||
+    url.includes('/auth/verify-email') ||
+    url.includes('/auth/resend-verification') ||
+    url.includes('/auth/forgot-password') ||
+    url.includes('/auth/verify-reset-otp') ||
+    url.includes('/auth/reset-password') ||
+    url.includes('/auth/refresh') ||
+    url.includes('/auth/invitation')
+  );
+}
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -26,9 +63,16 @@ export const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   async (config) => {
-    const token = getAccessToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const extendedConfig = config as ExtendedAxiosRequestConfig;
+
+    if (!shouldSkipAuthRefresh(extendedConfig)) {
+      const token = await ensureValidAccessToken();
+      if (!token) {
+        return Promise.reject(new Error('Not authenticated'));
+      }
+      setAuthorizationHeader(config, token);
+    } else {
+      setAuthorizationHeader(config, getAccessToken());
     }
 
     if (config.data instanceof FormData) {
@@ -83,22 +127,6 @@ apiClient.interceptors.response.use(async (response) => {
   return response;
 });
 
-let isRefreshing = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
-
-function subscribeTokenRefresh(callback: (token: string) => void) {
-  refreshSubscribers.push(callback);
-}
-
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach((callback) => callback(token));
-  refreshSubscribers = [];
-}
-
-function onRefreshFailed() {
-  refreshSubscribers = [];
-}
-
 apiClient.interceptors.response.use(undefined, async (error) => {
   const originalRequest = error.config as ExtendedAxiosRequestConfig | undefined;
 
@@ -106,65 +134,30 @@ apiClient.interceptors.response.use(undefined, async (error) => {
     error.response?.status !== 401 ||
     !originalRequest ||
     originalRequest._retry ||
-    originalRequest.skipAuthRefresh ||
-    originalRequest.url?.includes('/auth/login') ||
-    originalRequest.url?.includes('/auth/signup') ||
-    originalRequest.url?.includes('/auth/verify-email') ||
-    originalRequest.url?.includes('/auth/resend-verification') ||
-    originalRequest.url?.includes('/auth/forgot-password') ||
-    originalRequest.url?.includes('/auth/verify-reset-otp') ||
-    originalRequest.url?.includes('/auth/reset-password') ||
-    originalRequest.url?.includes('/auth/refresh') ||
-    originalRequest.url?.includes('/auth/invitation')
+    shouldSkipAuthRefresh(originalRequest)
   ) {
     return Promise.reject(error);
   }
 
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) {
+  if (!getRefreshToken()) {
     clearStoredAuthState();
     return Promise.reject(error);
   }
 
-  if (isRefreshing) {
-    return new Promise((resolve) => {
-      subscribeTokenRefresh((newToken: string) => {
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        resolve(apiClient(originalRequest));
-      });
-    });
-  }
-
   originalRequest._retry = true;
-  isRefreshing = true;
 
   try {
-    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-      refreshToken,
-    });
-
-    const newAccessToken = response.data?.accessToken as string | undefined;
-    const newRefreshToken = response.data?.refreshToken as string | undefined;
-
-    if (!newAccessToken) {
-      throw new Error('No access token in refresh response');
-    }
-
-    updateStoredTokens(newAccessToken, newRefreshToken);
-    onTokenRefreshed(newAccessToken);
-    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+    const newAccessToken = await refreshSessionTokens();
+    setAuthorizationHeader(originalRequest, newAccessToken);
     return apiClient(originalRequest);
   } catch (refreshError) {
-    onRefreshFailed();
     clearStoredAuthState();
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       window.location.href = '/login';
     }
 
     return Promise.reject(refreshError);
-  } finally {
-    isRefreshing = false;
   }
 });
 

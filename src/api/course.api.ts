@@ -17,6 +17,8 @@ function toQueryRecord(
   if (params.limit) record.limit = params.limit;
   if (params.search) record.search = params.search;
   if (params.status) record.status = params.status;
+  if (params.level) record.level = params.level;
+  if (params.departmentId) record.departmentId = params.departmentId;
   return record;
 }
 
