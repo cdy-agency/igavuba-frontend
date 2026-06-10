@@ -20,6 +20,7 @@ import {
   Settings2,
   Shield,
   Sparkles,
+  FolderOpen,
   Tag,
   User,
   Wrench,
@@ -62,6 +63,7 @@ import { toast } from '@/lib/toast';
 import { useCreateCourse, useCoursesList, useUpdateCourse } from '@/hooks/use-courses';
 import { CourseSkillsManager } from '@/components/dashboard/courses/course-skills-manager';
 import { CourseToolsManager } from '@/components/dashboard/courses/course-tools-manager';
+import { CourseCategorySelect } from '@/components/dashboard/courses/course-category-select';
 import { cn } from '@/lib/utils';
 
 interface CourseFormProps {
@@ -84,6 +86,7 @@ const defaultValues: CourseFormValues = {
   publicPrice: undefined,
   departmentId: undefined,
   lecturerId: undefined,
+  categoryIds: [],
 };
 
 function mapCourseToFormValues(course: Course): CourseFormValues {
@@ -100,6 +103,7 @@ function mapCourseToFormValues(course: Course): CourseFormValues {
     publicPrice: course.publicPrice ?? undefined,
     departmentId: course.departmentId ?? undefined,
     lecturerId: course.lecturerId ?? undefined,
+    categoryIds: course.categories?.map((entry) => entry.category.id) ?? [],
   };
 }
 
@@ -497,30 +501,16 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
             />
           </CourseFormField>
 
-          <CourseFormField icon={Layers} label="Category" optional>
+          <CourseFormField icon={FolderOpen} label="Category">
             <Controller
               control={form.control}
-              name="departmentId"
+              name="categoryIds"
               render={({ field }) => (
-                <Select
-                  value={field.value ?? 'none'}
-                  onValueChange={(value) =>
-                    field.onChange(value === 'none' ? undefined : value)
-                  }
+                <CourseCategorySelect
+                  value={field.value ?? []}
+                  onChange={field.onChange}
                   disabled={isSubmitting}
-                >
-                  <SelectTrigger className={courseFormSelectTriggerClass}>
-                    <SelectValue placeholder="No category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No category</SelectItem>
-                    {departments.map((department) => (
-                      <SelectItem key={department.id} value={department.id}>
-                        {department.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               )}
             />
           </CourseFormField>

@@ -51,6 +51,12 @@ export interface CourseTool {
   name: string;
 }
 
+export interface CourseCategorySummary {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -76,6 +82,7 @@ export interface Course {
   lecturer: CourseLecturer | null;
   skills: CourseSkill[];
   tools: CourseTool[];
+  categories?: Array<{ category: CourseCategorySummary }>;
 }
 
 export interface CourseListQueryParams {
@@ -100,6 +107,7 @@ export interface CreateCoursePayload {
   publicPrice?: number;
   departmentId?: string;
   lecturerId?: string;
+  categoryIds?: string[];
 }
 
 export type UpdateCoursePayload = Partial<CreateCoursePayload>;

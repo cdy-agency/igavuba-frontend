@@ -47,6 +47,7 @@ export const courseFormSchema = z.object({
   ),
   departmentId: optionalText,
   lecturerId: optionalText,
+  categoryIds: z.array(z.string().trim().min(1)).optional(),
 });
 
 export type CourseFormValues = z.infer<typeof courseFormSchema>;

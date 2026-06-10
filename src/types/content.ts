@@ -15,12 +15,14 @@ export interface VideoContentDetail {
   contentId: string;
   videoUrl: string;
   durationSeconds: number | null;
+  allowDownload: boolean;
 }
 
 export interface DocumentContentDetail {
   id: string;
   contentId: string;
   fileUrl: string;
+  allowDownload: boolean;
 }
 
 export interface ContentRecord {
@@ -54,6 +56,7 @@ export interface CreateTextContentPayload {
   title: string;
   description?: string;
   body: string;
+  isPublished?: boolean;
 }
 
 export interface CreateVideoContentPayload {
@@ -61,18 +64,23 @@ export interface CreateVideoContentPayload {
   description?: string;
   videoUrl: string;
   durationSeconds?: number;
+  isPublished?: boolean;
+  allowDownload?: boolean;
 }
 
 export interface CreateDocumentContentPayload {
   title: string;
   description?: string;
   fileUrl: string;
+  isPublished?: boolean;
+  allowDownload?: boolean;
 }
 
 export interface UpdateTextContentPayload {
   title?: string;
   description?: string;
   body?: string;
+  isPublished?: boolean;
 }
 
 export interface UpdateVideoContentPayload {
@@ -80,12 +88,16 @@ export interface UpdateVideoContentPayload {
   description?: string;
   videoUrl?: string;
   durationSeconds?: number;
+  isPublished?: boolean;
+  allowDownload?: boolean;
 }
 
 export interface UpdateDocumentContentPayload {
   title?: string;
   description?: string;
   fileUrl?: string;
+  isPublished?: boolean;
+  allowDownload?: boolean;
 }
 
 export interface ReorderModuleContentsPayload {

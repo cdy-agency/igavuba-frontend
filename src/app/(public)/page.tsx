@@ -18,8 +18,8 @@ export default function ELearningLanding() {
       <LandingHeader />
       <HeroSection />
       <WorkflowSection />
-      {/* <LandingCategories /> */}
-      {/* <LandingCourses /> */}
+      <LandingCategories />
+      <LandingCourses />
       <LandingCta />
       <FAQSection />
       <LandingFooter />

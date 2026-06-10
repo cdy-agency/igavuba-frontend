@@ -2,7 +2,7 @@
 
 import { RoleGuard } from '@/guards/role-guard';
 import { UserRole } from '@/types/enum';
-import { CoursesTable } from '@/components/dashboard/courses/courses-table';
+import { CourseManagementPage } from '@/components/dashboard/courses/course-management-page';
 
 const COURSE_MANAGER_ROLES = [
   UserRole.SUPER_ADMIN,
@@ -13,7 +13,7 @@ const COURSE_MANAGER_ROLES = [
 export function CoursesPage() {
   return (
     <RoleGuard allowedRoles={COURSE_MANAGER_ROLES}>
-      <CoursesTable />
+      <CourseManagementPage />
     </RoleGuard>
   );
 }

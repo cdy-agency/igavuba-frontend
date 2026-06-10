@@ -1,11 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { FileText, Loader2, Video } from 'lucide-react';
 import { DeleteDialog } from '@/components/dialog/delete-dialog';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
+import {
+  AllowDownloadToggle,
+  ContentVisibilityToggle,
+  DocumentUploadZone,
+  LessonFormFooter,
+  LessonSettingsGroup,
+  VideoLessonFields,
+  defaultUntitledTitle,
+  minutesToSeconds,
+  resolveLessonTitle,
+  secondsToMinutes,
+  type VideoPlatform,
+} from '@/components/course-builder/lesson-form-ui';
 import TiptapEditor from '@/components/editor/TiptapEditor';
 import { useCourseBuilder } from '@/components/course-builder/course-builder-context';
 import {
@@ -40,6 +51,23 @@ function EmptyState({ title, description }: { title: string; description: string
   );
 }
 
+function LessonIcon({ type }: { type: 'text' | 'video' | 'document' }) {
+  if (type === 'video') {
+    return <Video className="h-4.5 w-4.5 text-violet-600" strokeWidth={2} />;
+  }
+
+  return <FileText className="h-4.5 w-4.5 text-primary" strokeWidth={2} />;
+}
+
+function isValidUrl(value: string): boolean {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function LessonCreateForm({
   moduleId,
   type,
@@ -54,8 +82,13 @@ function LessonCreateForm({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [body, setBody] = useState('<p></p>');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [durationSeconds, setDurationSeconds] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('youtube');
+  const [durationMinutes, setDurationMinutes] = useState('');
+  const [fileUrl, setFileUrl] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(true);
+  const [allowDownload, setAllowDownload] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
   const createText = useCreateTextContent(moduleId);
@@ -65,25 +98,27 @@ function LessonCreateForm({
   const isSubmitting =
     createText.isPending || createVideo.isPending || createDocument.isPending || isUploading;
 
-  const handleUpload = async (file: File) => {
+  const handleDocumentUpload = async (file: File) => {
     setIsUploading(true);
     try {
       const url = await uploadFile(file);
-      setMediaUrl(url);
-      toast.success('File uploaded successfully.');
+      setFileUrl(url);
+      setUploadedFileName(file.name);
+      toast.success('Document uploaded successfully.');
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Unable to upload file.'));
+      toast.error(getApiErrorMessage(error, 'Unable to upload document.'));
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleSubmit = async () => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      toast.error('Title is required.');
-      return;
-    }
+    const resolvedTitle = resolveLessonTitle(title, type);
+    const sharedPayload = {
+      title: resolvedTitle,
+      description: description.trim() || undefined,
+      isPublished: isVisible,
+    };
 
     if (type === 'text') {
       const plainBody = body.replace(/<[^>]+>/g, '').trim();
@@ -92,86 +127,81 @@ function LessonCreateForm({
         return;
       }
       const response = await createText.mutateAsync({
-        title: trimmedTitle,
-        description: description.trim() || undefined,
+        ...sharedPayload,
         body,
       });
       onCreated(response.data.contentId);
       return;
     }
 
-    if (!mediaUrl) {
-      toast.error(type === 'video' ? 'Upload a video first.' : 'Upload a document first.');
-      return;
-    }
-
     if (type === 'video') {
+      const trimmedUrl = videoUrl.trim();
+      if (!trimmedUrl) {
+        toast.error('Video URL is required.');
+        return;
+      }
+      if (!isValidUrl(trimmedUrl)) {
+        toast.error('Enter a valid video URL.');
+        return;
+      }
+
       const response = await createVideo.mutateAsync({
-        title: trimmedTitle,
-        description: description.trim() || undefined,
-        videoUrl: mediaUrl,
-        durationSeconds: durationSeconds ? Number(durationSeconds) : undefined,
+        ...sharedPayload,
+        videoUrl: trimmedUrl,
+        durationSeconds: minutesToSeconds(durationMinutes),
+        allowDownload,
       });
       onCreated(response.data.contentId);
       return;
     }
 
+    if (!fileUrl) {
+      toast.error('Upload a document first.');
+      return;
+    }
+
     const response = await createDocument.mutateAsync({
-      title: trimmedTitle,
-      description: description.trim() || undefined,
-      fileUrl: mediaUrl,
+      ...sharedPayload,
+      fileUrl,
+      allowDownload,
     });
     onCreated(response.data.contentId);
   };
 
-  const materials =
-    type === 'text' ? null : (
-      <div className="space-y-3">
-        <Input
-          type="file"
-          accept={type === 'video' ? 'video/*' : undefined}
+  const settings = (
+    <LessonSettingsGroup>
+      <ContentVisibilityToggle visible={isVisible} onChange={setIsVisible} disabled={isSubmitting} />
+      {type !== 'text' ? (
+        <AllowDownloadToggle
+          enabled={allowDownload}
+          onChange={setAllowDownload}
           disabled={isSubmitting}
-          className="text-[12px]"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) void handleUpload(file);
-            event.target.value = '';
-          }}
         />
-        {isUploading ? (
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Uploading...
-          </div>
-        ) : mediaUrl ? (
-          <a
-            href={mediaUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[12px] font-medium text-primary hover:underline"
-          >
-            Browse Files
-          </a>
-        ) : (
-          <button
-            type="button"
-            className="text-[12px] font-medium text-primary hover:underline"
-            onClick={() => document.getElementById('create-lesson-file')?.click()}
-          >
-            Browse Files
-          </button>
-        )}
-      </div>
-    );
+      ) : null}
+    </LessonSettingsGroup>
+  );
+
+  const submitLabel =
+    type === 'video' ? 'Create Video' : type === 'document' ? 'Create Document' : 'Create Lesson';
 
   return (
     <BuilderLessonShell
       title={title}
       onTitleChange={setTitle}
+      titlePlaceholder={defaultUntitledTitle(type)}
       description={description}
       onDescriptionChange={setDescription}
       onDelete={onCancel}
-      materials={materials}
+      icon={<LessonIcon type={type} />}
+      settings={settings}
+      footer={
+        <LessonFormFooter
+          onCancel={onCancel}
+          onSubmit={() => void handleSubmit()}
+          submitLabel={submitLabel}
+          isSubmitting={isSubmitting}
+        />
+      }
     >
       {type === 'text' ? (
         <TiptapEditor
@@ -181,31 +211,28 @@ function LessonCreateForm({
           placeholder="Write lesson content..."
           stickyToolbar={false}
         />
-      ) : type === 'video' ? (
-        <div className="space-y-3">
-          {mediaUrl ? (
-            <video src={mediaUrl} controls className="w-full rounded-md border" />
-          ) : null}
-          <Input
-            type="number"
-            min={1}
-            value={durationSeconds}
-            onChange={(event) => setDurationSeconds(event.target.value)}
-            placeholder="Duration (seconds, optional)"
-            className="h-9 max-w-xs text-[13px]"
-          />
-        </div>
       ) : null}
 
-      <div className="mt-6 flex justify-end gap-2">
-        <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="button" size="sm" className="h-8 text-xs" onClick={() => void handleSubmit()} disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-          Create lesson
-        </Button>
-      </div>
+      {type === 'video' ? (
+        <VideoLessonFields
+          platform={videoPlatform}
+          onPlatformChange={setVideoPlatform}
+          videoUrl={videoUrl}
+          onVideoUrlChange={setVideoUrl}
+          durationMinutes={durationMinutes}
+          onDurationMinutesChange={setDurationMinutes}
+          disabled={isSubmitting}
+        />
+      ) : null}
+
+      {type === 'document' ? (
+        <DocumentUploadZone
+          onFileSelect={(file) => void handleDocumentUpload(file)}
+          isUploading={isUploading}
+          fileName={uploadedFileName}
+          disabled={isSubmitting}
+        />
+      ) : null}
     </BuilderLessonShell>
   );
 }
@@ -222,6 +249,7 @@ function TextLessonEditor({
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [body, setBody] = useState(item.content.textContent?.body ?? '<p></p>');
+  const [isVisible, setIsVisible] = useState(item.content.isPublished);
   const updateMutation = useUpdateTextContent(moduleId);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -229,9 +257,15 @@ function TextLessonEditor({
     setTitle(item.content.title);
     setDescription(item.content.description ?? '');
     setBody(item.content.textContent?.body ?? '<p></p>');
+    setIsVisible(item.content.isPublished);
   }, [item]);
 
-  const scheduleSave = (payload: { title?: string; description?: string; body?: string }) => {
+  const scheduleSave = (payload: {
+    title?: string;
+    description?: string;
+    body?: string;
+    isPublished?: boolean;
+  }) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       updateMutation.mutate({ contentId: item.contentId, payload });
@@ -243,7 +277,7 @@ function TextLessonEditor({
       title={title}
       onTitleChange={(value) => {
         setTitle(value);
-        scheduleSave({ title: value.trim(), description, body });
+        scheduleSave({ title: value.trim(), description, body, isPublished: isVisible });
       }}
       description={description}
       onDescriptionChange={(value) => {
@@ -252,16 +286,39 @@ function TextLessonEditor({
           title,
           description: value.trim() || undefined,
           body,
+          isPublished: isVisible,
         });
       }}
       onDelete={onDelete}
+      icon={<LessonIcon type="text" />}
+      settings={
+        <LessonSettingsGroup>
+          <ContentVisibilityToggle
+            visible={isVisible}
+            onChange={(value) => {
+              setIsVisible(value);
+              scheduleSave({
+                title,
+                description: description || undefined,
+                body,
+                isPublished: value,
+              });
+            }}
+          />
+        </LessonSettingsGroup>
+      }
     >
       <TiptapEditor
         name={`lesson-body-${item.contentId}`}
         content={body}
         onChange={(value) => {
           setBody(value);
-          scheduleSave({ title, description: description || undefined, body: value });
+          scheduleSave({
+            title,
+            description: description || undefined,
+            body: value,
+            isPublished: isVisible,
+          });
         }}
         stickyToolbar={false}
       />
@@ -281,17 +338,24 @@ function VideoLessonEditor({
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [videoUrl, setVideoUrl] = useState(item.content.videoContent?.videoUrl ?? '');
-  const [durationSeconds, setDurationSeconds] = useState(
-    item.content.videoContent?.durationSeconds?.toString() ?? '',
+  const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('youtube');
+  const [durationMinutes, setDurationMinutes] = useState(
+    secondsToMinutes(item.content.videoContent?.durationSeconds),
   );
-  const [isUploading, setIsUploading] = useState(false);
+  const [isVisible, setIsVisible] = useState(item.content.isPublished);
+  const [allowDownload, setAllowDownload] = useState(
+    item.content.videoContent?.allowDownload ?? true,
+  );
   const updateMutation = useUpdateVideoContent(moduleId);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setTitle(item.content.title);
     setDescription(item.content.description ?? '');
     setVideoUrl(item.content.videoContent?.videoUrl ?? '');
-    setDurationSeconds(item.content.videoContent?.durationSeconds?.toString() ?? '');
+    setDurationMinutes(secondsToMinutes(item.content.videoContent?.durationSeconds));
+    setIsVisible(item.content.isPublished);
+    setAllowDownload(item.content.videoContent?.allowDownload ?? true);
   }, [item]);
 
   const save = (payload: {
@@ -299,79 +363,75 @@ function VideoLessonEditor({
     description?: string;
     videoUrl?: string;
     durationSeconds?: number;
-  }) => updateMutation.mutate({ contentId: item.contentId, payload });
-
-  const handleUpload = async (file: File) => {
-    setIsUploading(true);
-    try {
-      const url = await uploadFile(file);
-      setVideoUrl(url);
-      save({ title, description: description || undefined, videoUrl: url });
-      toast.success('Video uploaded successfully.');
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Unable to upload video.'));
-    } finally {
-      setIsUploading(false);
-    }
+    isPublished?: boolean;
+    allowDownload?: boolean;
+  }) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      updateMutation.mutate({ contentId: item.contentId, payload });
+    }, 600);
   };
+
+  const buildPayload = (overrides?: {
+    title?: string;
+    description?: string;
+    videoUrl?: string;
+    durationMinutes?: string;
+    isPublished?: boolean;
+    allowDownload?: boolean;
+  }) => ({
+    title: (overrides?.title ?? title).trim(),
+    description: (overrides?.description ?? description).trim() || undefined,
+    videoUrl: overrides?.videoUrl ?? videoUrl,
+    durationSeconds: minutesToSeconds(overrides?.durationMinutes ?? durationMinutes),
+    isPublished: overrides?.isPublished ?? isVisible,
+    allowDownload: overrides?.allowDownload ?? allowDownload,
+  });
 
   return (
     <BuilderLessonShell
       title={title}
-      onTitleChange={setTitle}
-      onTitleBlur={() =>
-        save({ title: title.trim(), description: description || undefined, videoUrl })
-      }
+      onTitleChange={(value) => {
+        setTitle(value);
+        save(buildPayload({ title: value }));
+      }}
+      onTitleBlur={() => save(buildPayload())}
       description={description}
-      onDescriptionChange={setDescription}
-      onDescriptionBlur={() =>
-        save({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          videoUrl,
-          durationSeconds: durationSeconds ? Number(durationSeconds) : undefined,
-        })
-      }
+      onDescriptionChange={(value) => {
+        setDescription(value);
+        save(buildPayload({ description: value }));
+      }}
+      onDescriptionBlur={() => save(buildPayload())}
       onDelete={onDelete}
-      materials={
-        <div className="space-y-2">
-          <Input
-            type="file"
-            accept="video/*"
-            disabled={isUploading}
-            className="text-[12px]"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void handleUpload(file);
-              event.target.value = '';
+      icon={<LessonIcon type="video" />}
+      settings={
+        <LessonSettingsGroup>
+          <ContentVisibilityToggle
+            visible={isVisible}
+            onChange={(value) => {
+              setIsVisible(value);
+              save(buildPayload({ isPublished: value }));
             }}
           />
-          {videoUrl ? (
-            <a href={videoUrl} target="_blank" rel="noreferrer" className="text-[12px] font-medium text-primary hover:underline">
-              View uploaded video
-            </a>
-          ) : (
-            <p className="text-[12px] text-muted-foreground">No files exist</p>
-          )}
-        </div>
+          <AllowDownloadToggle
+            enabled={allowDownload}
+            onChange={(value) => {
+              setAllowDownload(value);
+              save(buildPayload({ allowDownload: value }));
+            }}
+          />
+        </LessonSettingsGroup>
       }
     >
-      {videoUrl ? <video src={videoUrl} controls className="w-full rounded-md border" /> : null}
-      <Input
-        type="number"
-        min={1}
-        value={durationSeconds}
-        className="mt-4 h-9 max-w-xs text-[13px]"
-        placeholder="Duration (seconds)"
-        onBlur={() =>
-          save({
-            title: title.trim(),
-            description: description || undefined,
-            videoUrl,
-            durationSeconds: durationSeconds ? Number(durationSeconds) : undefined,
-          })
-        }
-        onChange={(event) => setDurationSeconds(event.target.value)}
+      <VideoLessonFields
+        platform={videoPlatform}
+        onPlatformChange={setVideoPlatform}
+        videoUrl={videoUrl}
+        onVideoUrlChange={setVideoUrl}
+        onVideoUrlBlur={() => save(buildPayload())}
+        durationMinutes={durationMinutes}
+        onDurationMinutesChange={setDurationMinutes}
+        onDurationMinutesBlur={() => save(buildPayload())}
       />
     </BuilderLessonShell>
   );
@@ -389,23 +449,43 @@ function DocumentLessonEditor({
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [fileUrl, setFileUrl] = useState(item.content.documentContent?.fileUrl ?? '');
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isVisible, setIsVisible] = useState(item.content.isPublished);
+  const [allowDownload, setAllowDownload] = useState(
+    item.content.documentContent?.allowDownload ?? true,
+  );
   const [isUploading, setIsUploading] = useState(false);
   const updateMutation = useUpdateDocumentContent(moduleId);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setTitle(item.content.title);
     setDescription(item.content.description ?? '');
     setFileUrl(item.content.documentContent?.fileUrl ?? '');
+    setUploadedFileName(null);
+    setIsVisible(item.content.isPublished);
+    setAllowDownload(item.content.documentContent?.allowDownload ?? true);
   }, [item]);
 
-  const save = (payload: { title?: string; description?: string; fileUrl?: string }) =>
-    updateMutation.mutate({ contentId: item.contentId, payload });
+  const save = (payload: {
+    title?: string;
+    description?: string;
+    fileUrl?: string;
+    isPublished?: boolean;
+    allowDownload?: boolean;
+  }) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      updateMutation.mutate({ contentId: item.contentId, payload });
+    }, 600);
+  };
 
-  const handleUpload = async (file: File) => {
+  const handleDocumentUpload = async (file: File) => {
     setIsUploading(true);
     try {
       const url = await uploadFile(file);
       setFileUrl(url);
+      setUploadedFileName(file.name);
       save({ title, description: description || undefined, fileUrl: url });
       toast.success('Document uploaded successfully.');
     } catch (error) {
@@ -418,45 +498,57 @@ function DocumentLessonEditor({
   return (
     <BuilderLessonShell
       title={title}
-      onTitleChange={setTitle}
+      onTitleChange={(value) => {
+        setTitle(value);
+        save({ title: value.trim(), description: description || undefined, fileUrl });
+      }}
       onTitleBlur={() =>
         save({ title: title.trim(), description: description || undefined, fileUrl })
       }
       description={description}
-      onDescriptionChange={setDescription}
+      onDescriptionChange={(value) => {
+        setDescription(value);
+        save({ title, description: value.trim() || undefined, fileUrl });
+      }}
       onDescriptionBlur={() =>
         save({ title: title.trim(), description: description.trim() || undefined, fileUrl })
       }
       onDelete={onDelete}
-      materials={
-        <div className="space-y-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-[12px] font-medium text-primary hover:underline">
-            <Upload className="h-3.5 w-3.5" />
-            Browse Files
-            <input
-              type="file"
-              className="hidden"
-              disabled={isUploading}
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) void handleUpload(file);
-                event.target.value = '';
-              }}
-            />
-          </label>
-          {fileUrl ? (
-            <a href={fileUrl} target="_blank" rel="noreferrer" className="block truncate text-[12px] text-primary underline">
-              {fileUrl}
-            </a>
-          ) : (
-            <p className="text-[12px] text-muted-foreground">No files exist</p>
-          )}
-        </div>
+      icon={<LessonIcon type="document" />}
+      settings={
+        <LessonSettingsGroup>
+          <ContentVisibilityToggle
+            visible={isVisible}
+            onChange={(value) => {
+              setIsVisible(value);
+              save({
+                title,
+                description: description || undefined,
+                fileUrl,
+                isPublished: value,
+              });
+            }}
+          />
+          <AllowDownloadToggle
+            enabled={allowDownload}
+            onChange={(value) => {
+              setAllowDownload(value);
+              save({
+                title,
+                description: description || undefined,
+                fileUrl,
+                allowDownload: value,
+              });
+            }}
+          />
+        </LessonSettingsGroup>
       }
     >
-      <p className="text-[13px] leading-relaxed text-muted-foreground">
-        Upload supporting documents for this lesson using the Lesson Material section below.
-      </p>
+      <DocumentUploadZone
+        onFileSelect={(file) => void handleDocumentUpload(file)}
+        isUploading={isUploading}
+        fileName={uploadedFileName ?? (fileUrl ? fileUrl.split('/').pop() : null)}
+      />
     </BuilderLessonShell>
   );
 }
