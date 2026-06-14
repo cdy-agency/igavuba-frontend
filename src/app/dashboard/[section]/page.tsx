@@ -6,6 +6,7 @@ import { InstitutionAdminsPage } from '@/components/dashboard/institution-admins
 import { InstitutionsPage } from '@/components/dashboard/institutions/institutions-page';
 import { UsersPage } from '@/components/dashboard/users/users-page';
 import { CoursesPage } from '@/components/dashboard/courses/courses-page';
+import { MyLearningPage } from '@/components/dashboard/my-learning/my-learning-page';
 
 export default function DashboardSectionPage() {
   const params = useParams<{ section: string }>();
@@ -25,6 +26,10 @@ export default function DashboardSectionPage() {
 
   if (section === 'courses') {
     return <CoursesPage />;
+  }
+
+  if (section === 'my-learning') {
+    return <MyLearningPage />;
   }
 
   return <DashboardStubPage section={section} />;

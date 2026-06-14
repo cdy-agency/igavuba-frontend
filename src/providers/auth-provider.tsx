@@ -154,6 +154,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [applyUserProfile, fetchCurrentUser]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const initializeAuth = async () => {
       const verificationState = getPendingVerification();
       if (verificationState) {
@@ -168,16 +170,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(mapUser(storedState.user));
 
-      const refreshed = await refreshSession();
-      if (!refreshed) {
-        clearStoredAuthState();
-        setUser(null);
-      }
+      try {
+        const refreshed = await Promise.race([
+          refreshSession(),
+          new Promise<boolean>((resolve) => {
+            window.setTimeout(() => resolve(false), 10_000);
+          }),
+        ]);
 
-      setIsLoading(false);
+        if (cancelled) {
+          return;
+        }
+
+        if (!refreshed) {
+          clearStoredAuthState();
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
     };
 
     void initializeAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshSession]);
 
   useEffect(() => {

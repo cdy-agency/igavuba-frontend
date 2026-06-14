@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import {
   BookOpen,
   Clock,
@@ -9,8 +8,8 @@ import {
   Smartphone,
   Tag,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { CoursePreviewMedia } from '@/components/public/course-detail/course-detail-preview-media';
+import { CourseDetailEnrollActions } from '@/components/public/course-detail/course-detail-enroll-actions';
 import type { CatalogCourseDetail } from '@/types/catalog';
 import {
   formatCatalogDuration,
@@ -45,18 +44,7 @@ export function CourseDetailSidebar({ course }: CourseDetailSidebarProps) {
             ) : null}
           </div>
 
-          <div className="space-y-2">
-            <Button asChild className="h-11 w-full rounded-none text-base font-bold">
-              <Link href="/login">Enroll now</Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-11 w-full rounded-none border-foreground text-base font-bold"
-            >
-              <Link href="/register">Sign up to enroll</Link>
-            </Button>
-          </div>
+          <CourseDetailEnrollActions courseId={course.id} courseSlug={course.slug} />
 
           <p className="text-center text-xs text-muted-foreground">
             30-Day satisfaction guarantee on paid courses
