@@ -8,7 +8,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api/auth.api';
 import { currentUserQueryKey } from '@/hooks/use-current-user';
@@ -66,7 +65,6 @@ function mapUser(user: AuthUser): User {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,8 +237,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryClient.removeQueries({ queryKey: currentUserQueryKey });
     queryClient.clear();
     toast.success('Logged out successfully');
-    router.replace(GUEST_ROUTES.LOGIN);
-  }, [queryClient, router]);
+    window.location.assign(GUEST_ROUTES.LOGIN);
+  }, [queryClient]);
 
   const openAuthModal = useCallback(() => setShowAuthModal(true), []);
   const closeAuthModal = useCallback(() => setShowAuthModal(false), []);

@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { ResponsiveVideoPlayer } from '@/components/shared/responsive-video-player';
 import { cn } from '@/lib/utils';
 
 interface CoursePreviewMediaProps {
@@ -132,12 +133,11 @@ export function CoursePreviewMedia({
           </DialogHeader>
           <div className="aspect-video bg-black">
             {isModalOpen && previewVideo ? (
-              <video
-                src={previewVideo}
-                controls
-                autoPlay
-                className="h-full w-full"
-                poster={thumbnail ?? undefined}
+              <ResponsiveVideoPlayer
+                url={previewVideo}
+                title={`${courseTitle} preview`}
+                poster={thumbnail}
+                autoplay
               />
             ) : null}
           </div>

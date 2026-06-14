@@ -1,13 +1,18 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import CourseHeader from '@/components/learn/CourseHeader';
 import ModuleList from '@/components/learn/ModuleList';
 import LessonContent from '@/components/learn/LessonContent';
 import { IncompleteCourseModal } from '@/components/learn/Incompletecoursemodal';
-import { useLearningCourse, useMarkLearningContentComplete } from '@/hooks/use-learning';
+import { useLearningCourse } from '@/hooks/use-learning';
+import {
+  useCompleteContentProgress,
+  useCourseResumeProgress,
+  useStartContentProgress,
+} from '@/hooks/use-progress';
 import { mapLearningCourseToModules } from '@/lib/learning-utils';
 import { useAuth } from '@/lib/hooks/use-auth';
 import type { AugmentedModule, LessonItem, LessonSummary } from '@/types/learning';
@@ -16,11 +21,16 @@ type LockedAugmentedModule = AugmentedModule & { locked?: boolean };
 
 export default function LearningPlayerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { slug } = useParams<{ slug: string }>() || {};
   const { user } = useAuth();
 
   const { data: learningCourse, isLoading, isError } = useLearningCourse(slug ?? '');
-  const markContentComplete = useMarkLearningContentComplete(slug ?? '');
+  const courseId = learningCourse?.id ?? '';
+  const { data: resumeData } = useCourseResumeProgress(courseId, Boolean(courseId));
+
+  const startContentProgress = useStartContentProgress(courseId, slug);
+  const completeContentProgress = useCompleteContentProgress(courseId, slug);
 
   const [modules, setModules] = useState<LockedAugmentedModule[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<LessonSummary>();
@@ -30,11 +40,14 @@ export default function LearningPlayerPage() {
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
   const [courseAcknowledged, setCourseAcknowledged] = useState(false);
   const selectedLessonRef = useRef<LessonSummary | undefined>(undefined);
+  const lastStartedContentIdRef = useRef<string | null>(null);
+  const startContentRef = useRef(startContentProgress.mutateAsync);
+  startContentRef.current = startContentProgress.mutateAsync;
 
   const enrollmentId = learningCourse?.enrollment.id ?? '';
-  const courseId = learningCourse?.id ?? '';
   const courseTitle = learningCourse?.title ?? 'Untitled Course';
   const userName = user?.name ?? 'Student';
+  const queryContentId = searchParams.get('contentId');
 
   useEffect(() => {
     selectedLessonRef.current = selectedLesson;
@@ -69,33 +82,34 @@ export default function LearningPlayerPage() {
       enableLockedModules: false,
     });
 
+    const allLessons = normalized.flatMap((module) => module.lessons || []);
+    const targetContentId =
+      queryContentId || resumeData?.contentId || selectedLessonRef.current?.id;
+
     let initialLesson: LessonSummary | undefined;
     let activeModuleId = '';
 
-    for (const module of normalized) {
-      const firstIncomplete = module.lessons.find((lesson) => !lesson.completed);
-      if (firstIncomplete) {
-        initialLesson = firstIncomplete;
-        activeModuleId = module.id;
-        break;
-      }
+    if (targetContentId) {
+      initialLesson = allLessons.find((lesson) => lesson.id === targetContentId);
+    }
+
+    if (!initialLesson) {
+      initialLesson = allLessons.find((lesson) => !lesson.completed);
     }
 
     if (!initialLesson && normalized[0]?.lessons?.length) {
       initialLesson = normalized[0].lessons[0];
-      activeModuleId = normalized[0].id;
     }
 
     const preservedLesson =
       selectedLessonRef.current?.type === 'COURSE_COMPLETION'
         ? selectedLessonRef.current
-        : normalized
-            .flatMap((module) => module.lessons || [])
-            .find((lesson) => lesson.id === selectedLessonRef.current?.id);
+        : allLessons.find((lesson) => lesson.id === selectedLessonRef.current?.id);
 
-    if (preservedLesson?.type !== 'COURSE_COMPLETION') {
+    const nextLesson = preservedLesson ?? initialLesson;
+    if (nextLesson) {
       const ownerModule = normalized.find((module) =>
-        (module.lessons || []).some((lesson) => lesson.id === preservedLesson?.id),
+        (module.lessons || []).some((lesson) => lesson.id === nextLesson.id),
       );
       if (ownerModule?.id) {
         activeModuleId = ownerModule.id;
@@ -108,8 +122,21 @@ export default function LearningPlayerPage() {
       ),
     );
 
-    setSelectedLesson((prev) => preservedLesson ?? prev ?? initialLesson);
-  }, [learningCourse]);
+    setSelectedLesson(nextLesson);
+  }, [learningCourse, resumeData, queryContentId]);
+
+  useEffect(() => {
+    if (!courseId || !selectedLesson?.id || selectedLesson.type === 'COURSE_COMPLETION') {
+      return;
+    }
+
+    if (lastStartedContentIdRef.current === selectedLesson.id) {
+      return;
+    }
+
+    lastStartedContentIdRef.current = selectedLesson.id;
+    void startContentRef.current(selectedLesson.id);
+  }, [courseId, selectedLesson?.id, selectedLesson?.type]);
 
   const computeLocked = (mods: LockedAugmentedModule[]) =>
     mods.map((module) => ({ ...module, locked: false }));
@@ -170,10 +197,35 @@ export default function LearningPlayerPage() {
     }
   };
 
-  const markLessonComplete = async () => {
-    if (!selectedLesson?.raw?.moduleContentId || !slug) return;
+  const markLessonInState = (contentId: string, moduleId: string, progress: number) => {
+    setEnrollmentProgress(progress);
+    setModules((prev) => {
+      const updated = prev.map((module) =>
+        module.id === moduleId
+          ? {
+              ...module,
+              lessons: module.lessons?.map((lesson) =>
+                lesson.id === contentId ? { ...lesson, completed: true } : lesson,
+              ),
+            }
+          : module,
+      );
+      return computeLocked(updated);
+    });
+    setSelectedLesson((prev) =>
+      prev && prev.id === contentId ? { ...prev, completed: true } : prev,
+    );
+  };
 
-    const moduleId = String(selectedLesson.raw.moduleId || '');
+  const markLessonComplete = async () => {
+    if (!selectedLesson?.id || selectedLesson.completed) {
+      if (selectedLesson?.completed) {
+        navigateLesson('next');
+      }
+      return;
+    }
+
+    const moduleId = String(selectedLesson.raw?.moduleId || '');
     const allCurrentLessons = modules.flatMap((module) => module.lessons || []);
     const currentLessonIndex = allCurrentLessons.findIndex(
       (lesson) => lesson.id === selectedLesson.id,
@@ -182,36 +234,18 @@ export default function LearningPlayerPage() {
       currentLessonIndex >= 0 && currentLessonIndex === allCurrentLessons.length - 1;
 
     try {
-      const result = await markContentComplete.mutateAsync(
-        selectedLesson.raw.moduleContentId,
-      );
-
-      setEnrollmentProgress(result.progress);
-      setModules((prev) => {
-        const updated = prev.map((module) =>
-          module.id === moduleId
-            ? {
-                ...module,
-                lessons: module.lessons?.map((lesson) =>
-                  lesson.id === selectedLesson.id ? { ...lesson, completed: true } : lesson,
-                ),
-              }
-            : module,
-        );
-        return computeLocked(updated);
-      });
-      setSelectedLesson((prev) => (prev ? { ...prev, completed: true } : prev));
+      const result = await completeContentProgress.mutateAsync(selectedLesson.id);
+      markLessonInState(selectedLesson.id, moduleId, result.progress);
 
       if (!isLastLesson) {
         navigateLesson('next');
       }
     } catch {
-      // Error toast handled in mutation hook
+      // toast handled in hook
     }
   };
 
   const computedProgress = enrollmentProgress;
-
   const courseEligible = computedProgress === 100;
   const courseCompleted = courseEligible && courseAcknowledged;
 
@@ -318,6 +352,7 @@ export default function LearningPlayerPage() {
               onPrev={() => navigateLesson('prev')}
               onNext={() => navigateLesson('next')}
               onComplete={markLessonComplete}
+              onAutoComplete={markLessonComplete}
               sidebarOpen={sidebarOpen}
               onCloseSidebar={() => setSidebarOpen(false)}
               courseId={courseId}

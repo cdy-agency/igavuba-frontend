@@ -18,6 +18,7 @@ import {
 import { ContentType } from '@/types/content';
 import type { LearningLessonRaw, LearningRenderableContent } from '@/types/learning';
 import { DocumentViewer, useDocumentViewer } from '@/components/content/DocumentViewer';
+import { ResponsiveVideoPlayer } from '@/components/shared/responsive-video-player';
 import { CourseCompletionPage } from './Coursecompletionpage';
 import { Button } from '@/components/ui/button';
 
@@ -68,41 +69,44 @@ const TextLesson = ({ content }: { content: LearningRenderableContent }) => (
   </div>
 );
 
-const getEmbedUrl = (url: string): string => {
-  for (const pattern of [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/shorts\/([^&\n?#]+)/,
-  ]) {
-    const match = url.match(pattern);
-    if (match?.[1]) return `https://www.youtube.com/embed/${match[1]}`;
-  }
-  for (const pattern of [/vimeo\.com\/(\d+)/, /player\.vimeo\.com\/video\/(\d+)/]) {
-    const match = url.match(pattern);
-    if (match?.[1]) return `https://player.vimeo.com/video/${match[1]}`;
-  }
-  return url;
-};
-
-const VideoLesson = ({ content }: { content: LearningRenderableContent }) => {
+const VideoLesson = ({
+  content,
+  onAutoComplete,
+  isCompleted,
+}: {
+  content: LearningRenderableContent;
+  onAutoComplete?: () => void;
+  isCompleted?: boolean;
+}) => {
   const externalUrl = content.videoContent?.externalUrl;
-  const embedUrl = externalUrl ? getEmbedUrl(externalUrl) : null;
+  const directUrl = content.videoContent?.media?.url;
+  const videoUrl = externalUrl ?? directUrl ?? '';
+  const hasAutoCompletedRef = useRef(false);
+
+  useEffect(() => {
+    hasAutoCompletedRef.current = false;
+  }, [content.id]);
+
+  const handleTimeUpdate = (event: React.SyntheticEvent<HTMLVideoElement>) => {
+    if (isCompleted || hasAutoCompletedRef.current) return;
+    const video = event.currentTarget;
+    if (!video.duration || video.duration <= 0) return;
+    if (video.currentTime / video.duration >= 0.9) {
+      hasAutoCompletedRef.current = true;
+      onAutoComplete?.();
+    }
+  };
 
   return (
     <div className="mb-3">
-      {embedUrl ? (
+      {videoUrl ? (
         <div className="aspect-video w-full">
-          <iframe
-            src={embedUrl}
-            className="w-full h-full sm:rounded-md border border-gray-200 dark:border-gray-700"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
+          <ResponsiveVideoPlayer
+            url={videoUrl}
+            title={content.title}
+            className="sm:rounded-md border border-gray-200 dark:border-gray-700"
+            onTimeUpdate={handleTimeUpdate}
           />
-        </div>
-      ) : content.videoContent?.media?.url ? (
-        <div className="aspect-video w-full">
-          <video controls className="w-full h-full sm:rounded-md bg-black">
-            <source src={content.videoContent.media.url} />
-          </video>
         </div>
       ) : (
         <div className="bg-gray-100 dark:bg-gray-700 p-4 text-gray-600 dark:text-gray-300">
@@ -277,6 +281,7 @@ interface Props {
   onPrev?: () => void;
   onNext?: () => void;
   onComplete?: () => void;
+  onAutoComplete?: () => void;
   sidebarOpen?: boolean;
   onCloseSidebar?: () => void;
   courseId: string;
@@ -293,6 +298,7 @@ const LessonContent = ({
   onPrev,
   onNext,
   onComplete,
+  onAutoComplete,
   sidebarOpen = true,
   courseId,
   userId,
@@ -408,7 +414,13 @@ const LessonContent = ({
           <LessonHeader content={content} />
           <div className="space-y-6">
             {type === ContentType.TEXT && <TextLesson content={content} />}
-            {type === ContentType.VIDEO && <VideoLesson content={content} />}
+            {type === ContentType.VIDEO && (
+              <VideoLesson
+                content={content}
+                isCompleted={isCompleted}
+                onAutoComplete={onAutoComplete}
+              />
+            )}
             {type === ContentType.DOCUMENT && <DocumentLesson content={content} />}
             {!Object.values(ContentType).includes(type as ContentType) ? (
               <div className="text-gray-600 dark:text-gray-400">

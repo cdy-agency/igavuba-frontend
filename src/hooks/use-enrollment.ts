@@ -53,6 +53,7 @@ export function useCreateEnrollment() {
       toast.success(response.message || 'Enrolled successfully.');
       queryClient.invalidateQueries({ queryKey: enrollmentQueryKeys.my });
       queryClient.invalidateQueries({ queryKey: ['enrollments', 'status'] });
+      queryClient.removeQueries({ queryKey: ['enrollment-status'] });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to enroll in this course.'));

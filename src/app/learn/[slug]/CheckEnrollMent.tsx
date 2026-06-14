@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { BookLock, Clock, BarChart2, ArrowLeft } from 'lucide-react';
-import { getCourseEnrollmentStatus } from '@/api/enrollment.api';
 import { getCatalogCourseBySlug } from '@/api/catalog.api';
+import { useCourseEnrollmentStatus } from '@/hooks/use-enrollment';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -15,11 +15,12 @@ import { Badge } from '@/components/ui/badge';
 const CheckEnrollMent = ({ children }: { children: React.ReactNode }) => {
   const { slug } = useParams<{ slug: string }>();
 
-  const { data: enrollmentStatus, isLoading: enrollmentLoading } = useQuery({
-    queryKey: ['enrollment-status', slug],
-    queryFn: () => getCourseEnrollmentStatus(slug),
-    enabled: !!slug,
-  });
+  const {
+    data: enrollmentStatus,
+    isLoading: enrollmentLoading,
+    isError: enrollmentError,
+    refetch: refetchEnrollmentStatus,
+  } = useCourseEnrollmentStatus(slug ?? '', Boolean(slug));
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ['catalog-course', slug],
@@ -41,6 +42,25 @@ const CheckEnrollMent = ({ children }: { children: React.ReactNode }) => {
             <Skeleton className="h-4 w-20" />
           </div>
           <Skeleton className="h-11 w-full mt-2 rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (enrollmentError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background px-4">
+        <div className="w-full max-w-md rounded-2xl border bg-card shadow-sm p-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Unable to verify your enrollment status. Please try again.
+          </p>
+          <Button
+            type="button"
+            className="mt-4"
+            onClick={() => void refetchEnrollmentStatus()}
+          >
+            Retry
+          </Button>
         </div>
       </div>
     );

@@ -74,7 +74,11 @@ export interface SignupResponse extends AuthSuccessResponse {
   userId: string;
 }
 
-export interface VerifyEmailResponse extends AuthSuccessResponse {}
+export interface VerifyEmailResponse extends AuthSuccessResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}
 
 export interface ResendVerificationResponse extends AuthSuccessResponse {}
 

@@ -6,15 +6,15 @@ import { BookOpen, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { RoleGuard } from '@/guards/role-guard';
-import { useMyEnrollments } from '@/hooks/use-enrollment';
+import { useMyProgress } from '@/hooks/use-progress';
 import { useAuthReady } from '@/hooks/use-auth-ready';
-import type { MyEnrollmentItem } from '@/types/enrollment';
+import type { MyCourseProgressItem } from '@/types/progress';
 import { UserRole } from '@/types/enum';
 import { formatCatalogDuration } from '@/lib/catalog-utils';
 
 function MyLearningContent() {
   const authReady = useAuthReady();
-  const { data: enrollments = [], isPending, isError } = useMyEnrollments(authReady);
+  const { data: progressItems = [], isPending, isError } = useMyProgress(authReady);
 
   if (!authReady || isPending) {
     return (
@@ -27,12 +27,12 @@ function MyLearningContent() {
   if (isError) {
     return (
       <div className="border border-destructive/20 bg-destructive/10 px-6 py-10 text-center">
-        <p className="font-medium text-destructive">Unable to load your enrollments.</p>
+        <p className="font-medium text-destructive">Unable to load your learning progress.</p>
       </div>
     );
   }
 
-  if (enrollments.length === 0) {
+  if (progressItems.length === 0) {
     return (
       <div className="border border-dashed border-border bg-muted/20 px-6 py-14 text-center">
         <BookOpen className="mx-auto mb-4 h-10 w-10 text-muted-foreground" />
@@ -49,25 +49,27 @@ function MyLearningContent() {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {enrollments.map((enrollment: MyEnrollmentItem) => (
-        <EnrollmentCard key={enrollment.id} enrollment={enrollment} />
+      {progressItems.map((item: MyCourseProgressItem) => (
+        <EnrollmentCard key={item.enrollmentId} item={item} />
       ))}
     </div>
   );
 }
 
-function EnrollmentCard({ enrollment }: { enrollment: MyEnrollmentItem }) {
-  const course = enrollment.course;
-  const durationLabel = formatCatalogDuration(course.estimatedHours);
-  const progress = Math.round(enrollment.progress ?? 0);
+function EnrollmentCard({ item }: { item: MyCourseProgressItem }) {
+  const durationLabel = formatCatalogDuration(item.estimatedHours);
+  const progress = Math.round(item.percentage ?? 0);
+  const continueHref = item.resumeContentId
+    ? `/learn/${item.courseSlug}?contentId=${item.resumeContentId}`
+    : `/learn/${item.courseSlug}`;
 
   return (
     <article className="flex h-full flex-col border border-border bg-background shadow-sm">
       <div className="relative aspect-[16/9] bg-muted">
-        {course.thumbnail ? (
+        {item.thumbnail ? (
           <Image
-            src={course.thumbnail}
-            alt={course.title}
+            src={item.thumbnail}
+            alt={item.courseTitle}
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 33vw"
@@ -79,16 +81,19 @@ function EnrollmentCard({ enrollment }: { enrollment: MyEnrollmentItem }) {
 
       <div className="flex flex-1 flex-col p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {course.institution.name}
+          {item.institution.name}
         </p>
-        <h3 className="mt-1 line-clamp-2 text-base font-bold text-foreground">{course.title}</h3>
+        <h3 className="mt-1 line-clamp-2 text-base font-bold text-foreground">{item.courseTitle}</h3>
 
         <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
             {durationLabel}
           </span>
-          <span>{enrollment.status}</span>
+          <span>
+            {item.completedLessons}/{item.totalLessons} lessons
+          </span>
+          <span>{item.status}</span>
         </div>
 
         <div className="mt-4">
@@ -103,7 +108,7 @@ function EnrollmentCard({ enrollment }: { enrollment: MyEnrollmentItem }) {
 
         <div className="mt-auto pt-5">
           <Button asChild className="w-full rounded-none">
-            <Link href={`/learn/${course.slug}`}>Continue Learning</Link>
+            <Link href={continueHref}>Continue Learning</Link>
           </Button>
         </div>
       </div>
