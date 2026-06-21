@@ -1,7 +1,12 @@
+import type { QuizContentAssessment } from './quiz';
+import type { AssignmentSummary } from './assignment.types';
+
 export enum ContentType {
   TEXT = 'TEXT',
   VIDEO = 'VIDEO',
   DOCUMENT = 'DOCUMENT',
+  QUIZ = 'QUIZ',
+  ASSIGNMENT = 'ASSIGNMENT',
 }
 
 export interface TextContentDetail {
@@ -25,6 +30,18 @@ export interface DocumentContentDetail {
   allowDownload: boolean;
 }
 
+export interface ModuleContentAssessment {
+  id: string;
+  contentId: string;
+  type: string;
+  title: string;
+  description: string | null;
+  instructions: string | null;
+  settings?: QuizContentAssessment['settings'];
+  quiz?: QuizContentAssessment['quiz'];
+  assignment?: AssignmentSummary;
+}
+
 export interface ContentRecord {
   id: string;
   type: ContentType;
@@ -38,6 +55,7 @@ export interface ContentRecord {
   textContent: TextContentDetail | null;
   videoContent: VideoContentDetail | null;
   documentContent: DocumentContentDetail | null;
+  assessment: ModuleContentAssessment | null;
 }
 
 export interface ModuleContentItem {
@@ -74,6 +92,35 @@ export interface CreateDocumentContentPayload {
   fileUrl: string;
   isPublished?: boolean;
   allowDownload?: boolean;
+}
+
+export interface CreateQuizContentPayload {
+  title: string;
+  description?: string;
+  instructions?: string;
+  settings?: {
+    showResults?: boolean;
+    showCorrectAnswers?: boolean;
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
+  };
+  passingScore?: number;
+  maxAttempts?: number;
+  timeLimitMinutes?: number;
+  isPublished?: boolean;
+}
+
+export interface CreateAssignmentContentPayload {
+  title: string;
+  description?: string;
+  instructions?: string;
+  passingScore?: number;
+  maxAttempts?: number;
+  dueDate?: string;
+  allowLateSubmission?: boolean;
+  showFeedbackAfterGrading?: boolean;
+  submissionTypes?: import('./assignment.types').AssignmentSubmissionType[];
+  isPublished?: boolean;
 }
 
 export interface UpdateTextContentPayload {

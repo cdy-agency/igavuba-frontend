@@ -7,6 +7,8 @@ import { InstitutionsPage } from '@/components/dashboard/institutions/institutio
 import { UsersPage } from '@/components/dashboard/users/users-page';
 import { CoursesPage } from '@/components/dashboard/courses/courses-page';
 import { MyLearningPage } from '@/components/dashboard/my-learning/my-learning-page';
+import { QuizzesPage } from '@/components/dashboard/quizzes/quizzes-page';
+import { AssignmentsPage } from '@/components/dashboard/assignments/assignments-page';
 
 export default function DashboardSectionPage() {
   const params = useParams<{ section: string }>();
@@ -30,6 +32,14 @@ export default function DashboardSectionPage() {
 
   if (section === 'my-learning') {
     return <MyLearningPage />;
+  }
+
+  if (section === 'quizzes') {
+    return <QuizzesPage />;
+  }
+
+  if (section === 'assignments') {
+    return <AssignmentsPage />;
   }
 
   return <DashboardStubPage section={section} />;

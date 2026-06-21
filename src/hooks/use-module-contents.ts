@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createDocumentContent,
+  createAssignmentContent,
+  createQuizContent,
   createTextContent,
   createVideoContent,
   detachContent,
@@ -14,6 +16,8 @@ import {
 } from '@/api/content.api';
 import type {
   CreateDocumentContentPayload,
+  CreateAssignmentContentPayload,
+  CreateQuizContentPayload,
   CreateTextContentPayload,
   CreateVideoContentPayload,
   ModuleContentItem,
@@ -84,6 +88,37 @@ export function useCreateDocumentContent(moduleId: string) {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to create lesson.'));
+    },
+  });
+}
+
+export function useCreateQuizContent(moduleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateQuizContentPayload) => createQuizContent(moduleId, payload),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Quiz created successfully.');
+      queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to create quiz.'));
+    },
+  });
+}
+
+export function useCreateAssignmentContent(moduleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateAssignmentContentPayload) =>
+      createAssignmentContent(moduleId, payload),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Assignment created successfully.');
+      queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to create assignment.'));
     },
   });
 }

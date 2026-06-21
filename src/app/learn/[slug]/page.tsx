@@ -353,9 +353,13 @@ export default function LearningPlayerPage() {
               onNext={() => navigateLesson('next')}
               onComplete={markLessonComplete}
               onAutoComplete={markLessonComplete}
+              onQuizProgressUpdated={(contentId, moduleId, progress) => {
+                markLessonInState(contentId, moduleId, progress);
+              }}
               sidebarOpen={sidebarOpen}
               onCloseSidebar={() => setSidebarOpen(false)}
               courseId={courseId}
+              courseSlug={slug}
               userId={user?.id || ''}
               courseTitle={courseTitle}
               enrollmentId={enrollmentId}

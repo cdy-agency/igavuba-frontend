@@ -49,6 +49,29 @@ export interface LearningLessonContent {
       fileName: string;
     };
   };
+  quizContent?: {
+    quizId: string;
+    passingScore: number;
+    maxAttempts: number;
+    timeLimitMinutes: number | null;
+    instructions: string | null;
+    settings: {
+      showResults: boolean;
+      showCorrectAnswers: boolean;
+      shuffleQuestions: boolean;
+      shuffleOptions: boolean;
+    };
+  };
+  assignmentContent?: {
+    assignmentId: string;
+    passingScore: number;
+    maxAttempts: number;
+    dueDate: string | null;
+    allowLateSubmission: boolean;
+    showFeedbackAfterGrading: boolean;
+    instructions: string | null;
+    submissionTypes: unknown;
+  };
 }
 
 export interface LearningModule {
@@ -158,6 +181,29 @@ export interface LearningRenderableContent {
       url: string;
       fileName?: string;
     };
+  };
+  quizContent?: {
+    quizId: string;
+    passingScore: number;
+    maxAttempts: number;
+    timeLimitMinutes: number | null;
+    instructions: string | null;
+    settings: {
+      showResults: boolean;
+      showCorrectAnswers: boolean;
+      shuffleQuestions: boolean;
+      shuffleOptions: boolean;
+    };
+  };
+  assignmentContent?: {
+    assignmentId: string;
+    passingScore: number;
+    maxAttempts: number;
+    dueDate: string | null;
+    allowLateSubmission: boolean;
+    showFeedbackAfterGrading: boolean;
+    instructions: string | null;
+    submissionTypes: unknown;
   };
 }
 

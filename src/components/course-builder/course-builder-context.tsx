@@ -3,7 +3,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { ContentType } from '@/types/content';
 
-export type LessonCreateType = 'text' | 'video' | 'document';
+export type LessonCreateType = 'text' | 'video' | 'document' | 'quiz' | 'assignment';
 
 interface CourseBuilderContextValue {
   selectedModuleId: string | null;
@@ -51,7 +51,7 @@ export function useCourseBuilder() {
   return context;
 }
 
-export function lessonTypeLabel(type: ContentType | LessonCreateType): string {
+export function lessonTypeLabel(type: ContentType | LessonCreateType | 'quiz'): string {
   switch (type) {
     case 'TEXT':
     case 'text':
@@ -62,6 +62,12 @@ export function lessonTypeLabel(type: ContentType | LessonCreateType): string {
     case 'DOCUMENT':
     case 'document':
       return 'Document';
+    case 'QUIZ':
+    case 'quiz':
+      return 'Quiz';
+    case 'ASSIGNMENT':
+    case 'assignment':
+      return 'Assignment';
     default:
       return 'Lesson';
   }

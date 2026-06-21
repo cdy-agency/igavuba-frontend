@@ -19,6 +19,8 @@ import { ContentType } from '@/types/content';
 import type { LearningLessonRaw, LearningRenderableContent } from '@/types/learning';
 import { DocumentViewer, useDocumentViewer } from '@/components/content/DocumentViewer';
 import { ResponsiveVideoPlayer } from '@/components/shared/responsive-video-player';
+import { QuizPlayer } from '@/components/content/QuizPlayer';
+import { AssignmentPlayer } from '@/components/content/AssignmentPlayer';
 import { CourseCompletionPage } from './Coursecompletionpage';
 import { Button } from '@/components/ui/button';
 
@@ -282,9 +284,11 @@ interface Props {
   onNext?: () => void;
   onComplete?: () => void;
   onAutoComplete?: () => void;
+  onQuizProgressUpdated?: (contentId: string, moduleId: string, progress: number) => void;
   sidebarOpen?: boolean;
   onCloseSidebar?: () => void;
   courseId: string;
+  courseSlug?: string;
   userId: string;
   courseTitle: string;
   enrollmentId: string;
@@ -299,8 +303,10 @@ const LessonContent = ({
   onNext,
   onComplete,
   onAutoComplete,
+  onQuizProgressUpdated,
   sidebarOpen = true,
   courseId,
+  courseSlug,
   userId,
   courseTitle,
   enrollmentId,
@@ -316,6 +322,9 @@ const LessonContent = ({
   const content = raw?.content ?? ({} as LearningRenderableContent);
   const type = String(content.type ?? lesson?.type ?? '').toUpperCase();
   const isCompleted = !!lesson?.completed;
+  const isQuiz = type === ContentType.QUIZ;
+  const isAssignment = type === ContentType.ASSIGNMENT;
+  const isAssessment = isQuiz || isAssignment;
   const requiresScrollToComplete = type === ContentType.TEXT;
 
   useEffect(() => {
@@ -381,8 +390,9 @@ const LessonContent = ({
   }
 
   const nextButtonDisabled =
-    isBlocked || (requiresScrollToComplete && !hasReachedBottom);
-  const waitingForBottom = requiresScrollToComplete && !hasReachedBottom && !isBlocked;
+    isBlocked || isAssessment || (requiresScrollToComplete && !hasReachedBottom);
+  const waitingForBottom =
+    requiresScrollToComplete && !hasReachedBottom && !isBlocked && !isAssessment;
   const nextButtonLabel = isBlocked
     ? 'Module Locked'
     : isCompleted
@@ -422,6 +432,46 @@ const LessonContent = ({
               />
             )}
             {type === ContentType.DOCUMENT && <DocumentLesson content={content} />}
+            {type === ContentType.QUIZ && content.quizContent ? (
+              <QuizPlayer
+                quizId={content.quizContent.quizId}
+                courseId={courseId}
+                courseSlug={courseSlug}
+                contentId={content.id}
+                moduleId={lesson?.raw?.moduleId}
+                quizMeta={content.quizContent}
+                title={content.title}
+                description={content.description}
+                instructions={content.quizContent.instructions}
+                isCompleted={isCompleted}
+                onContinue={() => onNext?.()}
+                onProgressUpdated={(progress) => {
+                  const moduleId = String(lesson?.raw?.moduleId || '');
+                  if (lesson?.id && moduleId) {
+                    onQuizProgressUpdated?.(lesson.id, moduleId, progress);
+                  }
+                }}
+              />
+            ) : null}
+            {type === ContentType.ASSIGNMENT && content.assignmentContent ? (
+              <AssignmentPlayer
+                assignmentId={content.assignmentContent.assignmentId}
+                courseId={courseId}
+                courseSlug={courseSlug}
+                title={content.title}
+                description={content.description}
+                assignmentMeta={content.assignmentContent}
+                isCompleted={isCompleted}
+                onComplete={onComplete}
+                onContinue={() => onNext?.()}
+                onProgressUpdated={(progress) => {
+                  const moduleId = String(lesson?.raw?.moduleId || '');
+                  if (lesson?.id && moduleId) {
+                    onQuizProgressUpdated?.(lesson.id, moduleId, progress);
+                  }
+                }}
+              />
+            ) : null}
             {!Object.values(ContentType).includes(type as ContentType) ? (
               <div className="text-gray-600 dark:text-gray-400">
                 This content type is not supported yet.
@@ -431,7 +481,7 @@ const LessonContent = ({
         </div>
 
         <div
-          className={`fixed bottom-0 right-0 left-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 ${sidebarOpen ? 'md:left-96' : ''}`}
+          className={`fixed bottom-0 right-0 left-0 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 shadow-lg transition-all duration-300 ${sidebarOpen ? 'md:left-96' : ''} ${isAssessment ? 'hidden' : ''}`}
         >
           <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <div className="flex justify-between w-full sm:hidden">

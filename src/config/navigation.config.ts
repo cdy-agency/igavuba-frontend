@@ -6,6 +6,7 @@ import {
   ClipboardCheck,
   FileCheck,
   GraduationCap,
+  HelpCircle,
   LayoutDashboard,
   Layers,
   School,
@@ -120,6 +121,12 @@ export const navigationConfig: NavigationItem[] = [
     roles: [UserRole.LECTURER],
   },
   {
+    title: 'Quizzes',
+    href: '/dashboard/quizzes',
+    icon: HelpCircle,
+    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
+  },
+  {
     title: 'Assignments',
     href: '/dashboard/assignments',
     icon: ClipboardCheck,
@@ -206,6 +213,8 @@ const WORKSPACE_PATHS = new Set([
   '/dashboard/departments',
   '/dashboard/enrollments',
   '/dashboard/course-builder',
+  '/dashboard/quizzes',
+  '/dashboard/assignments',
   '/dashboard/grades',
   '/dashboard/live-sessions',
   '/dashboard/support-tickets',
@@ -356,6 +365,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   '/dashboard/course-builder': {
     title: 'Course Builder',
     description: 'Build and manage course content.',
+  },
+  '/dashboard/quizzes': {
+    title: 'Quizzes',
+    description: 'Manage quiz assessments across your courses.',
   },
   '/dashboard/assignments': {
     title: 'Assignments',

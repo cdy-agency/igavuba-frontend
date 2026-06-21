@@ -34,6 +34,10 @@ import { ContentType, type ModuleContentItem } from '@/types/content';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
 import { useAuthReady } from '@/hooks/use-auth-ready';
+import { QuizLessonEditor } from '@/components/course-builder/quiz-lesson-editor';
+import { QuizCreateForm } from '@/components/course-builder/quiz-create-form';
+import { AssignmentLessonEditor } from '@/components/course-builder/assignment-lesson-editor';
+import { AssignmentCreateForm } from '@/components/course-builder/assignment-create-form';
 
 interface ContentPanelProps {
   moduleId: string | null;
@@ -587,6 +591,32 @@ export function ContentPanel({ moduleId }: ContentPanelProps) {
   }
 
   if (creatingLessonType) {
+    if (creatingLessonType === 'quiz') {
+      return (
+        <QuizCreateForm
+          moduleId={moduleId}
+          onCreated={(contentId) => {
+            cancelCreatingLesson();
+            setSelectedContentId(contentId);
+          }}
+          onCancel={cancelCreatingLesson}
+        />
+      );
+    }
+
+    if (creatingLessonType === 'assignment') {
+      return (
+        <AssignmentCreateForm
+          moduleId={moduleId}
+          onCreated={(contentId) => {
+            cancelCreatingLesson();
+            setSelectedContentId(contentId);
+          }}
+          onCancel={cancelCreatingLesson}
+        />
+      );
+    }
+
     return (
       <LessonCreateForm
         moduleId={moduleId}
@@ -629,6 +659,12 @@ export function ContentPanel({ moduleId }: ContentPanelProps) {
       ) : null}
       {selectedItem.content.type === ContentType.DOCUMENT ? (
         <DocumentLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+      ) : null}
+      {selectedItem.content.type === ContentType.QUIZ ? (
+        <QuizLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+      ) : null}
+      {selectedItem.content.type === ContentType.ASSIGNMENT ? (
+        <AssignmentLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
       ) : null}
 
       <DeleteDialog

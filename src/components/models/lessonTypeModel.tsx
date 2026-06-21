@@ -8,16 +8,16 @@ import {
   Video,
   CheckCircle2,
   FileEdit,
-  MessageCircleMore,
-  Users,
-  Link,
+  ClipboardList,
 } from "lucide-react";
 
 export interface LessonType {
   id: string;
   label: string;
   icon: React.ReactNode;
-  category: "learning" | "exam";
+  category: "learning" | "assessment";
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
 export interface LessonTypeModalProps {
@@ -47,18 +47,26 @@ const LESSON_TYPES: LessonType[] = [
   },
 ];
 
-const EXAM_TYPES: LessonType[] = [
+const ASSESSMENT_TYPES: LessonType[] = [
   {
     id: "quiz",
     label: "Quiz",
     icon: <CheckCircle2 className="h-4 w-4" />,
-    category: "exam",
+    category: "assessment",
   },
   {
     id: "assignment",
     label: "Assignment",
     icon: <FileEdit className="h-4 w-4" />,
-    category: "exam",
+    category: "assessment",
+  },
+  {
+    id: "exam",
+    label: "Exam",
+    icon: <ClipboardList className="h-4 w-4" />,
+    category: "assessment",
+    disabled: true,
+    disabledReason: "Coming soon",
   },
 ];
 
@@ -67,15 +75,10 @@ const ICON_BG: Record<string, string> = {
   pdf: "bg-green-100  text-green-600  dark:bg-green-900/30  dark:text-green-400",
   video:
     "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400",
-  discussion:
-    "bg-cyan-100   text-cyan-600   dark:bg-cyan-900/30   dark:text-cyan-400",
-  meeting:
-    "bg-red-100    text-red-600    dark:bg-red-900/30    dark:text-red-400",
-  embed:
-    "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400",
   quiz: "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400",
   assignment:
     "bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400",
+  exam: "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400",
 };
 
 function TypeCard({
@@ -85,10 +88,14 @@ function TypeCard({
   type: LessonType;
   onClick: () => void;
 }) {
+  const isDisabled = Boolean(type.disabled);
+
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col items-center gap-2.5 rounded-lg border border-border bg-background p-4 text-center transition-all hover:border-primary/50 hover:bg-primary-subtle/30 hover:shadow-sm"
+      disabled={isDisabled}
+      title={isDisabled ? type.disabledReason : undefined}
+      className="group flex flex-col items-center gap-2.5 rounded-lg border border-border bg-background p-4 text-center transition-all hover:border-primary/50 hover:bg-primary-subtle/30 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border disabled:hover:bg-background disabled:hover:shadow-none"
     >
       <div
         className={`flex h-9 w-9 items-center justify-center rounded-lg transition-transform group-hover:scale-105 ${ICON_BG[type.id]}`}
@@ -98,6 +105,9 @@ function TypeCard({
       <span className="text-[12px] font-medium leading-tight text-foreground group-hover:text-primary transition-colors">
         {type.label}
       </span>
+      {isDisabled && type.disabledReason ? (
+        <span className="text-[10px] text-muted-foreground">{type.disabledReason}</span>
+      ) : null}
     </button>
   );
 }
@@ -110,22 +120,21 @@ export const LessonTypeModal: React.FC<LessonTypeModalProps> = ({
   if (!isOpen) return null;
 
   const handleTypeClick = (typeId: string) => {
+    const type = ASSESSMENT_TYPES.find((item) => item.id === typeId);
+    if (type?.disabled) return;
     onSelectType(typeId);
     onClose();
   };
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
-      {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="w-full max-w-lg overflow-hidden rounded-xl border border-border bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-          {/* Header */}
           <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
             <div>
               <h2 className="text-[14px] font-semibold text-foreground leading-tight">
@@ -143,9 +152,7 @@ export const LessonTypeModal: React.FC<LessonTypeModalProps> = ({
             </button>
           </div>
 
-          {/* Body */}
           <div className="px-5 py-4 space-y-5">
-            {/* Learning */}
             <div>
               <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
                 Learning Content
@@ -155,22 +162,23 @@ export const LessonTypeModal: React.FC<LessonTypeModalProps> = ({
                   <TypeCard
                     key={type.id}
                     type={type}
-                    onClick={() => handleTypeClick(type.id)}
+                    onClick={() => {
+                      onSelectType(type.id);
+                      onClose();
+                    }}
                   />
                 ))}
               </div>
             </div>
 
-            {/* Divider */}
             <div className="border-t border-border" />
 
-            {/* Exam */}
             <div>
               <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                Exam
+                Assessment
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {EXAM_TYPES.map((type) => (
+                {ASSESSMENT_TYPES.map((type) => (
                   <TypeCard
                     key={type.id}
                     type={type}

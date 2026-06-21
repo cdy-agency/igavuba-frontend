@@ -21,6 +21,8 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   ChevronDown,
   ChevronUp,
+  CheckCircle2,
+  FileEdit,
   FileText,
   Film,
   Loader2,
@@ -76,6 +78,10 @@ function mapLessonTypeId(typeId: string): LessonCreateType | null {
       return 'document';
     case 'video':
       return 'video';
+    case 'quiz':
+      return 'quiz';
+    case 'assignment':
+      return 'assignment';
     default:
       return null;
   }
@@ -94,6 +100,18 @@ function lessonTypeMeta(type: ModuleContentItem['content']['type']) {
         Icon: Film,
         iconClass: 'bg-amber-100 text-amber-600',
         label: 'DOCUMENT',
+      };
+    case 'QUIZ':
+      return {
+        Icon: CheckCircle2,
+        iconClass: 'bg-orange-100 text-orange-600',
+        label: 'QUIZ',
+      };
+    case 'ASSIGNMENT':
+      return {
+        Icon: FileEdit,
+        iconClass: 'bg-yellow-100 text-yellow-600',
+        label: 'ASSIGNMENT',
       };
     default:
       return {

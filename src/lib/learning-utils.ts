@@ -47,6 +47,8 @@ export function mapContentToLesson(
         textContent: content.textContent,
         videoContent: content.videoContent,
         documentContent: content.documentContent,
+        quizContent: content.quizContent,
+        assignmentContent: content.assignmentContent,
       },
     },
   };
