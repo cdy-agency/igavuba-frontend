@@ -28,6 +28,8 @@ interface CourseManagementCoursesFiltersProps {
   departments: CourseDepartment[];
   statusCounts?: CourseStatusCounts;
   isLoadingCounts?: boolean;
+  showNeedReviewTab?: boolean;
+  showChangesRequestedTab?: boolean;
 }
 
 export function CourseManagementCoursesFilters({
@@ -40,6 +42,8 @@ export function CourseManagementCoursesFilters({
   departments,
   statusCounts,
   isLoadingCounts,
+  showNeedReviewTab = false,
+  showChangesRequestedTab = false,
 }: CourseManagementCoursesFiltersProps) {
   return (
     <div className="space-y-4 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
@@ -81,6 +85,8 @@ export function CourseManagementCoursesFilters({
           onChange={onStatusChange}
           counts={statusCounts}
           isLoadingCounts={isLoadingCounts}
+          showNeedReviewTab={showNeedReviewTab}
+          showChangesRequestedTab={showChangesRequestedTab}
         />
       </div>
     </div>

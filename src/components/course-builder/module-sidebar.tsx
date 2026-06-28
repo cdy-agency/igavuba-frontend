@@ -68,6 +68,7 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 
 interface ModuleSidebarProps {
   courseId: string;
+  readOnly?: boolean;
 }
 
 function mapLessonTypeId(typeId: string): LessonCreateType | null {
@@ -490,7 +491,7 @@ function ModuleCardWithCount({
   );
 }
 
-export function ModuleSidebar({ courseId }: ModuleSidebarProps) {
+export function ModuleSidebar({ courseId, readOnly = false }: ModuleSidebarProps) {
   const {
     selectedModuleId,
     setSelectedModuleId,
@@ -603,7 +604,7 @@ export function ModuleSidebar({ courseId }: ModuleSidebarProps) {
   return (
     <>
       <div className="course-builder-sidebar">
-        <div className="course-builder-sidebar-scroll">
+        <div className="course-builder-sidebar-scroll custom-scrollbar custom-scrollbar-muted">
           {isPending && localModules.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-12 text-[12px] text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -646,6 +647,7 @@ export function ModuleSidebar({ courseId }: ModuleSidebarProps) {
           )}
         </div>
 
+        {!readOnly ? (
         <div className="course-builder-sidebar-footer">
           {isAddingModule ? (
             <div className="space-y-2 border-b border-slate-200 bg-white p-2.5 shadow-sm">
@@ -705,6 +707,7 @@ export function ModuleSidebar({ courseId }: ModuleSidebarProps) {
             </button>
           )}
         </div>
+        ) : null}
       </div>
 
       {searchModalModuleId ? (

@@ -69,7 +69,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Lecturers',
     href: '/dashboard/lecturers',
     icon: GraduationCap,
-    roles: [UserRole.INSTITUTION_ADMIN],
+    roles: [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
   },
   {
     title: 'Students',
@@ -81,7 +81,13 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Departments',
     href: '/dashboard/departments',
     icon: School,
-    roles: [UserRole.INSTITUTION_ADMIN],
+    roles: [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
+  },
+  {
+    title: 'Course Reviews',
+    href: '/dashboard/course-reviews',
+    icon: FileCheck,
+    roles: [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
   },
   {
     title: 'Enrollments',
@@ -109,12 +115,6 @@ export const navigationConfig: NavigationItem[] = [
 
   // LECTURER
   {
-    title: 'My Courses',
-    href: '/dashboard/my-courses',
-    icon: BookOpen,
-    roles: [UserRole.LECTURER, UserRole.LEARNER],
-  },
-  {
     title: 'Course Builder',
     href: '/dashboard/course-builder',
     icon: Layers,
@@ -130,13 +130,13 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Assignments',
     href: '/dashboard/assignments',
     icon: ClipboardCheck,
-    roles: [UserRole.LECTURER, UserRole.LEARNER],
+    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
   },
   {
     title: 'Grades',
     href: '/dashboard/grades',
     icon: FileCheck,
-    roles: [UserRole.LECTURER],
+    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
   },
   {
     title: 'Live Sessions',
@@ -358,10 +358,6 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     title: 'Reports',
     description: 'Generate and review operational reports.',
   },
-  '/dashboard/my-courses': {
-    title: 'My Courses',
-    description: 'Courses you teach or are enrolled in.',
-  },
   '/dashboard/course-builder': {
     title: 'Course Builder',
     description: 'Build and manage course content.',
@@ -384,7 +380,7 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   },
   '/dashboard/my-learning': {
     title: 'My Learning',
-    description: 'Continue your learning journey.',
+    description: 'Your enrolled courses and learning progress.',
   },
   '/dashboard/achievements': {
     title: 'Achievements',

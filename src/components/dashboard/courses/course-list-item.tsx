@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import {
   Archive,
+  BarChart3,
   Calendar,
   GraduationCap,
   Hammer,
@@ -54,8 +55,14 @@ export function CourseListItem({
   onPermanentDelete,
   className,
 }: CourseListItemProps) {
-  const lecturerName = course.lecturer?.user.name ?? course.lecturer?.user.email ?? 'Unassigned';
-  const categoryLabel = course.department?.name ?? getCourseLevelLabel(course.level);
+  const ownerName =
+    course.owner?.name ??
+    course.owner?.email ??
+    course.lecturer?.user.name ??
+    course.lecturer?.user.email ??
+    'Unassigned';
+  const categoryLabel =
+    course.categories?.[0]?.category.name ?? course.department?.name ?? getCourseLevelLabel(course.level);
 
   return (
     <article
@@ -91,9 +98,9 @@ export function CourseListItem({
           )}
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <MetaItem icon={User}>By {lecturerName}</MetaItem>
+            <MetaItem icon={User}>Owner: {ownerName}</MetaItem>
             <MetaItem icon={Calendar}>
-              {format(new Date(course.updatedAt), 'yyyy-MM-dd')}
+              Created {format(new Date(course.createdAt), 'yyyy-MM-dd')}
             </MetaItem>
             {course.level ? (
               <MetaItem icon={GraduationCap}>{getCourseLevelLabel(course.level)}</MetaItem>
@@ -123,6 +130,12 @@ export function CourseListItem({
             <Link href={`/dashboard/courses/${course.slug}`}>
               <Pencil className="mr-1 h-3 w-3" />
               Edit
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs font-medium">
+            <Link href={`/dashboard/courses/${course.slug}/results`}>
+              <BarChart3 className="mr-1 h-3 w-3" />
+              Results
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs font-medium">

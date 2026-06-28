@@ -8,8 +8,11 @@ import { UserRole } from '@/types/enum';
 import { Button } from '@/components/ui/button';
 import { CourseForm } from '@/components/dashboard/courses/course-form';
 import { CourseFormShell } from '@/components/dashboard/courses/course-form-shell';
+import { CourseOwnerSection } from '@/components/dashboard/courses/course-owner-section';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { useCourseDetail } from '@/hooks/use-courses';
 import { getApiErrorMessage } from '@/lib/auth';
+import { canEditCourse } from '@/components/dashboard/courses/course-owner-section';
 
 const COURSE_MANAGER_ROLES = [
   UserRole.SUPER_ADMIN,
@@ -21,8 +24,10 @@ export default function EditCoursePage() {
   const router = useRouter();
   const params = useParams<{ slug: string }>();
   const slug = params.slug ?? '';
+  const { user } = useDashboard();
 
   const { data: course, isPending, isError, error } = useCourseDetail(slug);
+  const editable = course ? canEditCourse(course, user?.id) : false;
 
   return (
     <RoleGuard allowedRoles={COURSE_MANAGER_ROLES}>
@@ -41,12 +46,21 @@ export default function EditCoursePage() {
             </Button>
           </div>
         ) : (
-          <CourseForm
-            mode="edit"
-            course={course}
-            onCancel={() => router.push('/dashboard/courses')}
-            onSuccess={() => router.push('/dashboard/courses')}
-          />
+          <div className="space-y-5">
+            <CourseOwnerSection course={course} />
+            {!editable ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                You can view this course, but only the course owner can edit content and settings.
+              </div>
+            ) : null}
+            <CourseForm
+              mode="edit"
+              course={course}
+              readOnly={!editable}
+              onCancel={() => router.push('/dashboard/courses')}
+              onSuccess={() => router.push('/dashboard/courses')}
+            />
+          </div>
         )}
       </CourseFormShell>
     </RoleGuard>

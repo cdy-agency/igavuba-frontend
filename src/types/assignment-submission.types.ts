@@ -9,6 +9,7 @@ export interface AssignmentSubmissionGrade {
   passed: boolean | null;
   publishedAt: string | null;
   passingScore: number;
+  maxScore: number;
 }
 
 export interface AssignmentSubmission {
@@ -36,6 +37,7 @@ export interface AssignmentSubmissionHistory {
   allowLateSubmission: boolean;
   showFeedbackAfterGrading: boolean;
   passingScore: number;
+  maxScore: number;
   submissionTypes: AssignmentSubmissionType[];
   contentCompleted: boolean;
   courseProgress?: number;
@@ -84,7 +86,9 @@ export interface LecturerAssignmentSubmission {
   score: number | null;
   feedback: string | null;
   passed: boolean | null;
-  gradePublishedAt: string | null;
+  gradedBy: string | null;
+  gradedAt: string | null;
+  publishedAt: string | null;
   submittedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -93,6 +97,16 @@ export interface LecturerAssignmentSubmission {
     name: string | null;
     email: string;
   };
+  grader: {
+    id: string;
+    name: string | null;
+    email: string;
+  } | null;
+}
+
+export interface AssignmentSubmissionDetailData {
+  assignment: import('./assignment.types').Assignment;
+  submission: LecturerAssignmentSubmission;
 }
 
 export interface AssignmentSubmissionsPageData {
@@ -108,5 +122,11 @@ export interface AssignmentSubmissionMutationResponse<T> {
 
 export interface PublishGradeResult {
   submission: LecturerAssignmentSubmission;
+  courseProgress?: number;
+}
+
+export interface PublishAllResultsData {
+  publishedCount: number;
+  submissions: LecturerAssignmentSubmission[];
   courseProgress?: number;
 }

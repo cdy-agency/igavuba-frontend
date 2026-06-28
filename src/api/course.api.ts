@@ -2,10 +2,13 @@ import { apiClient } from './api-client';
 import type { PaginatedResponse } from '@/types/pagination';
 import type { CourseLifecycleStatus } from '@/types/course-status';
 import type {
+  AssignCourseOwnerPayload,
   Course,
   CourseListQueryParams,
   CourseMutationResponse,
+  CourseOwnerDetails,
   CreateCoursePayload,
+  EligibleCourseOwner,
   UpdateCoursePayload,
 } from '@/types/course';
 
@@ -60,6 +63,39 @@ export async function updateCourseStatus(courseId: string, status: CourseLifecyc
 export async function permanentlyDeleteCourse(courseId: string) {
   const response = await apiClient.delete<{ message: string }>(
     `/courses/${courseId}/permanent`,
+  );
+  return response.data;
+}
+
+export async function getCourseOwner(idOrSlug: string) {
+  const response = await apiClient.get<CourseMutationResponse<CourseOwnerDetails>>(
+    `/courses/${idOrSlug}/owner`,
+  );
+  return response.data.data;
+}
+
+export async function getEligibleCourseOwners(idOrSlug: string) {
+  const response = await apiClient.get<CourseMutationResponse<EligibleCourseOwner[]>>(
+    `/courses/${idOrSlug}/eligible-owners`,
+  );
+  return response.data.data;
+}
+
+export async function assignCourseOwner(idOrSlug: string, payload: AssignCourseOwnerPayload) {
+  const response = await apiClient.patch<CourseMutationResponse>(
+    `/courses/${idOrSlug}/assign-owner`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function transferCourseOwnership(
+  idOrSlug: string,
+  payload: AssignCourseOwnerPayload,
+) {
+  const response = await apiClient.patch<CourseMutationResponse>(
+    `/courses/${idOrSlug}/transfer-ownership`,
+    payload,
   );
   return response.data;
 }

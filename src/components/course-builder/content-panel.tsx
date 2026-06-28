@@ -42,6 +42,7 @@ import { AssignmentCreateForm } from '@/components/course-builder/assignment-cre
 interface ContentPanelProps {
   moduleId: string | null;
   courseSlug?: string;
+  readOnly?: boolean;
 }
 
 function EmptyState({ title, description }: { title: string; description: string }) {
@@ -245,10 +246,12 @@ function TextLessonEditor({
   item,
   moduleId,
   onDelete,
+  readOnly = false,
 }: {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
+  readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
@@ -278,6 +281,7 @@ function TextLessonEditor({
 
   return (
     <BuilderLessonShell
+      readOnly={readOnly}
       title={title}
       onTitleChange={(value) => {
         setTitle(value);
@@ -293,12 +297,13 @@ function TextLessonEditor({
           isPublished: isVisible,
         });
       }}
-      onDelete={onDelete}
+      onDelete={readOnly ? undefined : onDelete}
       icon={<LessonIcon type="text" />}
       settings={
         <LessonSettingsGroup>
           <ContentVisibilityToggle
             visible={isVisible}
+            disabled={readOnly}
             onChange={(value) => {
               setIsVisible(value);
               scheduleSave({
@@ -315,7 +320,9 @@ function TextLessonEditor({
       <TiptapEditor
         name={`lesson-body-${item.contentId}`}
         content={body}
+        isPreview={readOnly}
         onChange={(value) => {
+          if (readOnly) return;
           setBody(value);
           scheduleSave({
             title,
@@ -557,7 +564,7 @@ function DocumentLessonEditor({
   );
 }
 
-export function ContentPanel({ moduleId }: ContentPanelProps) {
+export function ContentPanel({ moduleId, readOnly = false }: ContentPanelProps) {
   const {
     selectedContentId,
     setSelectedContentId,
@@ -652,7 +659,12 @@ export function ContentPanel({ moduleId }: ContentPanelProps) {
   return (
     <>
       {selectedItem.content.type === ContentType.TEXT ? (
-        <TextLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+        <TextLessonEditor
+          item={selectedItem}
+          moduleId={moduleId}
+          onDelete={handleDetach}
+          readOnly={readOnly}
+        />
       ) : null}
       {selectedItem.content.type === ContentType.VIDEO ? (
         <VideoLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />

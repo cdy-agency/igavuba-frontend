@@ -3,8 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   deleteAssignmentSubmission,
+  getAssignmentSubmission,
   getMyAssignmentSubmissions,
   listAssignmentSubmissions,
+  publishAllAssignmentResults,
   publishAssignmentGrade,
   saveAssignmentGrade,
   submitAssignment,
@@ -22,6 +24,8 @@ export const assignmentSubmissionQueryKeys = {
   mine: (assignmentId: string, courseId?: string) =>
     ['assignment-submissions', 'mine', assignmentId, courseId ?? ''] as const,
   list: (assignmentId: string) => ['assignment-submissions', 'list', assignmentId] as const,
+  detail: (submissionId: string) =>
+    ['assignment-submissions', 'detail', submissionId] as const,
 };
 
 export function useMyAssignmentSubmissions(
@@ -42,6 +46,15 @@ export function useAssignmentSubmissions(assignmentId: string, enabled = true) {
     queryKey: assignmentSubmissionQueryKeys.list(assignmentId),
     queryFn: () => listAssignmentSubmissions(assignmentId),
     enabled: Boolean(assignmentId) && enabled,
+    select: (response) => response.data,
+  });
+}
+
+export function useAssignmentSubmission(submissionId: string, enabled = true) {
+  return useQuery({
+    queryKey: assignmentSubmissionQueryKeys.detail(submissionId),
+    queryFn: () => getAssignmentSubmission(submissionId),
+    enabled: Boolean(submissionId) && enabled,
     select: (response) => response.data,
   });
 }
@@ -102,6 +115,21 @@ export function useDeleteAssignmentSubmission(
   });
 }
 
+function invalidateAssignmentGradingQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  assignmentId: string,
+  submissionId?: string,
+) {
+  queryClient.invalidateQueries({
+    queryKey: assignmentSubmissionQueryKeys.list(assignmentId),
+  });
+  if (submissionId) {
+    queryClient.invalidateQueries({
+      queryKey: assignmentSubmissionQueryKeys.detail(submissionId),
+    });
+  }
+}
+
 export function useSaveAssignmentGrade(assignmentId: string) {
   const queryClient = useQueryClient();
 
@@ -112,12 +140,14 @@ export function useSaveAssignmentGrade(assignmentId: string) {
     }: {
       submissionId: string;
       payload: GradeAssignmentSubmissionPayload;
-    }) => saveAssignmentGrade(assignmentId, submissionId, payload),
-    onSuccess: (response) => {
-      toast.success(response.message || 'Assignment graded successfully');
-      queryClient.invalidateQueries({
-        queryKey: assignmentSubmissionQueryKeys.list(assignmentId),
-      });
+    }) => saveAssignmentGrade(submissionId, payload),
+    onSuccess: (response, variables) => {
+      toast.success(response.message || 'Grade saved successfully');
+      invalidateAssignmentGradingQueries(
+        queryClient,
+        assignmentId,
+        variables.submissionId,
+      );
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to save grade.'));
@@ -129,8 +159,22 @@ export function usePublishAssignmentGrade(assignmentId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (submissionId: string) =>
-      publishAssignmentGrade(assignmentId, submissionId),
+    mutationFn: (submissionId: string) => publishAssignmentGrade(submissionId),
+    onSuccess: (response, submissionId) => {
+      toast.success(response.message || 'Results published successfully');
+      invalidateAssignmentGradingQueries(queryClient, assignmentId, submissionId);
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to publish results.'));
+    },
+  });
+}
+
+export function usePublishAllAssignmentResults(assignmentId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => publishAllAssignmentResults(assignmentId),
     onSuccess: (response) => {
       toast.success(response.message || 'Results published successfully');
       queryClient.invalidateQueries({

@@ -30,7 +30,7 @@ export default function DashboardSectionPage() {
     return <CoursesPage />;
   }
 
-  if (section === 'my-learning') {
+  if (section === 'my-learning' || section === 'my-courses') {
     return <MyLearningPage />;
   }
 

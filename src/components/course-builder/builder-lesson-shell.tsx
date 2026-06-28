@@ -7,13 +7,14 @@ import { cn } from '@/lib/utils';
 
 interface BuilderLessonShellProps {
   title: string;
-  onTitleChange: (value: string) => void;
+  onTitleChange?: (value: string) => void;
   onTitleBlur?: () => void;
   titlePlaceholder?: string;
   description: string;
-  onDescriptionChange: (value: string) => void;
+  onDescriptionChange?: (value: string) => void;
   onDescriptionBlur?: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
+  readOnly?: boolean;
   icon: ReactNode;
   settings?: ReactNode;
   children: ReactNode;
@@ -30,6 +31,7 @@ export function BuilderLessonShell({
   onDescriptionChange,
   onDescriptionBlur,
   onDelete,
+  readOnly = false,
   icon,
   settings,
   children,
@@ -48,30 +50,42 @@ export function BuilderLessonShell({
               <div className="min-w-0 flex-1 space-y-2">
                 <input
                   value={title}
-                  onChange={(event) => onTitleChange(event.target.value)}
+                  readOnly={readOnly}
+                  onChange={readOnly ? undefined : (event) => onTitleChange?.(event.target.value)}
                   onBlur={onTitleBlur}
                   placeholder={titlePlaceholder}
-                  className="w-full border-none bg-transparent text-xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50"
+                  className={cn(
+                    'w-full border-none bg-transparent text-xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50',
+                    readOnly && 'cursor-default',
+                  )}
                 />
                 <input
                   value={description}
-                  onChange={(event) => onDescriptionChange(event.target.value)}
+                  readOnly={readOnly}
+                  onChange={
+                    readOnly ? undefined : (event) => onDescriptionChange?.(event.target.value)
+                  }
                   onBlur={onDescriptionBlur}
                   placeholder="Click to add description..."
-                  className="w-full border-none bg-transparent text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground/60"
+                  className={cn(
+                    'w-full border-none bg-transparent text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground/60',
+                    readOnly && 'cursor-default',
+                  )}
                 />
               </div>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-              onClick={onDelete}
-              aria-label="Delete lesson"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {onDelete && !readOnly ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={onDelete}
+                aria-label="Delete lesson"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            ) : null}
           </div>
         </div>
 

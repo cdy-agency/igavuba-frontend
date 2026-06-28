@@ -50,7 +50,9 @@ function shouldSkipAuthRefresh(config: ExtendedAxiosRequestConfig) {
     url.includes('/auth/verify-reset-otp') ||
     url.includes('/auth/reset-password') ||
     url.includes('/auth/refresh') ||
-    url.includes('/auth/invitation')
+    url.includes('/auth/invitation') ||
+    url.includes('/lecturers/invitation') ||
+    url.includes('/lecturers/activate')
   );
 }
 

@@ -38,10 +38,14 @@ export const submitAssignmentSchema = z
     }
   });
 
-export const gradeAssignmentSubmissionSchema = z.object({
-  score: z.coerce.number().min(0).max(100),
-  feedback: z.string().trim().max(10000).optional(),
-});
+export const gradeAssignmentSubmissionSchema = (maxScore = 100) =>
+  z.object({
+    score: z.coerce.number().min(0).max(maxScore, `Score cannot exceed ${maxScore}`),
+    feedback: z.string().trim().max(10000).optional(),
+  });
+
+export type GradeAssignmentSubmissionFormValues = z.infer<
+  ReturnType<typeof gradeAssignmentSubmissionSchema>
+>;
 
 export type SubmitAssignmentFormValues = z.infer<typeof submitAssignmentSchema>;
-export type GradeAssignmentSubmissionFormValues = z.infer<typeof gradeAssignmentSubmissionSchema>;

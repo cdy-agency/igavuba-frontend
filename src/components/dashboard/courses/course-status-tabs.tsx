@@ -5,7 +5,7 @@ import { CourseLifecycleStatus } from '@/types/course-status';
 import type { CourseStatusCounts } from '@/hooks/use-course-status-counts';
 import { getStatusCount } from '@/hooks/use-course-status-counts';
 
-export type CourseStatusTab = 'ALL' | CourseLifecycleStatus;
+export type CourseStatusTab = 'ALL' | 'NEED_REVIEW' | CourseLifecycleStatus;
 
 interface StatusTabConfig {
   value: CourseStatusTab;
@@ -13,6 +13,8 @@ interface StatusTabConfig {
   inactiveClass: string;
   badgeClass: string;
   activeClass: string;
+  adminOnly?: boolean;
+  lecturerOnly?: boolean;
 }
 
 export const COURSE_STATUS_TABS: StatusTabConfig[] = [
@@ -23,6 +25,26 @@ export const COURSE_STATUS_TABS: StatusTabConfig[] = [
       'border-border bg-background text-foreground hover:border-primary/30',
     badgeClass: 'bg-primary/10 text-primary',
     activeClass: 'border-primary bg-primary/5 text-foreground shadow-sm',
+  },
+  {
+    value: 'NEED_REVIEW',
+    label: 'Need Review',
+    adminOnly: true,
+    inactiveClass:
+      'border-blue-500/20 bg-blue-500/5 text-blue-800 hover:border-blue-500/40 dark:text-blue-400',
+    badgeClass: 'bg-blue-500/15 text-blue-700 dark:text-blue-400',
+    activeClass:
+      'border-blue-500/50 bg-blue-500/10 text-blue-800 shadow-sm dark:text-blue-300',
+  },
+  {
+    value: CourseLifecycleStatus.CHANGES_REQUESTED,
+    label: 'Changes Requested',
+    lecturerOnly: true,
+    inactiveClass:
+      'border-orange-500/20 bg-orange-500/5 text-orange-800 hover:border-orange-500/40 dark:text-orange-400',
+    badgeClass: 'bg-orange-500/15 text-orange-700 dark:text-orange-400',
+    activeClass:
+      'border-orange-500/50 bg-orange-500/10 text-orange-800 shadow-sm dark:text-orange-300',
   },
   {
     value: CourseLifecycleStatus.DRAFT,
@@ -56,6 +78,8 @@ interface CourseStatusTabsProps {
   onChange: (value: CourseStatusTab) => void;
   counts?: CourseStatusCounts;
   isLoadingCounts?: boolean;
+  showNeedReviewTab?: boolean;
+  showChangesRequestedTab?: boolean;
   className?: string;
 }
 
@@ -64,8 +88,16 @@ export function CourseStatusTabs({
   onChange,
   counts,
   isLoadingCounts,
+  showNeedReviewTab = false,
+  showChangesRequestedTab = false,
   className,
 }: CourseStatusTabsProps) {
+  const visibleTabs = COURSE_STATUS_TABS.filter((tab) => {
+    if (tab.adminOnly && !showNeedReviewTab) return false;
+    if (tab.lecturerOnly && !showChangesRequestedTab) return false;
+    return true;
+  });
+
   return (
     <div
       className={cn(
@@ -73,7 +105,7 @@ export function CourseStatusTabs({
         className,
       )}
     >
-      {COURSE_STATUS_TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const isActive = value === tab.value;
         const count = counts ? getStatusCount(tab.value, counts) : null;
 

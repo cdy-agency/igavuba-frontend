@@ -11,6 +11,10 @@ import { CourseManagementCoursesFilters } from '@/components/dashboard/courses/c
 import { CoursesPaginationFooter } from '@/components/dashboard/courses/courses-pagination-footer';
 import { type CourseStatusTab } from '@/components/dashboard/courses/course-status-tabs';
 import { useCourseStatusCounts } from '@/hooks/use-course-status-counts';
+import { useDepartmentsList } from '@/hooks/use-departments';
+import { useAuthReady } from '@/hooks/use-auth-ready';
+import { useDashboard } from '@/contexts/dashboard-context';
+import { UserRole } from '@/types/enum';
 import {
   useArchiveCourse,
   useCoursesList,
@@ -28,17 +32,9 @@ const PAGE_SIZE = 10;
 type ViewMode = 'list' | 'cards';
 
 function toStatusFilter(tab: CourseStatusTab): CourseLifecycleStatus | undefined {
-  return tab === 'ALL' ? undefined : tab;
-}
-
-function extractDepartments(courses: Course[]): CourseDepartment[] {
-  const map = new Map<string, CourseDepartment>();
-  for (const course of courses) {
-    if (course.department) {
-      map.set(course.department.id, course.department);
-    }
-  }
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  if (tab === 'ALL') return undefined;
+  if (tab === 'NEED_REVIEW') return CourseLifecycleStatus.UNDER_REVIEW;
+  return tab;
 }
 
 interface CoursesTableContentProps {
@@ -67,17 +63,29 @@ export function CoursesTableContent({ searchInput, viewMode }: CoursesTableConte
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  const { data: departmentSource } = useCoursesList({ limit: 100, page: 1 });
+  const authReady = useAuthReady();
+  const { role } = useDashboard();
+  const showNeedReviewTab =
+    role === UserRole.INSTITUTION_ADMIN || role === UserRole.SUPER_ADMIN;
+  const showChangesRequestedTab = role === UserRole.LECTURER;
+  const { data: departmentRows = [] } = useDepartmentsList(undefined, authReady);
 
-  const departments = useMemo(
-    () => extractDepartments(departmentSource?.data ?? []),
-    [departmentSource],
+  const departments = useMemo<CourseDepartment[]>(
+    () =>
+      departmentRows.map((department: { id: string; name: string; slug: string }) => ({
+        id: department.id,
+        name: department.name,
+        slug: department.slug,
+      })),
+    [departmentRows],
   );
 
   const { counts: statusCounts, isLoading: isLoadingCounts } = useCourseStatusCounts({
     search: search || undefined,
     level,
     departmentId,
+    includeNeedReview: showNeedReviewTab,
+    includeChangesRequested: showChangesRequestedTab,
   });
 
   const { data, isPending, isFetching, isError, error } = useCoursesList({
@@ -135,6 +143,8 @@ export function CoursesTableContent({ searchInput, viewMode }: CoursesTableConte
         departments={departments}
         statusCounts={statusCounts}
         isLoadingCounts={isLoadingCounts}
+        showNeedReviewTab={showNeedReviewTab}
+        showChangesRequestedTab={showChangesRequestedTab}
       />
 
       {viewMode === 'list' ? (

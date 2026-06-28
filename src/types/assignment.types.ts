@@ -8,7 +8,7 @@ export enum AssignmentSubmissionStatus {
   DRAFT = 'DRAFT',
   SUBMITTED = 'SUBMITTED',
   GRADED = 'GRADED',
-  RETURNED = 'RETURNED',
+  PUBLISHED = 'PUBLISHED',
 }
 
 export interface AssignmentAssessmentContent {
@@ -37,6 +37,7 @@ export interface AssignmentSummary {
   id: string;
   assessmentId: string;
   passingScore: number;
+  maxScore: number;
   maxAttempts: number;
   dueDate: string | null;
   allowLateSubmission: boolean;
@@ -139,6 +140,7 @@ export interface AssignmentListItem {
 export interface LearningAssignmentContent {
   assignmentId: string;
   passingScore: number;
+  maxScore?: number;
   maxAttempts: number;
   dueDate: string | null;
   allowLateSubmission: boolean;

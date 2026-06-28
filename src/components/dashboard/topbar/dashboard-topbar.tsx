@@ -1,11 +1,10 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Bell } from 'lucide-react';
+import { DashboardNotificationsBell } from '@/components/dashboard/topbar/dashboard-notifications-bell';
 import { DashboardBreadcrumbs } from '@/components/dashboard/dashboard-breadcrumbs';
 import { DashboardSearch } from '@/components/dashboard/topbar/dashboard-search';
 import { UserProfileDropdown } from '@/components/dashboard/user-profile-dropdown';
-import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { DASHBOARD_HOME, getPageMeta } from '@/config/navigation.config';
 import { cn } from '@/lib/utils';
@@ -36,15 +35,7 @@ export function DashboardTopbar() {
         <DashboardSearch className="hidden w-full max-w-xs md:block md:max-w-sm lg:max-w-md md:ml-0 md:flex-1" />
 
         <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-9 w-9 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Notifications"
-          >
-            <Bell className="h-[1.125rem] w-[1.125rem]" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-          </Button>
+          <DashboardNotificationsBell />
           <div className="hidden h-6 w-px bg-border sm:block" />
           <UserProfileDropdown />
         </div>

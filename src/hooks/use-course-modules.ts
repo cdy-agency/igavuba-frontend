@@ -14,6 +14,7 @@ import type {
   ReorderModulesPayload,
   UpdateModulePayload,
 } from '@/types/module';
+import { courseQueryKeys } from '@/hooks/use-courses';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
 
@@ -42,6 +43,7 @@ export function useCreateModule(courseId: string) {
     onSuccess: (response) => {
       toast.success(response.message || 'Module created successfully.');
       queryClient.invalidateQueries({ queryKey: moduleQueryKeys.list(courseId) });
+      queryClient.invalidateQueries({ queryKey: courseQueryKeys.all });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to create module.'));

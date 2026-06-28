@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { createCourseSkill } from '@/api/course-skill.api';
 import { createCourseTool } from '@/api/course-tool.api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,6 @@ import {
   Lock,
   Settings2,
   Shield,
-  Sparkles,
   FolderOpen,
   Tag,
   User,
@@ -29,7 +28,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -46,7 +44,7 @@ import {
 } from '@/components/dashboard/courses/course-form-field';
 import { CourseFormMediaField } from '@/components/dashboard/courses/course-form-media-field';
 import { courseFormSchema, type CourseFormValues } from '@/schema/course.schema';
-import { CourseAccessType, CourseLevel, type Course, type CourseDepartment } from '@/types/course';
+import { CourseAccessType, CourseLevel, type Course } from '@/types/course';
 import {
   COURSE_LANGUAGE_OPTIONS,
   isCourseLanguageCode,
@@ -57,18 +55,27 @@ import {
   getCourseStatusClassName,
   requiresPublicPrice,
 } from '@/lib/course-utils';
+import { CourseCatalogVisibilityNotice } from '@/components/dashboard/courses/course-catalog-visibility-notice';
+import { CourseLifecycleStatus } from '@/types/course-status';
 import { getCourseLifecycleLabel } from '@/lib/status-utils';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
-import { useCreateCourse, useCoursesList, useUpdateCourse } from '@/hooks/use-courses';
+import { useCreateCourse, useUpdateCourse } from '@/hooks/use-courses';
+import { useDepartmentsList } from '@/hooks/use-departments';
+import { useAuthReady } from '@/hooks/use-auth-ready';
 import { CourseSkillsManager } from '@/components/dashboard/courses/course-skills-manager';
 import { CourseToolsManager } from '@/components/dashboard/courses/course-tools-manager';
 import { CourseCategorySelect } from '@/components/dashboard/courses/course-category-select';
+import { CourseLecturerSelect } from '@/components/dashboard/courses/course-lecturer-select';
 import { cn } from '@/lib/utils';
+import { useDashboard } from '@/contexts/dashboard-context';
+import { hasAnyRole } from '@/lib/role-utils';
+import { UserRole } from '@/types/enum';
 
 interface CourseFormProps {
   mode: 'create' | 'edit';
   course?: Course;
+  readOnly?: boolean;
   onSuccess?: (course: Course) => void;
   onCancel?: () => void;
 }
@@ -107,22 +114,19 @@ function mapCourseToFormValues(course: Course): CourseFormValues {
   };
 }
 
-function extractDepartments(courses: Course[]): CourseDepartment[] {
-  const map = new Map<string, CourseDepartment>();
-  for (const item of courses) {
-    if (item.department) {
-      map.set(item.department.id, item.department);
-    }
+function accessTypeHint(accessType: CourseAccessType): string {
+  switch (accessType) {
+    case CourseAccessType.INTERNAL_ONLY:
+      return 'Only learners enrolled or assigned by your institution can access this course.';
+    case CourseAccessType.PUBLIC_FREE:
+      return 'Anyone can enroll for free. Published courses appear on / and /courses.';
+    case CourseAccessType.PUBLIC_PAID:
+      return 'Anyone can purchase and enroll. Published courses appear on / and /courses.';
+    case CourseAccessType.HYBRID:
+      return 'Institution learners get internal access; external learners can also enroll publicly.';
+    default:
+      return '';
   }
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-}
-
-function isPublicAccessType(accessType: CourseAccessType): boolean {
-  return (
-    accessType === CourseAccessType.PUBLIC_FREE ||
-    accessType === CourseAccessType.PUBLIC_PAID ||
-    accessType === CourseAccessType.HYBRID
-  );
 }
 
 function CourseFormSidebarHeading({
@@ -142,55 +146,19 @@ function CourseFormSidebarHeading({
   );
 }
 
-function SidebarToggleRow({
-  icon: Icon,
-  label,
-  description,
-  checked,
-  onCheckedChange,
-  disabled,
-}: {
-  icon: typeof Sparkles;
-  label: string;
-  description: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3 rounded-md border border-border/70 bg-background p-3">
-      <div className="flex min-w-0 gap-2.5">
-        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/8 text-primary">
-          <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-        </span>
-        <div className="min-w-0 space-y-1">
-          <p className="text-[13px] font-semibold leading-none tracking-tight text-foreground">
-            {label}
-          </p>
-          <p className="text-[11px] leading-relaxed text-muted-foreground/80">{description}</p>
-        </div>
-      </div>
-      <Switch
-        size="sm"
-        checked={checked}
-        onCheckedChange={onCheckedChange}
-        disabled={disabled}
-        className="mt-0.5"
-      />
-    </div>
-  );
-}
-
-export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProps) {
+export function CourseForm({ mode, course, readOnly = false, onSuccess, onCancel }: CourseFormProps) {
+  const { role } = useDashboard();
+  const isSuperAdmin = role === UserRole.SUPER_ADMIN;
+  const isLecturer = role === UserRole.LECTURER;
+  const canSelectLecturer =
+    hasAnyRole(role, [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN]) &&
+    (mode === 'create' || !readOnly);
   const [pendingSkills, setPendingSkills] = useState<string[]>([]);
   const [pendingTools, setPendingTools] = useState<string[]>([]);
   const [isSavingSkillsTools, setIsSavingSkillsTools] = useState(false);
 
-  const { data: departmentSource } = useCoursesList({ limit: 100, page: 1 });
-  const departments = useMemo(
-    () => extractDepartments(departmentSource?.data ?? []),
-    [departmentSource],
-  );
+  const authReady = useAuthReady();
+  const { data: departments = [] } = useDepartmentsList(undefined, authReady);
 
   const createCourseMutation = useCreateCourse();
   const updateIdentifier = course?.slug ?? course?.id ?? '';
@@ -199,6 +167,7 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
     mode === 'create'
       ? createCourseMutation.isPending || isSavingSkillsTools
       : updateCourseMutation.isPending;
+  const isFormDisabled = isSubmitting || readOnly;
 
   const initialValues =
     mode === 'edit' && course ? mapCourseToFormValues(course) : defaultValues;
@@ -211,8 +180,7 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
 
   const accessType = form.watch('accessType');
   const showPublicPrice = requiresPublicPrice(accessType);
-  const isPublic = isPublicAccessType(accessType);
-  const isFreeCourse = accessType === CourseAccessType.PUBLIC_FREE;
+  const isPublished = course?.status === CourseLifecycleStatus.PUBLISHED;
 
   const persistPendingSkillsAndTools = async (courseId: string) => {
     if (pendingSkills.length === 0 && pendingTools.length === 0) {
@@ -283,30 +251,13 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
     onSuccess?.(response.data);
   });
 
-  const handlePublicToggle = (checked: boolean) => {
-    if (!checked) {
-      form.setValue('accessType', CourseAccessType.INTERNAL_ONLY);
-      form.setValue('publicPrice', undefined);
-      return;
-    }
-    form.setValue('accessType', CourseAccessType.PUBLIC_FREE);
-  };
-
-  const handleFreeToggle = (checked: boolean) => {
-    if (checked) {
-      form.setValue('accessType', CourseAccessType.PUBLIC_FREE);
-      form.setValue('publicPrice', undefined);
-      return;
-    }
-    form.setValue('accessType', CourseAccessType.PUBLIC_PAID);
-  };
-
   return (
     <form
       key={mode === 'edit' && course ? course.slug : 'create'}
-      onSubmit={onSubmit}
+      onSubmit={readOnly ? (event) => event.preventDefault() : onSubmit}
       className="space-y-6"
     >
+      <fieldset disabled={isFormDisabled} className="m-0 min-w-0 space-y-6 border-0 p-0">
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18.5rem] xl:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8">
         {/* Left column — primary content */}
         <div className="space-y-6">
@@ -358,21 +309,6 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
               />
             </CourseFormField>
           )}
-
-          {mode === 'edit' && course?.lecturer ? (
-            <CourseFormField icon={User} label="Lecturer" optional>
-              <Input
-                value={
-                  course.lecturer.user.name ??
-                  course.lecturer.user.email ??
-                  'Assigned lecturer'
-                }
-                readOnly
-                disabled
-                className={cn(courseFormInputClass, 'bg-muted/25')}
-              />
-            </CourseFormField>
-          ) : null}
 
           <CourseFormField icon={FileText} label="Short Description" optional>
             <Textarea
@@ -476,6 +412,45 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
           <div className="space-y-4 rounded-lg border border-border/80 bg-muted/10 p-4 shadow-sm">
             <CourseFormSidebarHeading icon={Settings2} title="Course Settings" />
 
+          {canSelectLecturer ? (
+            <CourseFormField
+              icon={User}
+              label="Lecturer"
+              optional={!isSuperAdmin}
+              hint={
+                isSuperAdmin
+                  ? 'Select a lecturer to assign course ownership and link the course to their institution.'
+                  : 'Select a lecturer from your institution — they will become the course owner.'
+              }
+            >
+              <Controller
+                control={form.control}
+                name="lecturerId"
+                render={({ field }) => (
+                  <CourseLecturerSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isFormDisabled}
+                    placeholder="Select lecturer"
+                  />
+                )}
+              />
+            </CourseFormField>
+          ) : null}
+
+          {isLecturer && mode === 'create' ? (
+            <CourseFormField
+              icon={User}
+              label="Course owner"
+              optional
+              hint="You will be assigned as the owner when this course is saved."
+            >
+              <p className="rounded-md border border-border/80 bg-muted/20 px-3 py-2 text-[13px] text-muted-foreground">
+                You (lecturer)
+              </p>
+            </CourseFormField>
+          ) : null}
+
           <CourseFormField icon={GraduationCap} label="Level" optional>
             <Controller
               control={form.control}
@@ -577,89 +552,74 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
             </CourseFormField>
           ) : null}
 
-          <SidebarToggleRow
-            icon={Sparkles}
-            label="Make course public"
-            description="Public courses can appear on landing pages when published."
-            checked={isPublic}
-            onCheckedChange={handlePublicToggle}
-            disabled={isSubmitting}
-          />
+          {mode === 'edit' && course ? (
+            <CourseCatalogVisibilityNotice course={course} />
+          ) : null}
 
-          {isPublic ? (
-            <>
-              <div className="border-t border-border/60 pt-1" />
-
-              <CourseFormField icon={Shield} label="Access Type">
-                <Controller
-                  control={form.control}
-                  name="accessType"
-                  render={({ field }) => (
-                    <Select
-                      value={field.value}
-                      onValueChange={(value) =>
-                        field.onChange(value as CourseAccessType)
-                      }
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger className={courseFormSelectTriggerClass}>
-                        <SelectValue placeholder="Select access type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.values(CourseAccessType)
-                          .filter((type) => type !== CourseAccessType.INTERNAL_ONLY)
-                          .map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {COURSE_ACCESS_TYPE_LABELS[type]}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.accessType ? (
-                  <p className="text-xs text-destructive">
-                    {form.formState.errors.accessType.message}
-                  </p>
-                ) : null}
-              </CourseFormField>
-
-              <div className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background p-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/8 text-primary">
-                    <DollarSign className="h-3.5 w-3.5" strokeWidth={2} />
-                  </span>
-                  <p className="text-[13px] font-semibold tracking-tight text-foreground">
-                    Free Course
-                  </p>
-                </div>
-                <Switch
-                  size="sm"
-                  checked={isFreeCourse}
-                  onCheckedChange={handleFreeToggle}
-                  disabled={isSubmitting || accessType === CourseAccessType.HYBRID}
-                />
-              </div>
-
-              {showPublicPrice ? (
-                <CourseFormField
-                  icon={DollarSign}
-                  label="Public Price"
-                  error={form.formState.errors.publicPrice?.message}
+          <CourseFormField
+            icon={Shield}
+            label="Access Type"
+            hint={
+              isPublished
+                ? 'Access type changes apply immediately on published courses.'
+                : 'Choose who can access this course once it is published.'
+            }
+          >
+            <Controller
+              control={form.control}
+              name="accessType"
+              render={({ field }) => (
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    const next = value as CourseAccessType;
+                    field.onChange(next);
+                    if (next === CourseAccessType.PUBLIC_FREE) {
+                      form.setValue('publicPrice', undefined);
+                    }
+                  }}
+                  disabled={isSubmitting}
                 >
-                  <Input
-                    id="course-public-price"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    placeholder="49.99"
-                    disabled={isSubmitting}
-                    className={courseFormInputClass}
-                    {...form.register('publicPrice')}
-                  />
-                </CourseFormField>
-              ) : null}
-            </>
+                  <SelectTrigger className={courseFormSelectTriggerClass}>
+                    <SelectValue placeholder="Select access type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(CourseAccessType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {COURSE_ACCESS_TYPE_LABELS[type]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              {accessTypeHint(accessType)}
+            </p>
+            {form.formState.errors.accessType ? (
+              <p className="text-xs text-destructive">
+                {form.formState.errors.accessType.message}
+              </p>
+            ) : null}
+          </CourseFormField>
+
+          {showPublicPrice ? (
+            <CourseFormField
+              icon={DollarSign}
+              label="Public Price"
+              error={form.formState.errors.publicPrice?.message}
+            >
+              <Input
+                id="course-public-price"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="49.99"
+                disabled={isSubmitting}
+                className={courseFormInputClass}
+                {...form.register('publicPrice')}
+              />
+            </CourseFormField>
           ) : null}
           </div>
         </aside>
@@ -678,23 +638,26 @@ export function CourseForm({ mode, course, onSuccess, onCancel }: CourseFormProp
             Cancel
           </Button>
         ) : null}
-        <Button type="submit" size="sm" className="h-8 px-4 text-xs" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-              {mode === 'create'
-                ? isSavingSkillsTools
-                  ? 'Saving skills and tools...'
-                  : 'Creating...'
-                : 'Saving...'}
-            </>
-          ) : mode === 'create' ? (
-            'Create Course'
-          ) : (
-            'Save Changes'
-          )}
-        </Button>
+        {!readOnly ? (
+          <Button type="submit" size="sm" className="h-8 px-4 text-xs" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                {mode === 'create'
+                  ? isSavingSkillsTools
+                    ? 'Saving skills and tools...'
+                    : 'Creating...'
+                  : 'Saving...'}
+              </>
+            ) : mode === 'create' ? (
+              'Create Course'
+            ) : (
+              'Save Changes'
+            )}
+          </Button>
+        ) : null}
       </div>
+      </fieldset>
     </form>
   );
 }

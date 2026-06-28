@@ -14,6 +14,16 @@ export enum CourseLevel {
   ADVANCED = 'ADVANCED',
 }
 
+export interface CourseUserSummary {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+export interface CourseOwnerSummary extends CourseUserSummary {
+  role: string;
+}
+
 export interface CourseInstitution {
   id: string;
   name: string;
@@ -69,17 +79,35 @@ export interface Course {
   language: string | null;
   estimatedHours: number | null;
   accessType: CourseAccessType;
+  /** Live DB access type before draft metadata merge (published courses with revisions). */
+  liveAccessType?: CourseAccessType;
   publicPrice: number | null;
   status: CourseLifecycleStatus;
+  hasUnpublishedChanges?: boolean;
+  revisionStatus?: import('./course-revision').CourseRevisionStatus | null;
+  publishedAt?: string | null;
   institutionId: string;
   departmentId: string | null;
   lecturerId: string | null;
   createdById: string;
+  ownerId: string;
+  ownerAssignedAt: string | null;
+  ownerAssignedById: string | null;
+  lastOwnershipTransferAt: string | null;
+  updatedById: string | null;
   createdAt: string;
   updatedAt: string;
   institution: CourseInstitution;
   department: CourseDepartment | null;
   lecturer: CourseLecturer | null;
+  owner: CourseOwnerSummary;
+  createdBy: CourseUserSummary;
+  updatedBy: CourseUserSummary | null;
+  ownerAssignedBy: CourseUserSummary | null;
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  submittedForReviewAt?: string | null;
+  submittedById?: string | null;
   skills: CourseSkill[];
   tools: CourseTool[];
   categories?: Array<{ category: CourseCategorySummary }>;
@@ -112,8 +140,31 @@ export interface CreateCoursePayload {
 
 export type UpdateCoursePayload = Partial<CreateCoursePayload>;
 
-export interface CourseMutationResponse {
+export interface CourseOwnerDetails {
+  id: string;
+  ownerId: string;
+  ownerAssignedAt: string | null;
+  lastOwnershipTransferAt: string | null;
+  owner: CourseOwnerSummary;
+  ownerAssignedBy: CourseUserSummary | null;
+  createdBy: CourseUserSummary;
+  updatedBy: CourseUserSummary | null;
+}
+
+export interface EligibleCourseOwner {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  lecturerProfileId: string | null;
+}
+
+export interface AssignCourseOwnerPayload {
+  ownerId: string;
+}
+
+export interface CourseMutationResponse<T = Course> {
   success: boolean;
   message: string;
-  data: Course;
+  data: T;
 }

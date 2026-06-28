@@ -26,7 +26,7 @@ import {
 } from '@/hooks/use-assignment-submission';
 import { submitAssignmentSchema, hasRichTextContent } from '@/schema/assignment-submission.schema';
 import type { AssignmentSubmission } from '@/types/assignment-submission.types';
-import { AssignmentSubmissionType } from '@/types/assignment.types';
+import { AssignmentSubmissionType, AssignmentSubmissionStatus } from '@/types/assignment.types';
 import type { LearningAssignmentContent } from '@/types/assignment.types';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
@@ -101,6 +101,15 @@ export function AssignmentPlayer({
   const attemptsUsed = history?.attemptsUsed ?? 0;
   const canSubmit = attemptsRemaining > 0;
   const latestGrade = history?.latestGrade?.grade;
+  const maxScore = history?.maxScore ?? assignmentMeta.maxScore ?? 100;
+  const awaitingReview =
+    attemptsUsed > 0 &&
+    !latestGrade &&
+    history?.submissions?.some(
+      (entry: AssignmentSubmission) =>
+        entry.status === AssignmentSubmissionStatus.SUBMITTED ||
+        entry.status === AssignmentSubmissionStatus.GRADED,
+    );
   const contentCompleted = isCompleted || history?.contentCompleted === true;
   const hasPassed = latestGrade?.passed === true;
   const isFinished = contentCompleted || attemptsUsed > 0 || hasPassed;
@@ -238,6 +247,12 @@ export function AssignmentPlayer({
         </div>
       ) : null}
 
+      {awaitingReview ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          Your submission is under review.
+        </div>
+      ) : null}
+
       {latestGrade ? (
         <div
           className={cn(
@@ -248,14 +263,20 @@ export function AssignmentPlayer({
           )}
         >
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Published grade
+            Published result
           </p>
           <p className="mt-2 text-2xl font-semibold">
-            {latestGrade.score}/{latestGrade.passingScore} required to pass
+            {latestGrade.score}/{maxScore}
           </p>
           <p className="mt-1 text-sm font-medium">
-            {latestGrade.passed ? 'Passed' : 'Did not pass'}
+            {latestGrade.passed ? 'Passed' : 'Did not pass'} · {latestGrade.passingScore}% required
+            to pass
           </p>
+          {latestGrade.publishedAt ? (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Published {formatDueDate(latestGrade.publishedAt)}
+            </p>
+          ) : null}
           {latestGrade.feedback ? (
             <p className="mt-3 whitespace-pre-wrap text-sm text-muted-foreground">
               {latestGrade.feedback}
