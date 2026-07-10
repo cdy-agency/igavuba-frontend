@@ -1,6 +1,6 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
@@ -344,6 +344,14 @@ if (typeof document !== 'undefined') {
   styleEl.textContent = EDITOR_STYLES;
 }
 
+function normalizeEditorHtml(html: string) {
+  const trimmed = html.trim();
+  if (!trimmed || trimmed === '<p></p>' || trimmed === '<p><br></p>' || trimmed === '<p><br/></p>') {
+    return '';
+  }
+  return trimmed;
+}
+
 export default function TiptapEditor({
   content = '',
   onChange,
@@ -365,6 +373,8 @@ export default function TiptapEditor({
   const contentUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const editorDomRef = useRef<HTMLElement | null>(null);
+  const blurHandledRef = useRef(false);
+  const editorInstanceRef = useRef<Editor | null>(null);
 
   const shouldShowPreview = autoPreview ? !isFocused : isPreview;
 
@@ -446,7 +456,12 @@ export default function TiptapEditor({
       }, 100);
     },
     onBlur({ editor }) {
+      blurHandledRef.current = true;
       if (isMountedRef.current) setIsFocused(false);
+      if (contentUpdateTimeoutRef.current) {
+        clearTimeout(contentUpdateTimeoutRef.current);
+        contentUpdateTimeoutRef.current = null;
+      }
       try {
         onBlur?.(editor.getHTML());
       } catch (err) {
@@ -454,6 +469,7 @@ export default function TiptapEditor({
       }
     },
     onCreate({ editor }) {
+      editorInstanceRef.current = editor;
       editorDomRef.current = editor.view.dom;
       if (isMountedRef.current) {
         setIsReady(true);
@@ -462,7 +478,20 @@ export default function TiptapEditor({
     onDestroy() {
       if (contentUpdateTimeoutRef.current) {
         clearTimeout(contentUpdateTimeoutRef.current);
+        contentUpdateTimeoutRef.current = null;
       }
+      if (!blurHandledRef.current) {
+        try {
+          const activeEditor = editorInstanceRef.current;
+          if (activeEditor && !activeEditor.isDestroyed) {
+            onChange?.(activeEditor.getHTML());
+            onBlur?.(activeEditor.getHTML());
+          }
+        } catch (err) {
+          console.error('[TiptapEditor] onDestroy flush error:', err);
+        }
+      }
+      editorInstanceRef.current = null;
       editorDomRef.current = null;
     },
     editorProps: {
@@ -522,6 +551,25 @@ export default function TiptapEditor({
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
   }, [autoPreview, isFocused, editor]);
+
+  useEffect(() => {
+    blurHandledRef.current = false;
+  }, [content]);
+
+  useEffect(() => {
+    if (!editor || !isReady || editor.isDestroyed || !isMountedRef.current) return;
+    if (isFocused) return;
+
+    const nextContent = content ?? '';
+    const currentContent = editor.getHTML();
+    if (normalizeEditorHtml(nextContent) === normalizeEditorHtml(currentContent)) return;
+
+    try {
+      editor.commands.setContent(nextContent || '<p></p>', { emitUpdate: false });
+    } catch (error) {
+      console.error('[TiptapEditor] Error syncing content prop:', error);
+    }
+  }, [content, editor, isFocused, isReady]);
 
   useEffect(() => {
     if (!editor || !isReady || !isMountedRef.current) return;

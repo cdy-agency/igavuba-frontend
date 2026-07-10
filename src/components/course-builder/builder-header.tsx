@@ -38,6 +38,8 @@ interface BuilderHeaderProps {
   isActionPending?: boolean;
   readOnly?: boolean;
   canPublish?: boolean;
+  canPublishDirectly?: boolean;
+  requireCourseApproval?: boolean;
   canReviewAsAdmin?: boolean;
   canReviewRevisionAsAdmin?: boolean;
   onSubmitForReview?: () => void;
@@ -64,6 +66,8 @@ export function BuilderHeader({
   isActionPending,
   readOnly = false,
   canPublish = false,
+  canPublishDirectly = false,
+  requireCourseApproval = true,
   canReviewAsAdmin = false,
   canReviewRevisionAsAdmin = false,
   onSubmitForReview,
@@ -100,7 +104,30 @@ export function BuilderHeader({
   } as const;
 
   const renderPrimaryAction = () => {
-    if (course.status === CourseLifecycleStatus.DRAFT) {
+    if (
+      course.status === CourseLifecycleStatus.DRAFT &&
+      !requireCourseApproval &&
+      canPublishDirectly
+    ) {
+      return (
+        <Button
+          type="button"
+          size="sm"
+          className="h-8 gap-1.5 bg-success px-3 text-[12px] font-semibold text-white hover:bg-success/90"
+          disabled={isActionPending}
+          onClick={onPublish}
+        >
+          {isActionPending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Send className="h-3.5 w-3.5" />
+          )}
+          Publish
+        </Button>
+      );
+    }
+
+    if (course.status === CourseLifecycleStatus.DRAFT && requireCourseApproval) {
       return (
         <Button
           type="button"
@@ -116,6 +143,56 @@ export function BuilderHeader({
           )}
           Submit for review
         </Button>
+      );
+    }
+
+    if (
+      course.status === CourseLifecycleStatus.CHANGES_REQUESTED &&
+      !requireCourseApproval &&
+      canPublishDirectly
+    ) {
+      return (
+        <>
+          {showFeedbackButton ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={cn(
+                'relative h-8 gap-1.5 px-3 text-[12px] font-semibold',
+                feedbackButtonClasses[feedbackBadgeTone],
+              )}
+              onClick={onOpenReviewFeedback}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              {feedbackLabel}
+              {feedbackBadgeCount !== null && feedbackBadgeCount > 0 ? (
+                <span
+                  className={cn(
+                    'inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold',
+                    feedbackBadgeClasses[feedbackBadgeTone],
+                  )}
+                >
+                  {feedbackBadgeCount}
+                </span>
+              ) : null}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5 bg-success px-3 text-[12px] font-semibold text-white hover:bg-success/90"
+            disabled={isActionPending}
+            onClick={onPublish}
+          >
+            {isActionPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            Publish
+          </Button>
+        </>
       );
     }
 
@@ -259,22 +336,20 @@ export function BuilderHeader({
 
       if (hasRevision && revisionStatus === CourseRevisionStatus.DRAFT) {
         return (
-          <>
-            <Button
-              type="button"
-              size="sm"
-              className="h-8 gap-1.5 bg-primary px-3 text-[12px] font-semibold text-white"
-              disabled={isActionPending}
-              onClick={onSubmitRevision}
-            >
-              {isActionPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-              Submit revision
-            </Button>
-          </>
+          <Button
+            type="button"
+            size="sm"
+            className="h-8 gap-1.5 bg-primary px-3 text-[12px] font-semibold text-white"
+            disabled={isActionPending}
+            onClick={onSubmitRevision}
+          >
+            {isActionPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            {requireCourseApproval ? 'Submit revision' : 'Publish revision'}
+          </Button>
         );
       }
 
@@ -327,7 +402,7 @@ export function BuilderHeader({
                 ) : (
                   <RefreshCw className="h-3.5 w-3.5" />
                 )}
-                Resubmit revision
+                {requireCourseApproval ? 'Resubmit revision' : 'Publish revision'}
               </Button>
             ) : null}
           </>

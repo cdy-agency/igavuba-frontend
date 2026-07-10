@@ -8,6 +8,7 @@ import {
   usePublishAllAssignmentResults,
 } from '@/hooks/use-assignment-submission';
 import type { LecturerAssignmentSubmission } from '@/types/assignment-submission.types';
+import { buildAssessmentsPath } from '@/lib/course-builder-navigation';
 import { AssignmentSubmissionStatus } from '@/types/assignment.types';
 
 function formatDate(value: string | null) {
@@ -47,9 +48,11 @@ export function AssignmentSubmissionsList({ assignmentId }: { assignmentId: stri
     <div className="space-y-4">
       <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard/assignments" className="hover:text-foreground">
-            Assignments
+          <Link href={buildAssessmentsPath('assignments')} className="hover:text-foreground">
+            Assessments
           </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span className="font-medium text-foreground">Assignments</span>
           <ChevronRight className="h-4 w-4" />
           <span className="font-medium text-foreground">Submissions</span>
         </div>

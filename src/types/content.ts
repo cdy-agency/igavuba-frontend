@@ -7,6 +7,7 @@ export enum ContentType {
   DOCUMENT = 'DOCUMENT',
   QUIZ = 'QUIZ',
   ASSIGNMENT = 'ASSIGNMENT',
+  EXAM = 'EXAM',
 }
 
 export interface TextContentDetail {
@@ -40,6 +41,15 @@ export interface ModuleContentAssessment {
   settings?: QuizContentAssessment['settings'];
   quiz?: QuizContentAssessment['quiz'];
   assignment?: AssignmentSummary;
+  exam?: {
+    id: string;
+    passingScore: number;
+    maxAttempts: number;
+    timeLimitMinutes: number | null;
+    availableFrom?: string | null;
+    availableTo?: string | null;
+    questions?: Array<{ id: string }>;
+  };
 }
 
 export interface ContentRecord {
@@ -107,6 +117,24 @@ export interface CreateQuizContentPayload {
   passingScore?: number;
   maxAttempts?: number;
   timeLimitMinutes?: number;
+  isPublished?: boolean;
+}
+
+export interface CreateExamContentPayload {
+  title: string;
+  description?: string;
+  instructions?: string;
+  settings?: {
+    showResults?: boolean;
+    showCorrectAnswers?: boolean;
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
+  };
+  passingScore?: number;
+  maxAttempts?: number;
+  timeLimitMinutes?: number;
+  availableFrom?: string;
+  availableTo?: string;
   isPublished?: boolean;
 }
 

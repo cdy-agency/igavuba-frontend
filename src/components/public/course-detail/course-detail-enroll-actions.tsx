@@ -35,6 +35,7 @@ export function CourseDetailEnrollActions({
 
   const isLearner = user?.role === UserRole.LEARNER;
   const isEnrolled = enrollmentStatus?.isEnrolled ?? false;
+  const isPendingPayment = enrollmentStatus?.status === 'PENDING_PAYMENT';
   const registerHref = `/register?redirect=${encodeURIComponent(`/courses/${courseSlug}`)}`;
   const showAuthSpinner = authLoading && hasStoredSession;
   const showEnrollmentSpinner =
@@ -72,9 +73,15 @@ export function CourseDetailEnrollActions({
     return (
       <div className="space-y-2">
         <Button asChild className="h-11 w-full rounded-none text-base font-bold">
-          <Link href={learnHref}>Continue Learning</Link>
+          <Link href={learnHref}>
+            {isPendingPayment ? 'Preview course' : 'Continue Learning'}
+          </Link>
         </Button>
-        {enrollmentStatus?.progress != null && enrollmentStatus.progress > 0 ? (
+        {isPendingPayment ? (
+          <p className="text-center text-xs text-amber-700 dark:text-amber-300">
+            Payment pending approval — first lesson preview available
+          </p>
+        ) : enrollmentStatus?.progress != null && enrollmentStatus.progress > 0 ? (
           <p className="text-center text-xs text-muted-foreground">
             {Math.round(enrollmentStatus.progress)}% complete
           </p>

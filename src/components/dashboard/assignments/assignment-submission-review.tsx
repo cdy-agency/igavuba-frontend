@@ -15,6 +15,7 @@ import {
 } from '@/hooks/use-assignment-submission';
 import { gradeAssignmentSubmissionSchema } from '@/schema/assignment-submission.schema';
 import { AssignmentSubmissionStatus } from '@/types/assignment.types';
+import { buildAssessmentsPath } from '@/lib/course-builder-navigation';
 import { toast } from '@/lib/toast';
 
 function formatDate(value: string | null) {
@@ -88,9 +89,11 @@ export function AssignmentSubmissionReview({
     <div className="space-y-4">
       <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard/assignments" className="hover:text-foreground">
-            Assignments
+          <Link href={buildAssessmentsPath('assignments')} className="hover:text-foreground">
+            Assessments
           </Link>
+          <ChevronRight className="h-4 w-4" />
+          <span>Assignments</span>
           <ChevronRight className="h-4 w-4" />
           <Link
             href={`/dashboard/assignments/${assignmentId}/submissions`}

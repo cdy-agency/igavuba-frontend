@@ -12,6 +12,10 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import type { AssignmentListItem } from '@/types/assignment.types';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
+import {
+  buildAssessmentsPath,
+  buildCourseBuilderContentPath,
+} from '@/lib/course-builder-navigation';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -21,7 +25,19 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function AssignmentManagementPage() {
+function getAssignmentBuilderHref(assignment: AssignmentListItem) {
+  if (!assignment.courseSlug) {
+    return '/dashboard/courses';
+  }
+
+  return buildCourseBuilderContentPath({
+    courseSlug: assignment.courseSlug,
+    contentId: assignment.contentId,
+    moduleId: assignment.moduleId,
+  });
+}
+
+export function AssignmentManagementPage({ embedded = false }: { embedded?: boolean }) {
   const authReady = useAuthReady();
   const { data: assignments = [], isPending } = useAssignmentList(authReady);
   const deleteAssignmentMutation = useDeleteAssignment();
@@ -42,41 +58,53 @@ export function AssignmentManagementPage() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard/course-builder" className="hover:text-foreground">
-            Course Builder
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span>Assessments</span>
-          <ChevronRight className="h-4 w-4" />
-          <span className="font-medium text-foreground">Assignments</span>
-        </div>
-
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Assignment Management</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Create assignments in the course builder, then review and grade submissions here.
-            </p>
+      {!embedded ? (
+        <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <Link href={buildAssessmentsPath('assignments')} className="hover:text-foreground">
+              Assessments
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="font-medium text-foreground">Assignments</span>
           </div>
+
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Assignment Management</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create assignments in the course builder, then review and grade submissions here.
+              </p>
+            </div>
+            <Button asChild>
+              <Link href="/dashboard/courses">
+                <Plus className="mr-2 h-4 w-4" />
+                Create in Course Builder
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Open attached course assignments to edit content, then manage submissions here.
+          </p>
           <Button asChild>
-            <Link href="/dashboard/course-builder">
+            <Link href="/dashboard/courses">
               <Plus className="mr-2 h-4 w-4" />
               Create in Course Builder
             </Link>
           </Button>
         </div>
+      )}
 
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search assignments..."
-            className="pl-9"
-          />
-        </div>
+      <div className="relative max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search assignments..."
+          className="pl-9"
+        />
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
@@ -104,7 +132,14 @@ export function AssignmentManagementPage() {
               <tbody>
                 {filteredAssignments.map((assignment: AssignmentListItem) => (
                   <tr key={assignment.id} className="border-b last:border-b-0">
-                    <td className="px-4 py-3 font-medium">{assignment.title}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link
+                        href={getAssignmentBuilderHref(assignment)}
+                        className="hover:text-primary hover:underline"
+                      >
+                        {assignment.title}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {assignment.moduleTitle}
                       <span className="block text-xs">{assignment.courseTitle}</span>
@@ -117,15 +152,13 @@ export function AssignmentManagementPage() {
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
                         <Button variant="outline" size="sm" asChild>
-                          <Link
-                            href={`/dashboard/assignments/${assignment.id}/submissions`}
-                          >
+                          <Link href={`/dashboard/assignments/${assignment.id}/submissions`}>
                             <Users className="mr-1 h-4 w-4" />
                             Submissions
                           </Link>
                         </Button>
                         <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/course-builder?courseId=${assignment.courseId}`}>
+                          <Link href={getAssignmentBuilderHref(assignment)}>
                             <Pencil className="mr-1 h-4 w-4" />
                             Edit
                           </Link>

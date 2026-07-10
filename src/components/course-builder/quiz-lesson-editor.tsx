@@ -19,9 +19,15 @@ interface QuizLessonEditorProps {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
+  readOnly?: boolean;
 }
 
-export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorProps) {
+export function QuizLessonEditor({
+  item,
+  moduleId,
+  onDelete,
+  readOnly = false,
+}: QuizLessonEditorProps) {
   const quizId = item.content.assessment?.quiz?.id ?? null;
   const { data: quiz, isPending } = useQuizDetail(quizId ?? '', Boolean(quizId));
 
@@ -47,7 +53,7 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
   }, [quiz]);
 
   const persistQuizMeta = async () => {
-    if (!quizId) return;
+    if (readOnly || !quizId) return;
     await updateQuizMutation.mutateAsync({
       title: title.trim(),
       description: description.trim() || undefined,
@@ -77,13 +83,14 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
 
   return (
     <BuilderLessonShell
+      readOnly={readOnly}
       title={title}
       onTitleChange={setTitle}
-      onTitleBlur={persistQuizMeta}
+      onTitleBlur={readOnly ? undefined : persistQuizMeta}
       description={description}
       onDescriptionChange={setDescription}
-      onDescriptionBlur={persistQuizMeta}
-      onDelete={onDelete}
+      onDescriptionBlur={readOnly ? undefined : persistQuizMeta}
+      onDelete={readOnly ? undefined : onDelete}
       icon={<CheckCircle2 className="h-4.5 w-4.5 text-orange-600" strokeWidth={2} />}
       settings={
         <div className="space-y-3">
@@ -91,7 +98,9 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
           <LessonSettingsGroup>
             <ContentVisibilityToggle
               visible={isVisible}
+              disabled={readOnly}
               onChange={(visible) => {
+                if (readOnly) return;
                 setIsVisible(visible);
                 void updateQuizMutation.mutateAsync({ isPublished: visible });
               }}
@@ -106,8 +115,9 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
                 min={0}
                 max={100}
                 value={passingScore}
+                disabled={readOnly}
                 onChange={(event) => setPassingScore(Number(event.target.value) || 0)}
-                onBlur={persistQuizMeta}
+                onBlur={readOnly ? undefined : persistQuizMeta}
               />
             </div>
             <div className="space-y-1.5">
@@ -117,8 +127,9 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
                 type="number"
                 min={1}
                 value={maxAttempts}
+                disabled={readOnly}
                 onChange={(event) => setMaxAttempts(Number(event.target.value) || 1)}
-                onBlur={persistQuizMeta}
+                onBlur={readOnly ? undefined : persistQuizMeta}
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
@@ -128,8 +139,9 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
                 type="number"
                 min={1}
                 value={timeLimitMinutes}
+                disabled={readOnly}
                 onChange={(event) => setTimeLimitMinutes(event.target.value)}
-                onBlur={persistQuizMeta}
+                onBlur={readOnly ? undefined : persistQuizMeta}
                 placeholder="Optional"
               />
             </div>
@@ -146,7 +158,9 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
                 <Switch
                   id={`${key}-${item.contentId}`}
                   checked={settings[key]}
+                  disabled={readOnly}
                   onCheckedChange={(checked) => {
+                    if (readOnly) return;
                     setSettings((current) => ({ ...current, [key]: checked }));
                     void updateQuizMutation.mutateAsync({
                       settings: { ...settings, [key]: checked },
@@ -159,7 +173,13 @@ export function QuizLessonEditor({ item, moduleId, onDelete }: QuizLessonEditorP
         </div>
       }
     >
-      <QuizManagedQuestionBuilder quizId={quizId} moduleId={moduleId} />
+      {readOnly ? (
+        <p className="text-sm text-muted-foreground">
+          Question details are view-only during review.
+        </p>
+      ) : (
+        <QuizManagedQuestionBuilder quizId={quizId} moduleId={moduleId} />
+      )}
     </BuilderLessonShell>
   );
 }

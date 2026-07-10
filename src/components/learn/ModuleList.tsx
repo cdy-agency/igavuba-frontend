@@ -11,6 +11,7 @@ import {
   Circle,
   Award,
   Lock,
+  ClipboardCheck,
 } from 'lucide-react';
 import { ContentType } from '@/types/content';
 import type { LessonItem, ModuleItem } from '@/types/learning';
@@ -22,11 +23,18 @@ type Props = {
   onSelectLesson: (lesson: LessonItem) => void;
   courseLockedEnabled?: boolean;
   onBlockedLessonSelect?: () => void;
+  onPaymentLockedLessonSelect?: () => void;
+  isPreviewAccess?: boolean;
+  hasPendingPayment?: boolean;
   fetchingModules?: Record<string, boolean>;
 
   courseCompleted: boolean;
   courseEligible: boolean;
   onCourseCompletionClick: () => void;
+  finalExamLesson?: LessonItem | null;
+  onSelectFinalExam?: () => void;
+  moduleLessonsComplete?: boolean;
+  finalExamPaymentLocked?: boolean;
 };
 
 const getContentIcon = (type: string) => {
@@ -54,10 +62,17 @@ const ModuleList: React.FC<Props> = ({
   onSelectLesson,
   courseLockedEnabled = true,
   onBlockedLessonSelect,
+  onPaymentLockedLessonSelect,
+  isPreviewAccess = false,
+  hasPendingPayment = false,
   fetchingModules = {},
   courseCompleted,
   courseEligible,
   onCourseCompletionClick,
+  finalExamLesson,
+  onSelectFinalExam,
+  moduleLessonsComplete = true,
+  finalExamPaymentLocked = false,
 }) => {
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -116,8 +131,10 @@ const ModuleList: React.FC<Props> = ({
                 ) : (
                   (module.lessons ?? []).map((lesson, lessonIndex) => {
                     const active = selectedLesson?.id === lesson.id;
+                    const isPaymentLocked = Boolean(lesson.isPaymentLocked);
 
                     const isLessonBlocked =
+                      !isPaymentLocked &&
                       courseLockedEnabled &&
                       (module.lessons || []).slice(0, lessonIndex).some((l) => !l.completed);
 
@@ -125,6 +142,10 @@ const ModuleList: React.FC<Props> = ({
                       <button
                         key={lesson.id}
                         onClick={() => {
+                          if (isPaymentLocked) {
+                            onSelectLesson(lesson);
+                            return;
+                          }
                           if (isLessonBlocked) {
                             if (onBlockedLessonSelect) onBlockedLessonSelect();
                             return;
@@ -132,7 +153,7 @@ const ModuleList: React.FC<Props> = ({
                           onSelectLesson(lesson);
                         }}
                         className={`w-full flex items-center gap-3 transition-all text-left py-2 pr-8 sm:pr-6 ${
-                          isLessonBlocked
+                          isPaymentLocked || isLessonBlocked
                             ? 'opacity-50 cursor-not-allowed bg-white dark:bg-gray-800 border-l-4 border-transparent'
                             : active
                               ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-primary'
@@ -141,7 +162,7 @@ const ModuleList: React.FC<Props> = ({
                       >
                         {/* Icon */}
                         <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
-                          {isLessonBlocked ? (
+                          {isPaymentLocked || isLessonBlocked ? (
                             <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
                           ) : (
                             getContentIcon(lesson.type ?? '')
@@ -152,7 +173,7 @@ const ModuleList: React.FC<Props> = ({
                         <div className="flex-1 min-w-0">
                           <div
                             className={`text-sm sm:text-base font-medium ${
-                              isLessonBlocked
+                              isPaymentLocked || isLessonBlocked
                                 ? 'text-gray-400 dark:text-gray-500'
                                 : active
                                   ? 'dark:text-blue-300'
@@ -162,21 +183,27 @@ const ModuleList: React.FC<Props> = ({
                             {lesson.title}
                           </div>
                           <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                            {isLessonBlocked
-                              ? 'Complete previous lesson first'
-                              : lesson.type === ContentType.VIDEO
-                                ? 'Video Lesson'
-                                : lesson.type === ContentType.TEXT
-                                  ? 'Text Content'
-                                  : lesson.type === ContentType.DOCUMENT
-                                    ? 'Document'
-                                    : 'Lesson'}
+                            {isPaymentLocked
+                              ? hasPendingPayment
+                                ? 'Awaiting payment confirmation'
+                                : isPreviewAccess
+                                  ? 'Available after payment approval'
+                                  : 'Locked'
+                              : isLessonBlocked
+                                ? 'Complete previous lesson first'
+                                : lesson.type === ContentType.VIDEO
+                                  ? 'Video Lesson'
+                                  : lesson.type === ContentType.TEXT
+                                    ? 'Text Content'
+                                    : lesson.type === ContentType.DOCUMENT
+                                      ? 'Document'
+                                      : 'Lesson'}
                           </div>
                         </div>
 
                         {/* Completion indicator */}
                         <div className="shrink-0 self-center flex items-center justify-center">
-                          {isLessonBlocked ? (
+                          {isPaymentLocked || isLessonBlocked ? (
                             <Lock className="w-4 h-4 text-gray-300 dark:text-gray-600" />
                           ) : lesson.completed ? (
                             <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400" />
@@ -189,11 +216,72 @@ const ModuleList: React.FC<Props> = ({
                   })
                 )}
 
+                {modules[modules?.length - 1]?.id === module.id && finalExamLesson ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectFinalExam?.()}
+                    className={`w-full flex items-center gap-3 transition-all text-left py-2 pr-8 sm:pr-6 ${
+                      selectedLesson?.id === finalExamLesson.id
+                        ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-primary'
+                        : finalExamPaymentLocked
+                          ? 'opacity-50 cursor-not-allowed bg-white dark:bg-gray-800 border-l-4 border-transparent'
+                          : moduleLessonsComplete
+                            ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-l-4 border-transparent'
+                            : 'opacity-50 cursor-not-allowed bg-white dark:bg-gray-800 border-l-4 border-transparent'
+                    }`}
+                    disabled={!moduleLessonsComplete && !finalExamPaymentLocked}
+                  >
+                    <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
+                      {finalExamPaymentLocked ? (
+                        <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
+                      ) : moduleLessonsComplete ? (
+                        <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                      ) : (
+                        <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className={`text-sm sm:text-base font-medium ${
+                          selectedLesson?.id === finalExamLesson.id
+                            ? 'dark:text-blue-300'
+                            : finalExamPaymentLocked
+                              ? 'text-gray-400 dark:text-gray-500'
+                              : moduleLessonsComplete
+                                ? 'text-gray-900 dark:text-gray-100'
+                                : 'text-gray-400 dark:text-gray-500'
+                        }`}
+                      >
+                        {finalExamLesson.title}
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        {finalExamPaymentLocked
+                          ? hasPendingPayment
+                            ? 'Awaiting payment confirmation'
+                            : 'Available after payment approval'
+                          : moduleLessonsComplete
+                            ? 'Final exam'
+                            : 'Complete all lessons first'}
+                      </div>
+                    </div>
+                    <div className="shrink-0 self-center flex items-center justify-center">
+                      {finalExamLesson.completed ? (
+                        <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400" />
+                      ) : (
+                        <Circle className="w-5 h-5 sm:w-6 sm:h-6 text-gray-300 dark:text-gray-600" />
+                      )}
+                    </div>
+                  </button>
+                ) : null}
+
                 {/* Course Completion Button — only show on last module */}
                 {modules[modules?.length - 1]?.id === module.id && (
                   <button
                     onClick={() => {
-                      if (courseEligible) {
+                      const canComplete =
+                        courseEligible &&
+                        (!finalExamLesson || finalExamLesson.completed);
+                      if (canComplete) {
                         onCourseCompletionClick();
                       } else {
                         onSelectLesson({
@@ -236,9 +324,11 @@ const ModuleList: React.FC<Props> = ({
                       <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                         {!courseEligible
                           ? 'Finish all lessons first'
-                          : !courseCompleted
-                            ? 'View certificate & finish'
-                            : 'Completed'}
+                          : finalExamLesson && !finalExamLesson.completed
+                            ? 'Pass the final exam first'
+                            : !courseCompleted
+                              ? 'View certificate & finish'
+                              : 'Completed'}
                       </div>
                     </div>
 

@@ -9,6 +9,10 @@ export function createClientId() {
 }
 
 export function getDefaultOptionsForType(type: QuestionType): DraftQuestionOptionValues[] {
+  if (type === QuestionType.ESSAY) {
+    return [];
+  }
+
   if (type === QuestionType.TRUE_FALSE) {
     return [
       { clientId: createClientId(), text: 'True', isCorrect: true },
@@ -63,6 +67,8 @@ export function questionTypeLabel(type: QuestionType): string {
       return 'Multiple Choice';
     case QuestionType.TRUE_FALSE:
       return 'True/False';
+    case QuestionType.ESSAY:
+      return 'Essay';
     default:
       return type;
   }

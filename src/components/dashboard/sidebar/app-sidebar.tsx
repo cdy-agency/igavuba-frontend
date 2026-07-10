@@ -6,7 +6,7 @@ import { HelpCircle, MessageSquare, PanelLeft, X } from 'lucide-react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import {
   getFooterNavigationForRole,
-  getNavigationGroupsForRole,
+  getPrimaryNavigationForRole,
 } from '@/config/navigation.config';
 import { SidebarNavLink } from '@/components/dashboard/sidebar/sidebar-nav-link';
 import { useSidebar } from '@/components/ui/sidebar';
@@ -48,9 +48,8 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { institution, role, user } = useDashboard();
   const { state, toggleSidebar, isMobile } = useSidebar();
-  const navGroups = getNavigationGroupsForRole(role);
+  const navItems = getPrimaryNavigationForRole(role);
   const footerNav = getFooterNavigationForRole(role);
-  const navItems = navGroups.flatMap((group) => group.items);
   const bottomItems = [...utilityLinks, ...footerNav];
   const collapsed = state === 'collapsed' && !isMobile;
   const logoInitials = getLogoInitials(institution?.name);

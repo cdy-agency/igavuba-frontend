@@ -127,6 +127,7 @@ export interface AssignmentListItem {
   moduleTitle: string;
   courseId: string;
   courseTitle: string;
+  courseSlug: string;
   dueDate: string | null;
   submissionsCount: number;
   status: 'Published' | 'Draft' | 'Closed';

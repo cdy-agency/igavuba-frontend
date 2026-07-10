@@ -65,8 +65,6 @@ const ASSESSMENT_TYPES: LessonType[] = [
     label: "Exam",
     icon: <ClipboardList className="h-4 w-4" />,
     category: "assessment",
-    disabled: true,
-    disabledReason: "Coming soon",
   },
 ];
 

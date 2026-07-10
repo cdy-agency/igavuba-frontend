@@ -2,6 +2,7 @@ export enum QuestionType {
   SINGLE_CHOICE = 'SINGLE_CHOICE',
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
   TRUE_FALSE = 'TRUE_FALSE',
+  ESSAY = 'ESSAY',
 }
 
 export interface QuestionOption {
@@ -14,9 +15,11 @@ export interface QuestionOption {
 
 export interface Question {
   id: string;
-  quizId: string;
+  quizId?: string | null;
+  examId?: string | null;
   type: QuestionType;
   title: string;
+  instructions?: string | null;
   explanation: string | null;
   points: number;
   order: number;
@@ -26,6 +29,7 @@ export interface Question {
 export interface CreateQuestionPayload {
   title: string;
   type?: QuestionType;
+  instructions?: string;
   explanation?: string;
   points?: number;
   order?: number;
@@ -34,6 +38,7 @@ export interface CreateQuestionPayload {
 export interface UpdateQuestionPayload {
   title?: string;
   type?: QuestionType;
+  instructions?: string;
   explanation?: string;
   points?: number;
   order?: number;

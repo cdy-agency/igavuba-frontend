@@ -20,11 +20,25 @@ export const draftQuestionSchema = z
     id: z.string().optional(),
     type: z.nativeEnum(QuestionType),
     title: z.string().trim().min(1, 'Question title is required').max(1000),
+    instructions: optionalText,
     explanation: optionalText,
     points: z.coerce.number().int().min(1, 'Points must be at least 1'),
-    options: z.array(questionOptionSchema).min(1, 'Add at least one option'),
+    options: z.array(questionOptionSchema),
   })
   .superRefine((question, ctx) => {
+    if (question.type === QuestionType.ESSAY) {
+      return;
+    }
+
+    if (question.options.length < 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Add at least one option',
+        path: ['options'],
+      });
+      return;
+    }
+
     const correctCount = question.options.filter((option) => option.isCorrect).length;
 
     if (question.type === QuestionType.SINGLE_CHOICE) {

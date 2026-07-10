@@ -46,6 +46,7 @@ interface QuizQuestionBuilderProps {
   questions: DraftQuestionValues[];
   onChange: (questions: DraftQuestionValues[]) => void;
   className?: string;
+  allowEssayTypes?: boolean;
 }
 
 function SortableQuestionItem({
@@ -109,7 +110,12 @@ function SortableQuestionItem({
   );
 }
 
-export function QuizQuestionBuilder({ questions, onChange, className }: QuizQuestionBuilderProps) {
+export function QuizQuestionBuilder({
+  questions,
+  onChange,
+  className,
+  allowEssayTypes = false,
+}: QuizQuestionBuilderProps) {
   const [activeId, setActiveId] = useState<string | null>(questions[0]?.clientId ?? null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -199,6 +205,9 @@ export function QuizQuestionBuilder({ questions, onChange, className }: QuizQues
               <SelectItem value={QuestionType.SINGLE_CHOICE}>Single Choice</SelectItem>
               <SelectItem value={QuestionType.MULTIPLE_CHOICE}>Multiple Choice</SelectItem>
               <SelectItem value={QuestionType.TRUE_FALSE}>True/False</SelectItem>
+              {allowEssayTypes ? (
+                <SelectItem value={QuestionType.ESSAY}>Essay</SelectItem>
+              ) : null}
             </SelectContent>
           </Select>
         </div>
@@ -257,6 +266,9 @@ export function QuizQuestionBuilder({ questions, onChange, className }: QuizQues
                   <SelectItem value={QuestionType.SINGLE_CHOICE}>Single Choice</SelectItem>
                   <SelectItem value={QuestionType.MULTIPLE_CHOICE}>Multiple Choice</SelectItem>
                   <SelectItem value={QuestionType.TRUE_FALSE}>True/False</SelectItem>
+                  {allowEssayTypes ? (
+                    <SelectItem value={QuestionType.ESSAY}>Essay</SelectItem>
+                  ) : null}
                 </SelectContent>
               </Select>
             </div>
@@ -310,6 +322,27 @@ export function QuizQuestionBuilder({ questions, onChange, className }: QuizQues
             </div>
 
             <div className="space-y-3">
+              {activeQuestion.type === QuestionType.ESSAY ? (
+                <div className="space-y-2">
+                  <Label htmlFor="question-instructions">Instructions (optional)</Label>
+                  <Textarea
+                    id="question-instructions"
+                    value={activeQuestion.instructions ?? ''}
+                    onChange={(event) =>
+                      updateQuestion(activeQuestion.clientId, (current) => ({
+                        ...current,
+                        instructions: event.target.value,
+                      }))
+                    }
+                    placeholder="Guidance for the essay response"
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Essay questions are manually graded by the instructor.
+                  </p>
+                </div>
+              ) : (
+                <>
               <div className="flex items-center justify-between">
                 <Label>Options</Label>
                 {activeQuestion.type !== QuestionType.TRUE_FALSE ? (
@@ -386,6 +419,8 @@ export function QuizQuestionBuilder({ questions, onChange, className }: QuizQues
                   </div>
                 ))}
               </div>
+                </>
+              )}
             </div>
 
             {validationError ? (
@@ -420,14 +455,18 @@ export function mapDraftQuestionsToPayload(questions: DraftQuestionValues[]) {
   return questions.map((question, index) => ({
     title: question.title.trim(),
     type: question.type,
+    instructions: question.instructions?.trim() || undefined,
     explanation: question.explanation?.trim() || undefined,
     points: question.points,
     order: index + 1,
-    options: question.options.map((option, optionIndex) => ({
-      text: option.text.trim(),
-      isCorrect: option.isCorrect,
-      order: optionIndex + 1,
-    })),
+    options:
+      question.type === QuestionType.ESSAY
+        ? []
+        : question.options.map((option, optionIndex) => ({
+            text: option.text.trim(),
+            isCorrect: option.isCorrect,
+            order: optionIndex + 1,
+          })),
   }));
 }
 

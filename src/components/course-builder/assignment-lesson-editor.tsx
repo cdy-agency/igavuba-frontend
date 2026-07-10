@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FileEdit, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import {
@@ -14,12 +14,14 @@ import { Switch } from '@/components/ui/switch';
 import TiptapEditor from '@/components/editor/TiptapEditor';
 import { useAssignmentDetail, useUpdateAssignment } from '@/hooks/use-assignment';
 import type { ModuleContentItem } from '@/types/content';
+import type { UpdateAssignmentPayload } from '@/types/assignment.types';
 import { AssignmentSubmissionType } from '@/types/assignment.types';
 
 interface AssignmentLessonEditorProps {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
+  readOnly?: boolean;
 }
 
 const SUBMISSION_TYPE_OPTIONS = [
@@ -36,7 +38,56 @@ function toDateTimeLocalValue(value: string | null | undefined) {
   return local.toISOString().slice(0, 16);
 }
 
-export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentLessonEditorProps) {
+function normalizeInstructions(html: string) {
+  const trimmed = html.trim();
+  if (!trimmed || trimmed === '<p></p>' || trimmed === '<p><br></p>' || trimmed === '<p><br/></p>') {
+    return '';
+  }
+  return trimmed;
+}
+
+type AssignmentFormState = {
+  title: string;
+  description: string;
+  instructions: string;
+  passingScore: number;
+  maxAttempts: number;
+  dueDate: string;
+  allowLateSubmission: boolean;
+  showFeedbackAfterGrading: boolean;
+  submissionTypes: AssignmentSubmissionType[];
+  isVisible: boolean;
+};
+
+function toFormState(
+  source: AssignmentFormState,
+  overrides: Partial<AssignmentFormState> = {},
+): AssignmentFormState {
+  return { ...source, ...overrides };
+}
+
+function formStatesEqual(a: AssignmentFormState, b: AssignmentFormState) {
+  return (
+    a.title.trim() === b.title.trim() &&
+    a.description.trim() === b.description.trim() &&
+    normalizeInstructions(a.instructions) === normalizeInstructions(b.instructions) &&
+    a.passingScore === b.passingScore &&
+    a.maxAttempts === b.maxAttempts &&
+    a.dueDate === b.dueDate &&
+    a.allowLateSubmission === b.allowLateSubmission &&
+    a.showFeedbackAfterGrading === b.showFeedbackAfterGrading &&
+    a.isVisible === b.isVisible &&
+    a.submissionTypes.length === b.submissionTypes.length &&
+    a.submissionTypes.every((type, index) => type === b.submissionTypes[index])
+  );
+}
+
+export function AssignmentLessonEditor({
+  item,
+  moduleId,
+  onDelete,
+  readOnly = false,
+}: AssignmentLessonEditorProps) {
   const assignmentId = item.content.assessment?.assignment?.id ?? null;
   const { data: assignment, isPending } = useAssignmentDetail(
     assignmentId ?? '',
@@ -57,9 +108,67 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
   const [isVisible, setIsVisible] = useState(item.content.isPublished);
 
   const updateAssignmentMutation = useUpdateAssignment(assignmentId ?? '', moduleId);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<{
+    overrides: Partial<AssignmentFormState>;
+    includeInstructions: boolean;
+  } | null>(null);
+  const lastSavedRef = useRef<AssignmentFormState | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  const formRef = useRef({
+    title,
+    description,
+    instructions,
+    passingScore,
+    maxAttempts,
+    dueDate,
+    allowLateSubmission,
+    showFeedbackAfterGrading,
+    submissionTypes,
+    isVisible,
+  });
 
   useEffect(() => {
-    if (!assignment) return;
+    formRef.current = {
+      title,
+      description,
+      instructions,
+      passingScore,
+      maxAttempts,
+      dueDate,
+      allowLateSubmission,
+      showFeedbackAfterGrading,
+      submissionTypes,
+      isVisible,
+    };
+  }, [
+    title,
+    description,
+    instructions,
+    passingScore,
+    maxAttempts,
+    dueDate,
+    allowLateSubmission,
+    showFeedbackAfterGrading,
+    submissionTypes,
+    isVisible,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setHydrated(false);
+  }, [assignmentId]);
+
+  useEffect(() => {
+    if (!assignment || hydrated) return;
     setTitle(assignment.title);
     setDescription(assignment.description ?? '');
     setInstructions(assignment.instructions?.trim() ? assignment.instructions : '<p></p>');
@@ -70,30 +179,127 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
     setShowFeedbackAfterGrading(assignment.showFeedbackAfterGrading);
     setSubmissionTypes(assignment.submissionTypes);
     setIsVisible(assignment.isPublished);
-  }, [assignment]);
+    lastSavedRef.current = {
+      title: assignment.title,
+      description: assignment.description ?? '',
+      instructions: assignment.instructions?.trim() ? assignment.instructions : '<p></p>',
+      passingScore: assignment.passingScore,
+      maxAttempts: assignment.maxAttempts,
+      dueDate: toDateTimeLocalValue(assignment.dueDate),
+      allowLateSubmission: assignment.allowLateSubmission,
+      showFeedbackAfterGrading: assignment.showFeedbackAfterGrading,
+      submissionTypes: assignment.submissionTypes,
+      isVisible: assignment.isPublished,
+    };
+    setHydrated(true);
+  }, [assignment, hydrated]);
 
-  const persistAssignmentMeta = async () => {
-    if (!assignmentId) return;
-    await updateAssignmentMutation.mutateAsync({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      instructions: instructions.trim() && instructions !== '<p></p>' ? instructions : undefined,
-      passingScore,
-      maxAttempts,
-      dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-      allowLateSubmission,
-      showFeedbackAfterGrading,
-      submissionTypes,
-      isPublished: isVisible,
+  const persistAssignmentMeta = async (
+    overrides: Partial<AssignmentFormState> = {},
+    options: { includeInstructions?: boolean } = {},
+  ) => {
+    if (readOnly || !assignmentId) return;
+
+    const current = toFormState(formRef.current, overrides);
+    if (lastSavedRef.current && formStatesEqual(lastSavedRef.current, current)) {
+      return;
+    }
+
+    const includeInstructions =
+      options.includeInstructions === true || overrides.instructions !== undefined;
+
+    const payload: UpdateAssignmentPayload = {
+      title: current.title.trim(),
+      description: current.description.trim() || undefined,
+      passingScore: current.passingScore,
+      maxAttempts: current.maxAttempts,
+      dueDate: current.dueDate ? new Date(current.dueDate).toISOString() : null,
+      allowLateSubmission: current.allowLateSubmission,
+      showFeedbackAfterGrading: current.showFeedbackAfterGrading,
+      submissionTypes: current.submissionTypes,
+      isPublished: current.isVisible,
+    };
+
+    if (includeInstructions) {
+      const normalizedInstructions = normalizeInstructions(current.instructions);
+      payload.instructions = normalizedInstructions || undefined;
+    }
+
+    await updateAssignmentMutation.mutateAsync(payload);
+    lastSavedRef.current = current;
+  };
+
+  const scheduleSave = (
+    overrides: Partial<AssignmentFormState> = {},
+    options: { includeInstructions?: boolean } = {},
+  ) => {
+    if (readOnly) return;
+
+    const includeInstructions =
+      options.includeInstructions === true || overrides.instructions !== undefined;
+
+    pendingSaveRef.current = { overrides, includeInstructions };
+
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = setTimeout(() => {
+      saveTimerRef.current = null;
+      const pending = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      if (!pending) return;
+      void persistAssignmentMeta(pending.overrides, {
+        includeInstructions: pending.includeInstructions,
+      });
+    }, 600);
+  };
+
+  const flushPendingSave = () => {
+    if (readOnly || !assignmentId || !saveTimerRef.current) return;
+
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = null;
+
+    const pending = pendingSaveRef.current;
+    pendingSaveRef.current = null;
+    if (!pending) return;
+
+    void persistAssignmentMeta(pending.overrides, {
+      includeInstructions: pending.includeInstructions,
     });
   };
+
+  const flushInstructionsSave = (content: string) => {
+    formRef.current.instructions = content;
+    setInstructions(content);
+    pendingSaveRef.current = null;
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    void persistAssignmentMeta({ instructions: content }, { includeInstructions: true });
+  };
+
+  const syncLastSavedFromForm = () => {
+    lastSavedRef.current = { ...formRef.current };
+  };
+
+  useEffect(() => {
+    return () => {
+      flushPendingSave();
+    };
+    // Flush pending debounced saves when switching lessons.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentId, readOnly]);
 
   const toggleSubmissionType = (type: AssignmentSubmissionType, checked: boolean) => {
     setSubmissionTypes((current) => {
       const next = checked
         ? Array.from(new Set([...current, type]))
         : current.filter((entry) => entry !== type);
-      return next.length ? next : [AssignmentSubmissionType.TEXT];
+      const resolved = next.length ? next : [AssignmentSubmissionType.TEXT];
+      scheduleSave({ submissionTypes: resolved }, { includeInstructions: false });
+      return resolved;
     });
   };
 
@@ -117,13 +323,14 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
 
   return (
     <BuilderLessonShell
+      readOnly={readOnly}
       title={title}
       onTitleChange={setTitle}
-      onTitleBlur={persistAssignmentMeta}
+      onTitleBlur={readOnly ? undefined : () => scheduleSave()}
       description={description}
       onDescriptionChange={setDescription}
-      onDescriptionBlur={persistAssignmentMeta}
-      onDelete={onDelete}
+      onDescriptionBlur={readOnly ? undefined : () => scheduleSave()}
+      onDelete={readOnly ? undefined : onDelete}
       icon={<FileEdit className="h-4.5 w-4.5 text-yellow-600" strokeWidth={2} />}
       settings={
         <div className="space-y-3">
@@ -131,9 +338,13 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
           <LessonSettingsGroup>
             <ContentVisibilityToggle
               visible={isVisible}
+              disabled={readOnly}
               onChange={(visible) => {
+                if (readOnly) return;
                 setIsVisible(visible);
-                void updateAssignmentMutation.mutateAsync({ isPublished: visible });
+                void updateAssignmentMutation
+                  .mutateAsync({ isPublished: visible })
+                  .then(syncLastSavedFromForm);
               }}
             />
           </LessonSettingsGroup>
@@ -145,8 +356,9 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
                 min={0}
                 max={100}
                 value={passingScore}
+                disabled={readOnly}
                 onChange={(event) => setPassingScore(Number(event.target.value) || 0)}
-                onBlur={persistAssignmentMeta}
+                onBlur={readOnly ? undefined : () => scheduleSave()}
               />
             </div>
             <div className="space-y-1.5">
@@ -155,8 +367,9 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
                 type="number"
                 min={1}
                 value={maxAttempts}
+                disabled={readOnly}
                 onChange={(event) => setMaxAttempts(Number(event.target.value) || 1)}
-                onBlur={persistAssignmentMeta}
+                onBlur={readOnly ? undefined : () => scheduleSave()}
               />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
@@ -164,17 +377,22 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
               <Input
                 type="datetime-local"
                 value={dueDate}
+                disabled={readOnly}
                 onChange={(event) => setDueDate(event.target.value)}
-                onBlur={persistAssignmentMeta}
+                onBlur={readOnly ? undefined : () => scheduleSave()}
               />
             </div>
             <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
               <Label>Allow late submission</Label>
               <Switch
                 checked={allowLateSubmission}
+                disabled={readOnly}
                 onCheckedChange={(checked) => {
+                  if (readOnly) return;
                   setAllowLateSubmission(checked);
-                  void updateAssignmentMutation.mutateAsync({ allowLateSubmission: checked });
+                  void updateAssignmentMutation
+                    .mutateAsync({ allowLateSubmission: checked })
+                    .then(syncLastSavedFromForm);
                 }}
               />
             </div>
@@ -182,9 +400,13 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
               <Label>Show feedback after grading</Label>
               <Switch
                 checked={showFeedbackAfterGrading}
+                disabled={readOnly}
                 onCheckedChange={(checked) => {
+                  if (readOnly) return;
                   setShowFeedbackAfterGrading(checked);
-                  void updateAssignmentMutation.mutateAsync({ showFeedbackAfterGrading: checked });
+                  void updateAssignmentMutation
+                    .mutateAsync({ showFeedbackAfterGrading: checked })
+                    .then(syncLastSavedFromForm);
                 }}
               />
             </div>
@@ -195,9 +417,10 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
               <label key={option.value} className="flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={submissionTypes.includes(option.value)}
+                  disabled={readOnly}
                   onCheckedChange={(checked) => {
+                    if (readOnly) return;
                     toggleSubmissionType(option.value, checked === true);
-                    void persistAssignmentMeta();
                   }}
                 />
                 {option.label}
@@ -209,14 +432,25 @@ export function AssignmentLessonEditor({ item, moduleId, onDelete }: AssignmentL
     >
       <div className="space-y-1.5">
         <Label>Instructions</Label>
-        <TiptapEditor
-          name={`assignment-instructions-${item.contentId}`}
-          content={instructions}
-          onChange={setInstructions}
-          onBlur={() => void persistAssignmentMeta()}
-          placeholder="Explain what learners should submit and any formatting requirements."
-          stickyToolbar={false}
-        />
+        {hydrated ? (
+          <TiptapEditor
+            key={`assignment-instructions-${assignmentId}`}
+            name={`assignment-instructions-${item.contentId}`}
+            content={instructions}
+            isPreview={readOnly}
+            onChange={(value) => {
+              if (readOnly) return;
+              setInstructions(value);
+              formRef.current.instructions = value;
+              scheduleSave({ instructions: value }, { includeInstructions: true });
+            }}
+            onBlur={readOnly ? undefined : flushInstructionsSave}
+            placeholder="Explain what learners should submit and any formatting requirements."
+            stickyToolbar={false}
+          />
+        ) : (
+          <div className="min-h-[400px] rounded-xl border border-border bg-muted/30 animate-pulse" />
+        )}
       </div>
     </BuilderLessonShell>
   );

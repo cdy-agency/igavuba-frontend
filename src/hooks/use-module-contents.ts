@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createDocumentContent,
   createAssignmentContent,
+  createExamContent,
   createQuizContent,
   createTextContent,
   createVideoContent,
@@ -17,6 +18,7 @@ import {
 import type {
   CreateDocumentContentPayload,
   CreateAssignmentContentPayload,
+  CreateExamContentPayload,
   CreateQuizContentPayload,
   CreateTextContentPayload,
   CreateVideoContentPayload,
@@ -103,6 +105,21 @@ export function useCreateQuizContent(moduleId: string) {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to create quiz.'));
+    },
+  });
+}
+
+export function useCreateExamContent(moduleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateExamContentPayload) => createExamContent(moduleId, payload),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Exam created successfully');
+      queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to create exam.'));
     },
   });
 }

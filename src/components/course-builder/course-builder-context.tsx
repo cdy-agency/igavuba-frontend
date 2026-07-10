@@ -3,13 +3,16 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { ContentType } from '@/types/content';
 
-export type LessonCreateType = 'text' | 'video' | 'document' | 'quiz' | 'assignment';
+export type LessonCreateType = 'text' | 'video' | 'document' | 'quiz' | 'assignment' | 'exam';
 
 interface CourseBuilderContextValue {
   selectedModuleId: string | null;
   setSelectedModuleId: (moduleId: string | null) => void;
   selectedContentId: string | null;
   setSelectedContentId: (contentId: string | null) => void;
+  viewingFinalExam: boolean;
+  setViewingFinalExam: (value: boolean) => void;
+  selectFinalExam: () => void;
   creatingLessonType: LessonCreateType | null;
   startCreatingLesson: (type: LessonCreateType) => void;
   cancelCreatingLesson: () => void;
@@ -20,22 +23,37 @@ const CourseBuilderContext = createContext<CourseBuilderContextValue | null>(nul
 export function CourseBuilderProvider({ children }: { children: ReactNode }) {
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+  const [viewingFinalExam, setViewingFinalExam] = useState(false);
   const [creatingLessonType, setCreatingLessonType] = useState<LessonCreateType | null>(null);
 
   const value = useMemo(
     () => ({
       selectedModuleId,
-      setSelectedModuleId,
+      setSelectedModuleId: (moduleId: string | null) => {
+        setSelectedModuleId(moduleId);
+        if (moduleId) setViewingFinalExam(false);
+      },
       selectedContentId,
-      setSelectedContentId,
+      setSelectedContentId: (contentId: string | null) => {
+        setSelectedContentId(contentId);
+        if (contentId) setViewingFinalExam(false);
+      },
+      viewingFinalExam,
+      setViewingFinalExam,
+      selectFinalExam: () => {
+        setViewingFinalExam(true);
+        setSelectedContentId(null);
+        setCreatingLessonType(null);
+      },
       creatingLessonType,
       startCreatingLesson: (type: LessonCreateType) => {
         setCreatingLessonType(type);
         setSelectedContentId(null);
+        setViewingFinalExam(false);
       },
       cancelCreatingLesson: () => setCreatingLessonType(null),
     }),
-    [selectedModuleId, selectedContentId, creatingLessonType],
+    [selectedModuleId, selectedContentId, viewingFinalExam, creatingLessonType],
   );
 
   return (
@@ -68,6 +86,9 @@ export function lessonTypeLabel(type: ContentType | LessonCreateType | 'quiz'): 
     case 'ASSIGNMENT':
     case 'assignment':
       return 'Assignment';
+    case 'EXAM':
+    case 'exam':
+      return 'Exam';
     default:
       return 'Lesson';
   }

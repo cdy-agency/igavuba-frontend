@@ -111,6 +111,9 @@ export interface Course {
   skills: CourseSkill[];
   tools: CourseTool[];
   categories?: Array<{ category: CourseCategorySummary }>;
+  institutionSettings?: {
+    requireCourseApproval: boolean;
+  };
 }
 
 export interface CourseListQueryParams {

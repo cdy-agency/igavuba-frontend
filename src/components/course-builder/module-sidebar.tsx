@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   DndContext,
   KeyboardSensor,
@@ -23,6 +24,7 @@ import {
   ChevronUp,
   CheckCircle2,
   FileEdit,
+  ClipboardList,
   FileText,
   Film,
   Loader2,
@@ -65,10 +67,14 @@ import type { ContentRecord, ModuleContentItem } from '@/types/content';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { useAuthReady } from '@/hooks/use-auth-ready';
+import { CourseFinalExamSection } from '@/components/course-builder/course-final-exam-section';
 
 interface ModuleSidebarProps {
   courseId: string;
+  courseSlug: string;
+  courseStatus: string;
   readOnly?: boolean;
+  onFinalExamChanged?: () => void;
 }
 
 function mapLessonTypeId(typeId: string): LessonCreateType | null {
@@ -83,6 +89,8 @@ function mapLessonTypeId(typeId: string): LessonCreateType | null {
       return 'quiz';
     case 'assignment':
       return 'assignment';
+    case 'exam':
+      return 'exam';
     default:
       return null;
   }
@@ -114,6 +122,12 @@ function lessonTypeMeta(type: ModuleContentItem['content']['type']) {
         iconClass: 'bg-yellow-100 text-yellow-600',
         label: 'ASSIGNMENT',
       };
+    case 'EXAM':
+      return {
+        Icon: ClipboardList,
+        iconClass: 'bg-rose-100 text-rose-600',
+        label: 'EXAM',
+      };
     default:
       return {
         Icon: FileText,
@@ -128,11 +142,13 @@ function SortableLessonItem({
   isSelected,
   onSelect,
   onDelete,
+  readOnly = false,
 }: {
   item: ModuleContentItem;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.contentId,
@@ -152,11 +168,13 @@ function SortableLessonItem({
         isDragging && 'opacity-60',
       )}
     >
+      {!readOnly ? (
       <SortableGrip
         listeners={listeners}
         attributes={attributes}
         className="text-slate-300 hover:bg-slate-100 hover:text-slate-500"
       />
+      ) : null}
       <span
         className={cn(
           'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
@@ -173,6 +191,7 @@ function SortableLessonItem({
           {label}
         </span>
       </button>
+      {!readOnly ? (
       <button
         type="button"
         className="shrink-0 rounded p-1 text-slate-300 hover:bg-red-50 hover:text-destructive"
@@ -181,6 +200,7 @@ function SortableLessonItem({
       >
         <Trash2 className="h-3.5 w-3.5" />
       </button>
+      ) : null}
     </div>
   );
 }
@@ -245,6 +265,7 @@ function ModuleLessons({
   onOpenLessonTypeModal,
   onSearchMaterials,
   onDeleteModule,
+  readOnly = false,
 }: {
   moduleId: string;
   selectedContentId: string | null;
@@ -252,6 +273,7 @@ function ModuleLessons({
   onOpenLessonTypeModal: () => void;
   onSearchMaterials: () => void;
   onDeleteModule: () => void;
+  readOnly?: boolean;
 }) {
   const { data: contentsData, isPending } = useModuleContents(moduleId);
   const reorderMutation = useReorderModuleContents(moduleId);
@@ -270,6 +292,7 @@ function ModuleLessons({
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (readOnly) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -305,19 +328,23 @@ function ModuleLessons({
                   isSelected={selectedContentId === item.contentId}
                   onSelect={() => onSelectContent(item.contentId)}
                   onDelete={() => setLessonToDetach(item)}
+                  readOnly={readOnly}
                 />
               ))}
             </SortableContext>
           </DndContext>
         )}
 
+        {!readOnly ? (
         <ModuleActionBar
           onOpenLessonTypeModal={onOpenLessonTypeModal}
           onSearchMaterials={onSearchMaterials}
           onDeleteModule={onDeleteModule}
         />
+        ) : null}
       </div>
 
+      {!readOnly ? (
       <DeleteDialog
         isOpen={Boolean(lessonToDetach)}
         onOpenChange={(open) => {
@@ -336,6 +363,7 @@ function ModuleLessons({
           setLessonToDetach(null);
         }}
       />
+      ) : null}
     </>
   );
 }
@@ -354,6 +382,7 @@ function SortableModuleCard({
   onSelectContent,
   onOpenLessonTypeModal,
   onSearchMaterials,
+  readOnly = false,
 }: {
   module: CourseModule;
   isExpanded: boolean;
@@ -368,6 +397,7 @@ function SortableModuleCard({
   onSelectContent: (contentId: string) => void;
   onOpenLessonTypeModal: () => void;
   onSearchMaterials: () => void;
+  readOnly?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: module.id,
@@ -393,16 +423,23 @@ function SortableModuleCard({
           isExpanded || isSelected ? 'bg-[#4a6580]' : 'bg-[#3d5166]',
         )}
       >
+        {!readOnly ? (
         <SortableGrip
           listeners={listeners}
           attributes={attributes}
           className="text-white/40 hover:bg-white/10 hover:text-white/80"
         />
+        ) : null}
         <input
           value={title}
           onFocus={onSelect}
-          onChange={(event) => setTitle(event.target.value)}
+          readOnly={readOnly}
+          onChange={(event) => {
+            if (readOnly) return;
+            setTitle(event.target.value);
+          }}
           onBlur={() => {
+            if (readOnly) return;
             const trimmed = title.trim();
             if (trimmed && trimmed !== module.title) onSaveTitle(trimmed);
           }}
@@ -437,6 +474,7 @@ function SortableModuleCard({
           onOpenLessonTypeModal={onOpenLessonTypeModal}
           onSearchMaterials={onSearchMaterials}
           onDeleteModule={onDelete}
+          readOnly={readOnly}
         />
       ) : null}
     </div>
@@ -456,6 +494,7 @@ function ModuleCardWithCount({
   onSelectContent,
   onOpenLessonTypeModal,
   onSearchMaterials,
+  readOnly = false,
 }: {
   module: CourseModule;
   isExpanded: boolean;
@@ -469,6 +508,7 @@ function ModuleCardWithCount({
   onSelectContent: (contentId: string) => void;
   onOpenLessonTypeModal: () => void;
   onSearchMaterials: () => void;
+  readOnly?: boolean;
 }) {
   const { data: contents } = useModuleContents(module.id, isExpanded);
 
@@ -487,16 +527,28 @@ function ModuleCardWithCount({
       onSelectContent={onSelectContent}
       onOpenLessonTypeModal={onOpenLessonTypeModal}
       onSearchMaterials={onSearchMaterials}
+      readOnly={readOnly}
     />
   );
 }
 
-export function ModuleSidebar({ courseId, readOnly = false }: ModuleSidebarProps) {
+export function ModuleSidebar({
+  courseId,
+  courseSlug,
+  courseStatus,
+  readOnly = false,
+  onFinalExamChanged,
+}: ModuleSidebarProps) {
+  const searchParams = useSearchParams();
+  const deepLinkContentId = searchParams.get('contentId');
+
   const {
     selectedModuleId,
     setSelectedModuleId,
     selectedContentId,
     setSelectedContentId,
+    viewingFinalExam,
+    selectFinalExam,
     cancelCreatingLesson,
     startCreatingLesson,
   } = useCourseBuilder();
@@ -524,10 +576,10 @@ export function ModuleSidebar({ courseId, readOnly = false }: ModuleSidebarProps
   }, [modulesData]);
 
   useEffect(() => {
-    if (!modulesData?.length || selectedModuleId) return;
+    if (!modulesData?.length || selectedModuleId || deepLinkContentId) return;
     setSelectedModuleId(modulesData[0].id);
     setExpandedModuleId(modulesData[0].id);
-  }, [modulesData, selectedModuleId, setSelectedModuleId]);
+  }, [modulesData, selectedModuleId, setSelectedModuleId, deepLinkContentId]);
 
   useEffect(() => {
     if (!selectedModuleId) return;
@@ -540,6 +592,7 @@ export function ModuleSidebar({ courseId, readOnly = false }: ModuleSidebarProps
   );
 
   const handleModuleDragEnd = (event: DragEndEvent) => {
+    if (readOnly) return;
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -639,6 +692,7 @@ export function ModuleSidebar({ courseId, readOnly = false }: ModuleSidebarProps
                       onSelectContent={handleSelectContent}
                       onOpenLessonTypeModal={() => handleOpenLessonTypeModal(module.id)}
                       onSearchMaterials={() => handleOpenSearchMaterials(module.id)}
+                      readOnly={readOnly}
                     />
                   ))}
                 </div>
@@ -708,6 +762,16 @@ export function ModuleSidebar({ courseId, readOnly = false }: ModuleSidebarProps
           )}
         </div>
         ) : null}
+
+        <CourseFinalExamSection
+          courseId={courseId}
+          courseSlug={courseSlug}
+          courseStatus={courseStatus}
+          isSelected={viewingFinalExam}
+          onSelect={selectFinalExam}
+          readOnly={readOnly}
+          onFinalExamChanged={onFinalExamChanged}
+        />
       </div>
 
       {searchModalModuleId ? (

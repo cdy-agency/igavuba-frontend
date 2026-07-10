@@ -31,6 +31,7 @@ type ViewMode = 'list' | 'cards';
 const CATEGORY_MANAGER_ROLES = new Set<UserRole>([
   UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
+  UserRole.LECTURER,
 ]);
 
 interface CourseManagementPageProps {
@@ -236,7 +237,12 @@ export function CourseManagementPage({ className }: CourseManagementPageProps) {
           viewMode={coursesViewMode}
         />
       ) : (
-        <CategoriesPanel search={categoriesSearchInput} viewMode={categoriesViewMode} />
+        <CategoriesPanel
+          search={categoriesSearchInput}
+          viewMode={categoriesViewMode}
+          canManageCategories={canManageCategories}
+          onCreateCategory={() => setCreateCategoryOpen(true)}
+        />
       )}
 
       <CreateCategoryModal open={createCategoryOpen} onOpenChange={setCreateCategoryOpen} />

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useCourseDetail, usePublishCourse } from '@/hooks/use-courses';
 import {
@@ -22,10 +22,12 @@ import { RoleGuard } from '@/guards/role-guard';
 import { UserRole } from '@/types/enum';
 import { Button } from '@/components/ui/button';
 import { CourseBuilderProvider } from '@/components/course-builder/course-builder-context';
+import { CourseBuilderDeepLink } from '@/components/course-builder/course-builder-deep-link';
 import { BuilderHeader } from '@/components/course-builder/builder-header';
 import { ModuleSidebar } from '@/components/course-builder/module-sidebar';
 import { ContentPanel } from '@/components/course-builder/content-panel';
 import { LessonNavFooter } from '@/components/course-builder/lesson-nav-footer';
+import { CourseFinalExamPanel } from '@/components/course-builder/course-final-exam-panel';
 import { CourseReviewChatSheet } from '@/components/dashboard/course-reviews/course-review-chat-sheet';
 import { RequestChangesModal } from '@/components/dashboard/course-reviews/request-changes-modal';
 import type { CourseReviewComment } from '@/types/course-review';
@@ -53,7 +55,7 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
   const [requestChangesOpen, setRequestChangesOpen] = useState(false);
   const [reviewChatOpen, setReviewChatOpen] = useState(false);
   const { data: course, isPending, isError, error, refetch } = useCourseDetail(slug, authReady);
-  const { selectedModuleId } = useCourseBuilder();
+  const { selectedModuleId, viewingFinalExam } = useCourseBuilder();
   const publishMutation = usePublishCourse();
   const submitReviewMutation = useSubmitCourseForReview();
   const resubmitMutation = useResubmitCourseForReview();
@@ -146,9 +148,17 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
         course.revisionStatus === CourseRevisionStatus.UNDER_REVIEW &&
         isOwner)
     : false;
-  const canPublish =
-    course?.status === CourseLifecycleStatus.APPROVED &&
+  const requireCourseApproval =
+    course?.institutionSettings?.requireCourseApproval ?? true;
+  const canPublishDirectly =
+    !requireCourseApproval &&
+    (course?.status === CourseLifecycleStatus.DRAFT ||
+      course?.status === CourseLifecycleStatus.CHANGES_REQUESTED) &&
     (isOwner || isInstitutionAdmin);
+  const canPublish =
+    requireCourseApproval
+      ? course?.status === CourseLifecycleStatus.APPROVED && (isOwner || isInstitutionAdmin)
+      : canPublishDirectly;
   const isActionPending =
     publishMutation.isPending ||
     submitReviewMutation.isPending ||
@@ -187,10 +197,13 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
 
   return (
     <div className="course-builder-page">
+      <CourseBuilderDeepLink courseId={course.id} />
       <BuilderHeader
         course={course}
         readOnly={readOnly}
         canPublish={canPublish}
+        canPublishDirectly={canPublishDirectly}
+        requireCourseApproval={requireCourseApproval}
         canReviewAsAdmin={canReviewAsAdmin}
         canReviewRevisionAsAdmin={canReviewRevisionAsAdmin}
         canResubmit={canResubmit}
@@ -247,8 +260,12 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
       !readOnly ? (
         <div className="shrink-0 border-b border-violet-500/20 bg-violet-500/5 px-4 py-2 text-center text-xs text-violet-900 md:px-6">
           {course.hasUnpublishedChanges
-            ? 'You are editing a draft revision. Learners still see the published version until this revision is submitted and approved.'
-            : 'Edits on this published course are saved as a draft revision. Learners will not see changes until you submit and an admin approves.'}
+            ? requireCourseApproval
+              ? 'You are editing a draft revision. Learners still see the published version until this revision is submitted and approved.'
+              : 'You are editing a draft revision. Learners still see the published version until you publish this revision.'
+            : requireCourseApproval
+              ? 'Edits on this published course are saved as a draft revision. Learners will not see changes until you submit and an admin approves.'
+              : 'Edits on this published course are saved as a draft revision. Learners will not see changes until you publish the revision.'}
         </div>
       ) : null}
 
@@ -272,11 +289,37 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="course-builder-body min-h-0 flex-1">
-          <ModuleSidebar courseId={course.id} readOnly={readOnly} />
+          <ModuleSidebar
+            courseId={course.id}
+            courseSlug={course.slug}
+            courseStatus={course.status}
+            readOnly={readOnly}
+            onFinalExamChanged={() => refetch()}
+          />
 
           <div className="course-builder-main">
             <div className="course-builder-content-scroll custom-scrollbar custom-scrollbar-muted px-4 py-6 md:px-8 md:py-8">
-              <ContentPanel moduleId={selectedModuleId} readOnly={readOnly} />
+              {viewingFinalExam ? (
+                <CourseFinalExamPanel
+                  courseId={course.id}
+                  courseSlug={course.slug}
+                  courseStatus={course.status}
+                  hasUnpublishedChanges={course.hasUnpublishedChanges}
+                  revisionStatus={course.revisionStatus}
+                  readOnly={readOnly}
+                  canResubmit={canResubmit}
+                  isSubmittingRevision={submitRevisionMutation.isPending || resubmitRevisionMutation.isPending}
+                  onSubmitRevision={() =>
+                    submitRevisionMutation.mutate(course.id, { onSuccess: () => refetch() })
+                  }
+                  onResubmitRevision={() =>
+                    resubmitRevisionMutation.mutate(course.id, { onSuccess: () => refetch() })
+                  }
+                  onFinalExamChanged={() => refetch()}
+                />
+              ) : (
+                <ContentPanel moduleId={selectedModuleId} courseSlug={course.slug} readOnly={readOnly} />
+              )}
             </div>
             <LessonNavFooter courseId={course.id} />
           </div>
@@ -324,7 +367,15 @@ export function CourseBuilderPage({ slug }: CourseBuilderShellProps) {
   return (
     <RoleGuard allowedRoles={BUILDER_ROLES}>
       <CourseBuilderProvider>
-        <CourseBuilderShell slug={slug} />
+        <Suspense
+          fallback={
+            <div className="course-builder-page flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          }
+        >
+          <CourseBuilderShell slug={slug} />
+        </Suspense>
       </CourseBuilderProvider>
     </RoleGuard>
   );

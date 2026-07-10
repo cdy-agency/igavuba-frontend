@@ -52,6 +52,7 @@ async function fetchAssignmentListItems(): Promise<AssignmentListItem[]> {
           moduleTitle: courseModule.title,
           courseId: course.id,
           courseTitle: course.title,
+          courseSlug: course.slug,
           dueDate: assignment.dueDate,
           submissionsCount: 0,
           status: resolveAssignmentStatus(content.isPublished, assignment.dueDate),

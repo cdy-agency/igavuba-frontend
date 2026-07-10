@@ -23,7 +23,7 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-export function QuizManagementPage() {
+export function QuizManagementPage({ embedded = false }: { embedded?: boolean }) {
   const authReady = useAuthReady();
   const { data: quizzes = [], isPending, refetch } = useQuizList(authReady);
   const deleteQuizMutation = useDeleteQuiz();
@@ -47,39 +47,49 @@ export function QuizManagementPage() {
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-          <Link href="/dashboard/course-builder" className="hover:text-foreground">
-            Course Builder
-          </Link>
-          <ChevronRight className="h-4 w-4" />
-          <span>Assessments</span>
-          <ChevronRight className="h-4 w-4" />
-          <span className="font-medium text-foreground">Quizzes</span>
-        </div>
-
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Quiz Management</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Create, edit, preview, and delete quizzes across your courses.
-            </p>
+      {!embedded ? (
+        <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <Link href="/dashboard/courses" className="hover:text-foreground">
+              Courses
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <span className="font-medium text-foreground">Quizzes</span>
           </div>
+
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Quiz Management</h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Create, edit, preview, and delete quizzes across your courses.
+              </p>
+            </div>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create Quiz
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            Create, edit, preview, and delete quizzes attached to your courses.
+          </p>
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Create Quiz
           </Button>
         </div>
+      )}
 
-        <div className="relative max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search quizzes..."
-            className="pl-9"
-          />
-        </div>
+      <div className="relative max-w-md">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search quizzes..."
+          className="pl-9"
+        />
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">

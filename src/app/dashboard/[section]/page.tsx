@@ -7,8 +7,31 @@ import { InstitutionsPage } from '@/components/dashboard/institutions/institutio
 import { UsersPage } from '@/components/dashboard/users/users-page';
 import { CoursesPage } from '@/components/dashboard/courses/courses-page';
 import { MyLearningPage } from '@/components/dashboard/my-learning/my-learning-page';
-import { QuizzesPage } from '@/components/dashboard/quizzes/quizzes-page';
-import { AssignmentsPage } from '@/components/dashboard/assignments/assignments-page';
+import { AchievementsPage } from '@/components/dashboard/achievements/achievements-page';
+import { InstitutionSettingsPage } from '@/components/dashboard/settings/institution-settings-page';
+import { InstitutionPaymentsPage } from '@/components/dashboard/payments/institution-payments-page';
+import { StudentPaymentsPage } from '@/components/dashboard/payments/student-payments-page';
+import { AssessmentsPage } from '@/components/dashboard/assessments/assessments-page';
+import { useDashboard } from '@/contexts/dashboard-context';
+import { UserRole } from '@/types/enum';
+import type { AssessmentTab } from '@/components/dashboard/assessments/assessments-page';
+
+function resolveAssessmentTab(section: string): AssessmentTab | undefined {
+  if (section === 'quizzes' || section === 'exams' || section === 'assignments') {
+    return section;
+  }
+  return undefined;
+}
+
+function PaymentsSectionPage() {
+  const { role } = useDashboard();
+
+  if (role === UserRole.LEARNER) {
+    return <StudentPaymentsPage />;
+  }
+
+  return <InstitutionPaymentsPage />;
+}
 
 export default function DashboardSectionPage() {
   const params = useParams<{ section: string }>();
@@ -34,12 +57,25 @@ export default function DashboardSectionPage() {
     return <MyLearningPage />;
   }
 
-  if (section === 'quizzes') {
-    return <QuizzesPage />;
+  if (section === 'achievements') {
+    return <AchievementsPage />;
   }
 
-  if (section === 'assignments') {
-    return <AssignmentsPage />;
+  if (section === 'settings') {
+    return <InstitutionSettingsPage />;
+  }
+
+  if (section === 'payments') {
+    return <PaymentsSectionPage />;
+  }
+
+  if (
+    section === 'assessments' ||
+    section === 'quizzes' ||
+    section === 'exams' ||
+    section === 'assignments'
+  ) {
+    return <AssessmentsPage initialTab={resolveAssessmentTab(section)} />;
   }
 
   return <DashboardStubPage section={section} />;

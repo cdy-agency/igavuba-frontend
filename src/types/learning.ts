@@ -30,6 +30,7 @@ export interface LearningLessonContent {
   requiredForCompletion: boolean;
   unlockDate: string | null;
   completed: boolean;
+  isPaymentLocked?: boolean;
   createdAt: string;
   updatedAt: string;
   textContent?: {
@@ -72,6 +73,21 @@ export interface LearningLessonContent {
     instructions: string | null;
     submissionTypes: unknown;
   };
+  examContent?: {
+    examId: string;
+    passingScore: number;
+    maxAttempts: number;
+    timeLimitMinutes: number | null;
+    availableFrom: string | null;
+    availableTo: string | null;
+    instructions: string | null;
+    settings: {
+      showResults: boolean;
+      showCorrectAnswers: boolean;
+      shuffleQuestions: boolean;
+      shuffleOptions: boolean;
+    };
+  };
 }
 
 export interface LearningModule {
@@ -81,7 +97,29 @@ export interface LearningModule {
   description: string | null;
   order: number;
   courseTitle: string;
+  isPaymentLocked?: boolean;
   contents: LearningLessonContent[];
+}
+
+export interface LearningFinalExam {
+  id: string;
+  courseFinalExamId: string;
+  title: string;
+  description: string | null;
+  type: ContentType;
+  completed: boolean;
+  isPaymentLocked?: boolean;
+  createdAt: string;
+  updatedAt: string;
+  examContent: NonNullable<LearningLessonContent['examContent']>;
+}
+
+export interface LearningCourseAccess {
+  level: 'FULL' | 'PREVIEW';
+  previewContentId: string | null;
+  requiresPayment: boolean;
+  price: number | null;
+  currency: string;
 }
 
 export interface LearningCourse {
@@ -97,6 +135,7 @@ export interface LearningCourse {
   accessType: CourseAccessType;
   estimatedHours: number | null;
   publicPrice: number | null;
+  publicCurrency?: string | null;
   publishedAt: string;
   categories: Array<{ id: string; name: string; slug: string }>;
   skills: string[];
@@ -108,7 +147,9 @@ export interface LearningCourse {
   };
   instructor: LearningInstructor;
   enrollment: LearningEnrollment;
+  access: LearningCourseAccess;
   modules: LearningModule[];
+  finalExam: LearningFinalExam | null;
 }
 
 export interface LearningCourseApiResponse {
@@ -132,6 +173,7 @@ export interface LessonItem {
   title: string;
   type: string;
   completed?: boolean;
+  isPaymentLocked?: boolean;
 }
 
 /** Sidebar module item used by ModuleList */
@@ -149,6 +191,8 @@ export interface LessonSummary {
   title: string;
   type: string;
   completed?: boolean;
+  isFinalExam?: boolean;
+  isPaymentLocked?: boolean;
   raw?: LearningLessonRaw;
 }
 
@@ -156,6 +200,7 @@ export interface LearningLessonRaw {
   content: LearningRenderableContent;
   moduleId: string;
   moduleContentId: string;
+  isPaymentLocked?: boolean;
 }
 
 /** Content shape expected by LessonContent renderers */
@@ -204,6 +249,21 @@ export interface LearningRenderableContent {
     showFeedbackAfterGrading: boolean;
     instructions: string | null;
     submissionTypes: unknown;
+  };
+  examContent?: {
+    examId: string;
+    passingScore: number;
+    maxAttempts: number;
+    timeLimitMinutes: number | null;
+    availableFrom: string | null;
+    availableTo: string | null;
+    instructions: string | null;
+    settings: {
+      showResults: boolean;
+      showCorrectAnswers: boolean;
+      shuffleQuestions: boolean;
+      shuffleOptions: boolean;
+    };
   };
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import CourseHeader from '@/components/learn/CourseHeader';
@@ -13,9 +13,11 @@ import {
   useCourseResumeProgress,
   useStartContentProgress,
 } from '@/hooks/use-progress';
-import { mapLearningCourseToModules } from '@/lib/learning-utils';
+import { mapFinalExamToLesson, mapLearningCourseToModules } from '@/lib/learning-utils';
 import { useAuth } from '@/lib/hooks/use-auth';
 import type { AugmentedModule, LessonItem, LessonSummary } from '@/types/learning';
+import { PaymentUploadDialog } from '@/components/payments/payment-upload-dialog';
+import { useMyPayments } from '@/hooks/use-payments';
 
 type LockedAugmentedModule = AugmentedModule & { locked?: boolean };
 
@@ -38,7 +40,9 @@ export default function LearningPlayerPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [courseAcknowledged, setCourseAcknowledged] = useState(false);
+  const [finalExamCompleted, setFinalExamCompleted] = useState(false);
   const selectedLessonRef = useRef<LessonSummary | undefined>(undefined);
   const lastStartedContentIdRef = useRef<string | null>(null);
   const startContentRef = useRef(startContentProgress.mutateAsync);
@@ -46,6 +50,15 @@ export default function LearningPlayerPage() {
 
   const enrollmentId = learningCourse?.enrollment.id ?? '';
   const courseTitle = learningCourse?.title ?? 'Untitled Course';
+  const isPreviewAccess = learningCourse?.access.level === 'PREVIEW';
+  const { data: myPayments } = useMyPayments(Boolean(courseId) && isPreviewAccess);
+  const hasPendingPayment = useMemo(
+    () =>
+      myPayments?.some(
+        (payment) => payment.courseId === courseId && payment.status === 'PENDING',
+      ) ?? false,
+    [myPayments, courseId],
+  );
   const userName = user?.name ?? 'Student';
   const queryContentId = searchParams.get('contentId');
 
@@ -77,12 +90,20 @@ export default function LearningPlayerPage() {
     if (!learningCourse) return;
 
     setEnrollmentProgress(learningCourse.enrollment.progress);
+    setFinalExamCompleted(learningCourse.finalExam?.completed ?? false);
 
     const normalized = mapLearningCourseToModules(learningCourse, {
-      enableLockedModules: false,
+      enableLockedModules: learningCourse.access.level === 'PREVIEW',
     });
 
-    const allLessons = normalized.flatMap((module) => module.lessons || []);
+    const moduleLessons = normalized.flatMap((module) => module.lessons || []);
+    const finalExam = learningCourse.finalExam
+      ? mapFinalExamToLesson({
+          ...learningCourse.finalExam,
+          completed: learningCourse.finalExam.completed,
+        })
+      : null;
+    const allLessons = finalExam ? [...moduleLessons, finalExam] : moduleLessons;
     const targetContentId =
       queryContentId || resumeData?.contentId || selectedLessonRef.current?.id;
 
@@ -139,7 +160,21 @@ export default function LearningPlayerPage() {
   }, [courseId, selectedLesson?.id, selectedLesson?.type]);
 
   const computeLocked = (mods: LockedAugmentedModule[]) =>
-    mods.map((module) => ({ ...module, locked: false }));
+    mods.map((module) => ({
+      ...module,
+      locked: Boolean(module.locked),
+    }));
+
+  const isSelectedLessonPaymentLocked = Boolean(
+    selectedLesson?.raw?.isPaymentLocked ||
+      (learningCourse?.finalExam?.isPaymentLocked &&
+        selectedLesson?.id === learningCourse.finalExam.id),
+  );
+
+  const openPaymentDialog = () => {
+    if (hasPendingPayment) return;
+    setPaymentDialogOpen(true);
+  };
 
   const handleToggleModule = (moduleId: string) => {
     setModules((prev) => {
@@ -154,6 +189,39 @@ export default function LearningPlayerPage() {
 
   const navigateLesson = (dir: 'prev' | 'next') => {
     if (!selectedLesson) return;
+
+    const finalExam = learningCourse?.finalExam
+      ? mapFinalExamToLesson({
+          ...learningCourse.finalExam,
+          completed: finalExamCompleted,
+        })
+      : null;
+
+    if (selectedLesson.id === finalExam?.id) {
+      if (dir === 'next') {
+        handleCourseCompletionClick();
+        return;
+      }
+
+      const lastModule = modules[modules.length - 1];
+      const lastLesson = lastModule?.lessons?.[lastModule.lessons.length - 1];
+      if (lastLesson) {
+        setSelectedLesson(lastLesson);
+        setModules((prev) =>
+          prev.map((entry) =>
+            entry.id === lastModule.id ? { ...entry, expanded: true } : entry,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (selectedLesson.type === 'COURSE_COMPLETION') {
+      if (dir === 'prev' && finalExam) {
+        setSelectedLesson(finalExam);
+      }
+      return;
+    }
 
     const currentModules = modules;
     const moduleIndex = currentModules.findIndex((module) =>
@@ -188,10 +256,22 @@ export default function LearningPlayerPage() {
       return;
     }
 
+    if (dir === 'next' && finalExam) {
+      const moduleLessonsComplete =
+        currentModules.flatMap((module) => module.lessons || []).every((lesson) => lesson.completed) ||
+        currentModules.flatMap((module) => module.lessons || []).length === 0;
+
+      if (moduleLessonsComplete) {
+        setSelectedLesson(finalExam);
+        return;
+      }
+    }
+
     if (dir === 'next') {
-      const allLessons = currentModules.flatMap((module) => module.lessons || []);
-      const allComplete = allLessons.length > 0 && allLessons.every((lesson) => lesson.completed);
-      if (allComplete) {
+      const allModuleLessons = currentModules.flatMap((module) => module.lessons || []);
+      const allComplete =
+        allModuleLessons.length > 0 && allModuleLessons.every((lesson) => lesson.completed);
+      if (allComplete && !finalExam) {
         handleCourseCompletionClick();
       }
     }
@@ -199,6 +279,15 @@ export default function LearningPlayerPage() {
 
   const markLessonInState = (contentId: string, moduleId: string, progress: number) => {
     setEnrollmentProgress(progress);
+
+    if (learningCourse?.finalExam?.id === contentId) {
+      setFinalExamCompleted(true);
+      setSelectedLesson((prev) =>
+        prev && prev.id === contentId ? { ...prev, completed: true } : prev,
+      );
+      return;
+    }
+
     setModules((prev) => {
       const updated = prev.map((module) =>
         module.id === moduleId
@@ -244,6 +333,19 @@ export default function LearningPlayerPage() {
       // toast handled in hook
     }
   };
+
+  const finalExamLesson = useMemo(() => {
+    if (!learningCourse?.finalExam) return null;
+    return mapFinalExamToLesson({
+      ...learningCourse.finalExam,
+      completed: finalExamCompleted,
+    });
+  }, [learningCourse?.finalExam, finalExamCompleted]);
+
+  const moduleLessonsComplete = useMemo(() => {
+    const moduleLessons = modules.flatMap((module) => module.lessons || []);
+    return moduleLessons.length === 0 || moduleLessons.every((lesson) => lesson.completed);
+  }, [modules]);
 
   const computedProgress = enrollmentProgress;
   const courseEligible = computedProgress === 100;
@@ -323,15 +425,38 @@ export default function LearningPlayerPage() {
                 : (selectedLesson as unknown as LessonItem | undefined)
             }
             onSelectLesson={(lesson) => {
+              const paymentLocked = Boolean(
+                (lesson as LessonSummary).raw?.isPaymentLocked ||
+                  (learningCourse?.finalExam?.isPaymentLocked &&
+                    lesson.id === learningCourse.finalExam.id),
+              );
               setSelectedLesson(lesson as unknown as LessonSummary);
               if (isMobile) setSidebarOpen(false);
+              if (paymentLocked && !hasPendingPayment) {
+                openPaymentDialog();
+              }
             }}
-            courseLockedEnabled={false}
+            courseLockedEnabled={!isPreviewAccess}
             onBlockedLessonSelect={() => undefined}
+            onPaymentLockedLessonSelect={openPaymentDialog}
+            isPreviewAccess={isPreviewAccess}
+            hasPendingPayment={hasPendingPayment}
             fetchingModules={{}}
             courseCompleted={courseCompleted}
             courseEligible={courseEligible}
             onCourseCompletionClick={handleCourseCompletionClick}
+            finalExamLesson={finalExamLesson as unknown as LessonItem | null}
+            onSelectFinalExam={() => {
+              if (!finalExamLesson || !moduleLessonsComplete) return;
+              if (learningCourse?.finalExam?.isPaymentLocked) {
+                openPaymentDialog();
+                return;
+              }
+              setSelectedLesson(finalExamLesson);
+              if (isMobile) setSidebarOpen(false);
+            }}
+            moduleLessonsComplete={moduleLessonsComplete}
+            finalExamPaymentLocked={Boolean(learningCourse?.finalExam?.isPaymentLocked)}
           />
         </aside>
 
@@ -364,12 +489,25 @@ export default function LearningPlayerPage() {
               courseTitle={courseTitle}
               enrollmentId={enrollmentId}
               userName={userName}
-              isBlocked={false}
-              onBlockedAttempt={() => undefined}
+              isBlocked={isSelectedLessonPaymentLocked}
+              onBlockedAttempt={openPaymentDialog}
+              isPaymentLocked={isSelectedLessonPaymentLocked}
+              hasPendingPayment={hasPendingPayment}
+              onUploadPaymentProof={openPaymentDialog}
+              coursePrice={learningCourse.publicPrice}
+              courseCurrency={learningCourse.publicCurrency ?? learningCourse.access.currency}
             />
           ) : null}
         </main>
       </div>
+      <PaymentUploadDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        courseId={courseId}
+        courseTitle={courseTitle}
+        amount={learningCourse.publicPrice}
+        currency={learningCourse.publicCurrency ?? learningCourse.access.currency}
+      />
       <IncompleteCourseModal
         isOpen={showIncompleteModal}
         onClose={() => setShowIncompleteModal(false)}

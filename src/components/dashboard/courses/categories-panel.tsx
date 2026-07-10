@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Plus } from 'lucide-react';
 import { CategoryCard } from '@/components/dashboard/courses/category-card';
 import { CategoryListItem } from '@/components/dashboard/courses/category-list-item';
+import { Button } from '@/components/ui/button';
 import { useCategoriesList } from '@/hooks/use-categories';
 import { useAuthReady } from '@/hooks/use-auth-ready';
 import type { Category } from '@/types/category';
@@ -13,9 +15,16 @@ type ViewMode = 'list' | 'cards';
 interface CategoriesPanelProps {
   search: string;
   viewMode: ViewMode;
+  canManageCategories?: boolean;
+  onCreateCategory?: () => void;
 }
 
-export function CategoriesPanel({ search, viewMode }: CategoriesPanelProps) {
+export function CategoriesPanel({
+  search,
+  viewMode,
+  canManageCategories = false,
+  onCreateCategory,
+}: CategoriesPanelProps) {
   const authReady = useAuthReady();
   const { data: categories = [] as Category[], isPending, isFetching } = useCategoriesList(authReady);
 
@@ -60,8 +69,14 @@ export function CategoriesPanel({ search, viewMode }: CategoriesPanelProps) {
         <p className="mt-1 text-sm text-muted-foreground">
           {search.trim()
             ? 'Try adjusting your search.'
-            : 'Create your first category to organize courses.'}
+            : 'Create categories to organize courses. Attach them when creating or editing a course.'}
         </p>
+        {!search.trim() && canManageCategories && onCreateCategory ? (
+          <Button type="button" className="mt-4" size="sm" onClick={onCreateCategory}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create Category
+          </Button>
+        ) : null}
       </div>
     );
   }

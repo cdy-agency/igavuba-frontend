@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { FileText, Loader2, Video } from 'lucide-react';
 import { DeleteDialog } from '@/components/dialog/delete-dialog';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
@@ -38,6 +39,7 @@ import { QuizLessonEditor } from '@/components/course-builder/quiz-lesson-editor
 import { QuizCreateForm } from '@/components/course-builder/quiz-create-form';
 import { AssignmentLessonEditor } from '@/components/course-builder/assignment-lesson-editor';
 import { AssignmentCreateForm } from '@/components/course-builder/assignment-create-form';
+import { buildExamBuilderPath } from '@/lib/course-builder-navigation';
 
 interface ContentPanelProps {
   moduleId: string | null;
@@ -273,6 +275,7 @@ function TextLessonEditor({
     body?: string;
     isPublished?: boolean;
   }) => {
+    if (readOnly) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       updateMutation.mutate({ contentId: item.contentId, payload });
@@ -341,10 +344,12 @@ function VideoLessonEditor({
   item,
   moduleId,
   onDelete,
+  readOnly = false,
 }: {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
+  readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
@@ -377,6 +382,7 @@ function VideoLessonEditor({
     isPublished?: boolean;
     allowDownload?: boolean;
   }) => {
+    if (readOnly) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       updateMutation.mutate({ contentId: item.contentId, payload });
@@ -401,32 +407,39 @@ function VideoLessonEditor({
 
   return (
     <BuilderLessonShell
+      readOnly={readOnly}
       title={title}
       onTitleChange={(value) => {
+        if (readOnly) return;
         setTitle(value);
         save(buildPayload({ title: value }));
       }}
-      onTitleBlur={() => save(buildPayload())}
+      onTitleBlur={readOnly ? undefined : () => save(buildPayload())}
       description={description}
       onDescriptionChange={(value) => {
+        if (readOnly) return;
         setDescription(value);
         save(buildPayload({ description: value }));
       }}
-      onDescriptionBlur={() => save(buildPayload())}
-      onDelete={onDelete}
+      onDescriptionBlur={readOnly ? undefined : () => save(buildPayload())}
+      onDelete={readOnly ? undefined : onDelete}
       icon={<LessonIcon type="video" />}
       settings={
         <LessonSettingsGroup>
           <ContentVisibilityToggle
             visible={isVisible}
+            disabled={readOnly}
             onChange={(value) => {
+              if (readOnly) return;
               setIsVisible(value);
               save(buildPayload({ isPublished: value }));
             }}
           />
           <AllowDownloadToggle
             enabled={allowDownload}
+            disabled={readOnly}
             onChange={(value) => {
+              if (readOnly) return;
               setAllowDownload(value);
               save(buildPayload({ allowDownload: value }));
             }}
@@ -439,10 +452,11 @@ function VideoLessonEditor({
         onPlatformChange={setVideoPlatform}
         videoUrl={videoUrl}
         onVideoUrlChange={setVideoUrl}
-        onVideoUrlBlur={() => save(buildPayload())}
+        onVideoUrlBlur={readOnly ? undefined : () => save(buildPayload())}
         durationMinutes={durationMinutes}
         onDurationMinutesChange={setDurationMinutes}
-        onDurationMinutesBlur={() => save(buildPayload())}
+        onDurationMinutesBlur={readOnly ? undefined : () => save(buildPayload())}
+        disabled={readOnly}
       />
     </BuilderLessonShell>
   );
@@ -452,10 +466,12 @@ function DocumentLessonEditor({
   item,
   moduleId,
   onDelete,
+  readOnly = false,
 }: {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
+  readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
@@ -485,6 +501,7 @@ function DocumentLessonEditor({
     isPublished?: boolean;
     allowDownload?: boolean;
   }) => {
+    if (readOnly) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       updateMutation.mutate({ contentId: item.contentId, payload });
@@ -492,6 +509,7 @@ function DocumentLessonEditor({
   };
 
   const handleDocumentUpload = async (file: File) => {
+    if (readOnly) return;
     setIsUploading(true);
     try {
       const url = await uploadFile(file);
@@ -508,29 +526,43 @@ function DocumentLessonEditor({
 
   return (
     <BuilderLessonShell
+      readOnly={readOnly}
       title={title}
       onTitleChange={(value) => {
+        if (readOnly) return;
         setTitle(value);
         save({ title: value.trim(), description: description || undefined, fileUrl });
       }}
-      onTitleBlur={() =>
-        save({ title: title.trim(), description: description || undefined, fileUrl })
+      onTitleBlur={
+        readOnly
+          ? undefined
+          : () => save({ title: title.trim(), description: description || undefined, fileUrl })
       }
       description={description}
       onDescriptionChange={(value) => {
+        if (readOnly) return;
         setDescription(value);
         save({ title, description: value.trim() || undefined, fileUrl });
       }}
-      onDescriptionBlur={() =>
-        save({ title: title.trim(), description: description.trim() || undefined, fileUrl })
+      onDescriptionBlur={
+        readOnly
+          ? undefined
+          : () =>
+              save({
+                title: title.trim(),
+                description: description.trim() || undefined,
+                fileUrl,
+              })
       }
-      onDelete={onDelete}
+      onDelete={readOnly ? undefined : onDelete}
       icon={<LessonIcon type="document" />}
       settings={
         <LessonSettingsGroup>
           <ContentVisibilityToggle
             visible={isVisible}
+            disabled={readOnly}
             onChange={(value) => {
+              if (readOnly) return;
               setIsVisible(value);
               save({
                 title,
@@ -542,7 +574,9 @@ function DocumentLessonEditor({
           />
           <AllowDownloadToggle
             enabled={allowDownload}
+            disabled={readOnly}
             onChange={(value) => {
+              if (readOnly) return;
               setAllowDownload(value);
               save({
                 title,
@@ -559,12 +593,48 @@ function DocumentLessonEditor({
         onFileSelect={(file) => void handleDocumentUpload(file)}
         isUploading={isUploading}
         fileName={uploadedFileName ?? (fileUrl ? fileUrl.split('/').pop() : null)}
+        disabled={readOnly}
       />
     </BuilderLessonShell>
   );
 }
 
-export function ContentPanel({ moduleId, readOnly = false }: ContentPanelProps) {
+function ExamContentRedirect({
+  item,
+  courseSlug,
+}: {
+  item: ModuleContentItem;
+  courseSlug: string;
+}) {
+  const router = useRouter();
+  const examId = item.content.assessment?.exam?.id;
+
+  useEffect(() => {
+    if (!examId) return;
+    router.push(
+      buildExamBuilderPath({
+        examId,
+        courseSlug,
+        contentId: item.contentId,
+        returnTo: 'builder',
+      }),
+    );
+  }, [examId, courseSlug, item.contentId, router]);
+
+  return (
+    <div className="flex h-full min-h-[24rem] flex-col items-center justify-center gap-3">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">Opening exam builder...</p>
+    </div>
+  );
+}
+
+export function ContentPanel({
+  moduleId,
+  courseSlug,
+  readOnly = false,
+}: ContentPanelProps) {
+  const router = useRouter();
   const {
     selectedContentId,
     setSelectedContentId,
@@ -582,6 +652,17 @@ export function ContentPanel({ moduleId, readOnly = false }: ContentPanelProps) 
   const [contentToDetach, setContentToDetach] = useState<ModuleContentItem | null>(null);
 
   const selectedItem = contents.find((item) => item.contentId === selectedContentId) ?? null;
+
+  useEffect(() => {
+    if (readOnly || creatingLessonType !== 'exam' || !courseSlug) return;
+    router.push(
+      buildExamBuilderPath({
+        courseSlug,
+        returnTo: 'builder',
+      }),
+    );
+    cancelCreatingLesson();
+  }, [creatingLessonType, courseSlug, readOnly, router, cancelCreatingLesson]);
 
   useEffect(() => {
     if (!moduleId || creatingLessonType || selectedContentId || contents.length === 0) return;
@@ -621,6 +702,15 @@ export function ContentPanel({ moduleId, readOnly = false }: ContentPanelProps) 
           }}
           onCancel={cancelCreatingLesson}
         />
+      );
+    }
+
+    if (creatingLessonType === 'exam') {
+      return (
+        <div className="flex h-full min-h-[24rem] flex-col items-center justify-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Opening exam builder...</p>
+        </div>
       );
     }
 
@@ -667,18 +757,42 @@ export function ContentPanel({ moduleId, readOnly = false }: ContentPanelProps) 
         />
       ) : null}
       {selectedItem.content.type === ContentType.VIDEO ? (
-        <VideoLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+        <VideoLessonEditor
+          item={selectedItem}
+          moduleId={moduleId}
+          onDelete={handleDetach}
+          readOnly={readOnly}
+        />
       ) : null}
       {selectedItem.content.type === ContentType.DOCUMENT ? (
-        <DocumentLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+        <DocumentLessonEditor
+          item={selectedItem}
+          moduleId={moduleId}
+          onDelete={handleDetach}
+          readOnly={readOnly}
+        />
       ) : null}
       {selectedItem.content.type === ContentType.QUIZ ? (
-        <QuizLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+        <QuizLessonEditor
+          item={selectedItem}
+          moduleId={moduleId}
+          onDelete={handleDetach}
+          readOnly={readOnly}
+        />
       ) : null}
       {selectedItem.content.type === ContentType.ASSIGNMENT ? (
-        <AssignmentLessonEditor item={selectedItem} moduleId={moduleId} onDelete={handleDetach} />
+        <AssignmentLessonEditor
+          item={selectedItem}
+          moduleId={moduleId}
+          onDelete={handleDetach}
+          readOnly={readOnly}
+        />
+      ) : null}
+      {selectedItem.content.type === ContentType.EXAM && courseSlug && moduleId ? (
+        <ExamContentRedirect item={selectedItem} courseSlug={courseSlug} />
       ) : null}
 
+      {!readOnly ? (
       <DeleteDialog
         isOpen={Boolean(contentToDetach)}
         onOpenChange={(open) => {
@@ -700,6 +814,7 @@ export function ContentPanel({ moduleId, readOnly = false }: ContentPanelProps) 
           setContentToDetach(null);
         }}
       />
+      ) : null}
     </>
   );
 }

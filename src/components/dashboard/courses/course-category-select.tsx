@@ -47,6 +47,11 @@ export function CourseCategorySelect({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="none">No category</SelectItem>
+        {categories.length === 0 ? (
+          <SelectItem value="empty-hint" disabled>
+            No categories yet — create one under Courses → Categories
+          </SelectItem>
+        ) : null}
         {categories.map((category: Category) => (
           <SelectItem key={category.id} value={category.id}>
             <span className="inline-flex items-center gap-2">

@@ -1,4 +1,9 @@
-export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'DROPPED' | 'SUSPENDED';
+export type EnrollmentStatus =
+  | 'PENDING_PAYMENT'
+  | 'ACTIVE'
+  | 'COMPLETED'
+  | 'DROPPED'
+  | 'SUSPENDED';
 
 export type EnrollmentSource =
   | 'INSTITUTION_ASSIGNMENT'

@@ -14,12 +14,17 @@ import {
   ZoomIn,
   ZoomOut,
   Lock,
+  Clock,
+  Upload,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { ContentType } from '@/types/content';
 import type { LearningLessonRaw, LearningRenderableContent } from '@/types/learning';
 import { DocumentViewer, useDocumentViewer } from '@/components/content/DocumentViewer';
 import { ResponsiveVideoPlayer } from '@/components/shared/responsive-video-player';
 import { QuizPlayer } from '@/components/content/QuizPlayer';
+import { ExamPlayer } from '@/components/content/ExamPlayer';
 import { AssignmentPlayer } from '@/components/content/AssignmentPlayer';
 import { CourseCompletionPage } from './Coursecompletionpage';
 import { Button } from '@/components/ui/button';
@@ -295,7 +300,15 @@ interface Props {
   userName: string;
   isBlocked?: boolean;
   onBlockedAttempt?: () => void;
+  isPaymentLocked?: boolean;
+  hasPendingPayment?: boolean;
+  onUploadPaymentProof?: () => void;
+  coursePrice?: number | null;
+  courseCurrency?: string | null;
 }
+
+const PAYMENT_SUPPORT_EMAIL = 'info@cdyagency.com';
+const PAYMENT_SUPPORT_PHONE = '+250 790 147 808';
 
 const LessonContent = ({
   lesson,
@@ -313,6 +326,11 @@ const LessonContent = ({
   userName,
   isBlocked,
   onBlockedAttempt,
+  isPaymentLocked,
+  hasPendingPayment = false,
+  onUploadPaymentProof,
+  coursePrice,
+  courseCurrency,
 }: Props) => {
   const { viewerState, openViewer, closeViewer } = useDocumentViewer();
   const [hasReachedBottom, setHasReachedBottom] = useState(false);
@@ -324,7 +342,8 @@ const LessonContent = ({
   const isCompleted = !!lesson?.completed;
   const isQuiz = type === ContentType.QUIZ;
   const isAssignment = type === ContentType.ASSIGNMENT;
-  const isAssessment = isQuiz || isAssignment;
+  const isExam = type === ContentType.EXAM;
+  const isAssessment = isQuiz || isAssignment || isExam;
   const requiresScrollToComplete = type === ContentType.TEXT;
 
   useEffect(() => {
@@ -377,6 +396,67 @@ const LessonContent = ({
 
   if (!lesson) return <EmptyState />;
 
+  if (isPaymentLocked) {
+    return (
+      <div className="flex h-full items-center justify-center bg-white px-6 dark:bg-gray-900">
+        <div className="max-w-lg text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            {hasPendingPayment ? (
+              <Clock className="h-7 w-7 text-primary" />
+            ) : (
+              <Lock className="h-7 w-7 text-primary" />
+            )}
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {lesson.title}
+          </h2>
+          {hasPendingPayment ? (
+            <>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Your payment proof has been submitted and is awaiting confirmation. You will get
+                full course access once your payment is approved.
+              </p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Need help? Contact support:
+              </p>
+              <div className="mt-3 flex flex-col items-center gap-2 text-sm">
+                <a
+                  href={`mailto:${PAYMENT_SUPPORT_EMAIL}`}
+                  className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+                >
+                  <Mail className="h-4 w-4" />
+                  {PAYMENT_SUPPORT_EMAIL}
+                </a>
+                <a
+                  href={`tel:${PAYMENT_SUPPORT_PHONE.replace(/\s/g, '')}`}
+                  className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+                >
+                  <Phone className="h-4 w-4" />
+                  {PAYMENT_SUPPORT_PHONE}
+                </a>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                This lesson is available after payment has been approved.
+              </p>
+              {coursePrice != null && coursePrice > 0 ? (
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  Course price: {coursePrice.toLocaleString()} {courseCurrency ?? 'RWF'}
+                </p>
+              ) : null}
+              <Button type="button" className="mt-6" onClick={onUploadPaymentProof}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Payment Proof
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (lesson.type === 'COURSE_COMPLETION') {
     return (
       <CourseCompletionPage
@@ -393,13 +473,19 @@ const LessonContent = ({
     isBlocked || isAssessment || (requiresScrollToComplete && !hasReachedBottom);
   const waitingForBottom =
     requiresScrollToComplete && !hasReachedBottom && !isBlocked && !isAssessment;
-  const nextButtonLabel = isBlocked
-    ? 'Module Locked'
-    : isCompleted
-      ? 'Next'
-      : 'Complete & Next';
+  const nextButtonLabel = isPaymentLocked
+    ? 'Payment required'
+    : isBlocked
+      ? 'Module Locked'
+      : isCompleted
+        ? 'Next'
+        : 'Complete & Next';
 
   const handleNextClick = () => {
+    if (isPaymentLocked) {
+      onUploadPaymentProof?.();
+      return;
+    }
     if (isBlocked) {
       onBlockedAttempt?.();
       return;
@@ -470,6 +556,19 @@ const LessonContent = ({
                     onQuizProgressUpdated?.(lesson.id, moduleId, progress);
                   }
                 }}
+              />
+            ) : null}
+            {type === ContentType.EXAM && content.examContent ? (
+              <ExamPlayer
+                examId={content.examContent.examId}
+                courseId={courseId}
+                courseSlug={courseSlug}
+                examMeta={content.examContent}
+                title={content.title}
+                description={content.description}
+                instructions={content.examContent.instructions}
+                isCompleted={isCompleted}
+                onContinue={() => onNext?.()}
               />
             ) : null}
             {!Object.values(ContentType).includes(type as ContentType) ? (

@@ -7,6 +7,7 @@ import type {
   ContentRecord,
   CreateDocumentContentPayload,
   CreateAssignmentContentPayload,
+  CreateExamContentPayload,
   CreateQuizContentPayload,
   CreateTextContentPayload,
   CreateVideoContentPayload,
@@ -93,6 +94,14 @@ export async function createDocumentContent(
 export async function createQuizContent(moduleId: string, payload: CreateQuizContentPayload) {
   const response = await apiClient.post<ModuleContentMutationResponse>(
     `/modules/${moduleId}/contents/quiz`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function createExamContent(moduleId: string, payload: CreateExamContentPayload) {
+  const response = await apiClient.post<ModuleContentMutationResponse>(
+    `/modules/${moduleId}/contents/exam`,
     payload,
   );
   return response.data;
