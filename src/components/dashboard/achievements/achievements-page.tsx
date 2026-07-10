@@ -479,7 +479,7 @@ function AchievementsContent() {
       </div>
 
       <div className="space-y-5">
-        {data.courses.map((course) => (
+        {data.courses.map((course: CourseAchievement) => (
           <CourseAchievementCard key={course.courseId} course={course} />
         ))}
       </div>

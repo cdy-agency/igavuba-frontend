@@ -85,7 +85,7 @@ function StudentPaymentsPanel() {
                 </TableCell>
               </TableRow>
             ) : (
-              payments.map((payment) => (
+              payments.map((payment: PaymentRecord) => (
                 <TableRow key={payment.id}>
                   <TableCell>
                     <div className="font-medium">{payment.course.title}</div>

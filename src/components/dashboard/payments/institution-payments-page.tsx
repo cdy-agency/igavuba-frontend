@@ -17,7 +17,7 @@ import {
 import { useInstitutionPayments } from '@/hooks/use-payments';
 import { useAuthReady } from '@/hooks/use-auth-ready';
 import { UserRole } from '@/types/enum';
-import type { PaymentRecordStatus } from '@/types/payment';
+import type { PaymentRecord, PaymentRecordStatus } from '@/types/payment';
 import { cn } from '@/lib/utils';
 
 const ADMIN_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
@@ -85,7 +85,7 @@ function InstitutionPaymentsPanel() {
               </TableCell>
             </TableRow>
           ) : (
-            payments.map((payment) => (
+            payments.map((payment: PaymentRecord) => (
               <TableRow key={payment.id}>
                 <TableCell>
                   <div className="font-medium">{payment.student.name}</div>

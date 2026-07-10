@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import type { AugmentedModule, LessonItem, LessonSummary } from '@/types/learning';
 import { PaymentUploadDialog } from '@/components/payments/payment-upload-dialog';
 import { useMyPayments } from '@/hooks/use-payments';
+import type { PaymentRecord } from '@/types/payment';
 
 type LockedAugmentedModule = AugmentedModule & { locked?: boolean };
 
@@ -55,7 +56,8 @@ export default function LearningPlayerPage() {
   const hasPendingPayment = useMemo(
     () =>
       myPayments?.some(
-        (payment) => payment.courseId === courseId && payment.status === 'PENDING',
+        (payment: PaymentRecord) =>
+          payment.courseId === courseId && payment.status === 'PENDING',
       ) ?? false,
     [myPayments, courseId],
   );
