@@ -143,7 +143,7 @@ const ModuleList: React.FC<Props> = ({
                         key={lesson.id}
                         onClick={() => {
                           if (isPaymentLocked) {
-                            onSelectLesson(lesson);
+                            onPaymentLockedLessonSelect?.();
                             return;
                           }
                           if (isLessonBlocked) {

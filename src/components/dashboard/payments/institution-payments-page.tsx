@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Eye, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { RoleGuard } from '@/guards/role-guard';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,10 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import { UserRole } from '@/types/enum';
 import type { PaymentRecord, PaymentRecordStatus } from '@/types/payment';
 import { cn } from '@/lib/utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 const ADMIN_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
 
@@ -103,9 +107,14 @@ function InstitutionPaymentsPanel() {
                 </TableCell>
                 <TableCell>{formatDate(payment.createdAt)}</TableCell>
                 <TableCell className="text-right">
-                  <Button asChild size="sm" variant="outline">
-                    <Link href={`/dashboard/payments/${payment.id}`}>Review</Link>
-                  </Button>
+                  <DashboardActionGroup className="justify-end">
+                    <DashboardActionIconButton
+                      label="Review payment"
+                      icon={Eye}
+                      variant="primary"
+                      href={`/dashboard/payments/${payment.id}`}
+                    />
+                  </DashboardActionGroup>
                 </TableCell>
               </TableRow>
             ))

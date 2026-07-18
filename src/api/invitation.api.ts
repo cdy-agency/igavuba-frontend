@@ -13,6 +13,8 @@ export interface VerifyInvitationResponse {
   message: string;
   email: string;
   institutionName: string;
+  name: string | null;
+  isPrimaryAdmin: boolean;
 }
 
 export async function verifyInvitationToken(token: string) {

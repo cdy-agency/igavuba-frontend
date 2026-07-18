@@ -31,7 +31,6 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/my-learning',
   '/dashboard/achievements',
   '/dashboard/institutions',
-  '/dashboard/institution-admins',
   '/dashboard/departments',
   '/dashboard/courses',
   '/dashboard/course-reviews',
@@ -73,13 +72,6 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Institutions',
     href: '/dashboard/institutions',
     icon: Building2,
-    roles: [UserRole.SUPER_ADMIN],
-    section: 'main',
-  },
-  {
-    title: 'Institution Admins',
-    href: '/dashboard/institution-admins',
-    icon: UserCog,
     roles: [UserRole.SUPER_ADMIN],
     section: 'main',
   },
@@ -350,10 +342,6 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   '/dashboard/institutions': {
     title: 'Institutions',
     description: 'Manage platform institutions and onboarding.',
-  },
-  '/dashboard/institution-admins': {
-    title: 'Institution Admins',
-    description: 'Assign and manage institution administrators.',
   },
   '/dashboard/departments': {
     title: 'Departments',

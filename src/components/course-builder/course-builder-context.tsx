@@ -31,12 +31,16 @@ export function CourseBuilderProvider({ children }: { children: ReactNode }) {
       selectedModuleId,
       setSelectedModuleId: (moduleId: string | null) => {
         setSelectedModuleId(moduleId);
-        if (moduleId) setViewingFinalExam(false);
+        if (moduleId) {
+          setViewingFinalExam(false);
+        }
       },
       selectedContentId,
       setSelectedContentId: (contentId: string | null) => {
         setSelectedContentId(contentId);
-        if (contentId) setViewingFinalExam(false);
+        if (contentId) {
+          setViewingFinalExam(false);
+        }
       },
       viewingFinalExam,
       setViewingFinalExam,

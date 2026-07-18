@@ -305,6 +305,8 @@ interface Props {
   onUploadPaymentProof?: () => void;
   coursePrice?: number | null;
   courseCurrency?: string | null;
+  showPayToContinue?: boolean;
+  onPayToContinue?: () => void;
 }
 
 const PAYMENT_SUPPORT_EMAIL = 'info@cdyagency.com';
@@ -331,6 +333,8 @@ const LessonContent = ({
   onUploadPaymentProof,
   coursePrice,
   courseCurrency,
+  showPayToContinue = false,
+  onPayToContinue,
 }: Props) => {
   const { viewerState, openViewer, closeViewer } = useDocumentViewer();
   const [hasReachedBottom, setHasReachedBottom] = useState(false);
@@ -473,15 +477,23 @@ const LessonContent = ({
     isBlocked || isAssessment || (requiresScrollToComplete && !hasReachedBottom);
   const waitingForBottom =
     requiresScrollToComplete && !hasReachedBottom && !isBlocked && !isAssessment;
-  const nextButtonLabel = isPaymentLocked
-    ? 'Payment required'
-    : isBlocked
-      ? 'Module Locked'
-      : isCompleted
-        ? 'Next'
-        : 'Complete & Next';
+  const nextButtonLabel = showPayToContinue
+    ? hasPendingPayment
+      ? 'Payment pending'
+      : 'Pay to continue'
+    : isPaymentLocked
+      ? 'Payment required'
+      : isBlocked
+        ? 'Module Locked'
+        : isCompleted
+          ? 'Next'
+          : 'Complete & Next';
 
   const handleNextClick = () => {
+    if (showPayToContinue) {
+      onPayToContinue?.();
+      return;
+    }
     if (isPaymentLocked) {
       onUploadPaymentProof?.();
       return;

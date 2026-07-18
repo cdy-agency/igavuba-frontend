@@ -12,10 +12,15 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import type { ExamListItem } from '@/types/exam.types';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import {
   buildAssessmentsPath,
   buildExamBuilderPath,
 } from '@/lib/course-builder-navigation';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -71,9 +76,9 @@ export function ExamManagementPage({ embedded = false }: { embedded?: boolean })
                 Build exams, attach them to courses, and review submissions here.
               </p>
             </div>
-            <Button asChild>
+            <Button asChild size="sm" className="h-8 shrink-0 px-3 text-xs">
               <Link href={buildExamBuilderPath()}>
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
                 Create Exam
               </Link>
             </Button>
@@ -84,9 +89,9 @@ export function ExamManagementPage({ embedded = false }: { embedded?: boolean })
           <p className="text-sm text-muted-foreground">
             Build exams and attach them to courses, then manage submissions here.
           </p>
-          <Button asChild>
+          <Button asChild size="sm" className="h-8 shrink-0 px-3 text-xs">
             <Link href={buildExamBuilderPath()}>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Create Exam
             </Link>
           </Button>
@@ -132,7 +137,7 @@ export function ExamManagementPage({ embedded = false }: { embedded?: boolean })
                   <th className="px-4 py-3 font-medium">Passing Score</th>
                   <th className="px-4 py-3 font-medium">Max Attempts</th>
                   <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,30 +162,25 @@ export function ExamManagementPage({ embedded = false }: { embedded?: boolean })
                     <td className="px-4 py-3">{exam.maxAttempts}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(exam.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        <Button type="button" variant="ghost" size="sm" asChild>
-                          <Link href={getExamBuilderHref(exam)}>
-                            <Pencil className="mr-1 h-3.5 w-3.5" />
-                            Edit
-                          </Link>
-                        </Button>
-                        <Button type="button" variant="ghost" size="sm" asChild>
-                          <Link href={`/dashboard/exams/${exam.examId}/submissions`}>
-                            <Users className="mr-1 h-3.5 w-3.5" />
-                            Submissions
-                          </Link>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Edit"
+                          icon={Pencil}
+                          variant="primary"
+                          href={getExamBuilderHref(exam)}
+                        />
+                        <DashboardActionIconButton
+                          label="Submissions"
+                          icon={Users}
+                          href={`/dashboard/exams/${exam.examId}/submissions`}
+                        />
+                        <DashboardActionIconButton
+                          label="Delete"
+                          icon={Trash2}
+                          variant="destructive"
                           onClick={() => setExamToDelete(exam)}
-                        >
-                          <Trash2 className="mr-1 h-3.5 w-3.5" />
-                          Delete
-                        </Button>
-                      </div>
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

@@ -12,12 +12,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCourseResults } from '@/hooks/use-course-results';
+import { CourseSubNav } from '@/components/dashboard/courses/course-sub-nav';
 import type {
   CourseLearnerResultRow,
   CourseResultsEnrollmentFilter,
   CourseResultsStatusFilter,
 } from '@/types/course-results.types';
 import { cn } from '@/lib/utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatPercent(value: number | null) {
   if (value === null || value === undefined) return '—';
@@ -98,6 +103,7 @@ export function CourseResultsPage({ courseSlug }: { courseSlug: string }) {
 
   return (
     <div className="space-y-4">
+      <CourseSubNav slug={courseSlug} active="results" />
       <div className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Link href="/dashboard/courses" className="hover:text-foreground">
@@ -206,14 +212,14 @@ export function CourseResultsPage({ courseSlug }: { courseSlug: string }) {
                       <StatusBadge completed={learner.completed} passed={learner.passed} />
                     </td>
                     <td className="px-4 py-3">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="View results"
+                          icon={Eye}
+                          variant="primary"
                           href={`/dashboard/courses/${courseSlug}/results/${learner.learnerId}`}
-                        >
-                          <Eye className="mr-1 h-3.5 w-3.5" />
-                          View
-                        </Link>
-                      </Button>
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

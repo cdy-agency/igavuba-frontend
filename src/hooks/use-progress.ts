@@ -11,6 +11,7 @@ import {
 import { enrollmentQueryKeys } from '@/hooks/use-enrollment';
 import { learningQueryKeys } from '@/hooks/use-learning';
 import { getApiErrorMessage } from '@/lib/auth';
+import { isPaymentEnrollmentError } from '@/lib/learn-payment-gate';
 import { toast } from '@/lib/toast';
 
 export const progressQueryKeys = {
@@ -84,6 +85,10 @@ export function useCompleteContentProgress(courseId: string, courseSlug?: string
       invalidateProgressQueries(queryClient, courseId, courseSlug);
     },
     onError: (error) => {
+      const message = getApiErrorMessage(error);
+      if (isPaymentEnrollmentError(message)) {
+        return;
+      }
       toast.error(getApiErrorMessage(error, 'Unable to mark lesson as complete.'));
     },
   });

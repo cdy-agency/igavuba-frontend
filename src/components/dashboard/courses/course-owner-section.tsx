@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { UserCog, UserRound } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import {
   AssignCourseOwnerModal,
   TransferCourseOwnershipModal,
@@ -16,6 +15,10 @@ import type { Course } from '@/types/course';
 import type { LecturerListItem } from '@/types/lecturer.types';
 import { UserRole } from '@/types/enum';
 import { getRoleLabel } from '@/lib/role-utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function displayUserName(name: string | null | undefined, email: string) {
   return name?.trim() || email;
@@ -26,10 +29,10 @@ export function CourseOwnerSection({ course }: { course: Course }) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [selectedLecturerId, setSelectedLecturerId] = useState(course.lecturerId ?? undefined);
-  const assignOwner = useAssignCourseOwner(course.slug);
-  const { data: lecturers = [] } = useLecturersList();
-
   const isInstitutionAdmin = role === UserRole.INSTITUTION_ADMIN;
+  const assignOwner = useAssignCourseOwner(course.slug);
+  const { data: lecturers = [] } = useLecturersList(undefined, isInstitutionAdmin);
+
   const isOwner = user?.id === course.ownerId;
   const categoryLabel =
     course.categories?.[0]?.category.name ?? course.department?.name ?? '—';
@@ -60,16 +63,18 @@ export function CourseOwnerSection({ course }: { course: Course }) {
           </p>
         </div>
         {isInstitutionAdmin ? (
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => setAssignOpen(true)}>
-              <UserCog className="mr-1.5 h-3.5 w-3.5" />
-              Assign Owner
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setTransferOpen(true)}>
-              <UserRound className="mr-1.5 h-3.5 w-3.5" />
-              Transfer Ownership
-            </Button>
-          </div>
+          <DashboardActionGroup>
+            <DashboardActionIconButton
+              label="Assign owner"
+              icon={UserCog}
+              onClick={() => setAssignOpen(true)}
+            />
+            <DashboardActionIconButton
+              label="Transfer ownership"
+              icon={UserRound}
+              onClick={() => setTransferOpen(true)}
+            />
+          </DashboardActionGroup>
         ) : null}
       </div>
 

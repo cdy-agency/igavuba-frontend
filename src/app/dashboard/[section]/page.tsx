@@ -12,6 +12,7 @@ import { InstitutionSettingsPage } from '@/components/dashboard/settings/institu
 import { InstitutionPaymentsPage } from '@/components/dashboard/payments/institution-payments-page';
 import { StudentPaymentsPage } from '@/components/dashboard/payments/student-payments-page';
 import { AssessmentsPage } from '@/components/dashboard/assessments/assessments-page';
+import { StudentsPage } from '@/components/dashboard/students/students-page';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { UserRole } from '@/types/enum';
 import type { AssessmentTab } from '@/components/dashboard/assessments/assessments-page';
@@ -76,6 +77,10 @@ export default function DashboardSectionPage() {
     section === 'assignments'
   ) {
     return <AssessmentsPage initialTab={resolveAssessmentTab(section)} />;
+  }
+
+  if (section === 'students') {
+    return <StudentsPage />;
   }
 
   return <DashboardStubPage section={section} />;

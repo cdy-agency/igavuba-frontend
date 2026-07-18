@@ -17,6 +17,7 @@ export const GUEST_ROUTES = {
 export const PUBLIC_AUTH_ROUTES = {
   ACTIVATE_ACCOUNT: '/admin/activate-account',
   ACTIVATE_LECTURER_ACCOUNT: '/lecturer/activate-account',
+  ACTIVATE_STUDENT_ACCOUNT: '/student/activate-account',
 } as const;
 
 export const PROTECTED_ROUTES = {
@@ -50,6 +51,7 @@ export const isPublicRoute = (pathname: string): boolean => {
   if (pathname === '/contact') return true;
   if (pathname.startsWith('/admin/activate-account')) return true;
   if (pathname.startsWith('/lecturer/activate-account')) return true;
+  if (pathname.startsWith('/student/activate-account')) return true;
   if (
     pathname === '/login' ||
     pathname === '/register' ||

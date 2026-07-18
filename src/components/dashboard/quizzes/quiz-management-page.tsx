@@ -14,6 +14,11 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import type { QuizListItem } from '@/types/quiz';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -64,8 +69,8 @@ export function QuizManagementPage({ embedded = false }: { embedded?: boolean })
                 Create, edit, preview, and delete quizzes across your courses.
               </p>
             </div>
-            <Button onClick={() => setCreateOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button size="sm" className="h-8 shrink-0 px-3 text-xs" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Create Quiz
             </Button>
           </div>
@@ -75,8 +80,8 @@ export function QuizManagementPage({ embedded = false }: { embedded?: boolean })
           <p className="text-sm text-muted-foreground">
             Create, edit, preview, and delete quizzes attached to your courses.
           </p>
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button size="sm" className="h-8 shrink-0 px-3 text-xs" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
             Create Quiz
           </Button>
         </div>
@@ -112,7 +117,7 @@ export function QuizManagementPage({ embedded = false }: { embedded?: boolean })
                   <th className="px-4 py-3 font-medium">Passing Score</th>
                   <th className="px-4 py-3 font-medium">Max Attempts</th>
                   <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,36 +135,25 @@ export function QuizManagementPage({ embedded = false }: { embedded?: boolean })
                     <td className="px-4 py-3">{quiz.maxAttempts}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(quiz.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Edit"
+                          icon={Pencil}
+                          variant="primary"
                           onClick={() => setEditQuizId(quiz.quizId)}
-                        >
-                          <Pencil className="mr-1 h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
+                        />
+                        <DashboardActionIconButton
+                          label="Preview"
+                          icon={Eye}
                           onClick={() => setPreviewQuizId(quiz.quizId)}
-                        >
-                          <Eye className="mr-1 h-3.5 w-3.5" />
-                          Preview
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
+                        />
+                        <DashboardActionIconButton
+                          label="Delete"
+                          icon={Trash2}
+                          variant="destructive"
                           onClick={() => setQuizToDelete(quiz)}
-                        >
-                          <Trash2 className="mr-1 h-3.5 w-3.5" />
-                          Delete
-                        </Button>
-                      </div>
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

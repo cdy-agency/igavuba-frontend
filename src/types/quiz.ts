@@ -38,6 +38,9 @@ export interface QuizSummary {
   passingScore: number;
   maxAttempts: number;
   timeLimitMinutes: number | null;
+  required?: boolean;
+  countsTowardCertificate?: boolean;
+  blockProgressUntilPassed?: boolean;
 }
 
 export interface Quiz extends QuizSummary {
@@ -88,6 +91,9 @@ export interface UpdateQuizPayload {
   maxAttempts?: number;
   timeLimitMinutes?: number | null;
   isPublished?: boolean;
+  required?: boolean;
+  countsTowardCertificate?: boolean;
+  blockProgressUntilPassed?: boolean;
 }
 
 export interface QuizMutationResponse {

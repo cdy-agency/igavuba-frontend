@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   User,
+  Users,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,11 @@ import {
 } from '@/lib/course-utils';
 import { getCourseLifecycleLabel } from '@/lib/status-utils';
 import { cn } from '@/lib/utils';
+import {
+  dashboardActionGroupClass,
+  dashboardActionIconClass,
+  getDashboardLabeledActionButtonClass,
+} from '@/lib/dashboard-action-button';
 
 interface CourseListItemProps {
   course: Course;
@@ -120,27 +126,48 @@ export function CourseListItem({
           {getCourseLifecycleLabel(course.status)}
         </Badge>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className={dashboardActionGroupClass}>
           <Button
             asChild
             variant="outline"
             size="sm"
-            className="h-7 border-primary/30 px-2.5 text-xs font-medium text-primary hover:bg-primary/5 hover:text-primary"
+            className={getDashboardLabeledActionButtonClass('primary')}
           >
             <Link href={`/dashboard/courses/${course.slug}`}>
-              <Pencil className="mr-1 h-3 w-3" />
+              <Pencil className={cn(dashboardActionIconClass, 'mr-1')} />
               Edit
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs font-medium">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={getDashboardLabeledActionButtonClass()}
+          >
             <Link href={`/dashboard/courses/${course.slug}/results`}>
-              <BarChart3 className="mr-1 h-3 w-3" />
+              <BarChart3 className={cn(dashboardActionIconClass, 'mr-1')} />
               Results
             </Link>
           </Button>
-          <Button asChild variant="outline" size="sm" className="h-7 px-2.5 text-xs font-medium">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={getDashboardLabeledActionButtonClass()}
+          >
+            <Link href={`/dashboard/courses/${course.slug}/students`}>
+              <Users className={cn(dashboardActionIconClass, 'mr-1')} />
+              Students
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={getDashboardLabeledActionButtonClass()}
+          >
             <Link href={`/builder/course/${course.slug}`}>
-              <Hammer className="mr-1 h-3 w-3" />
+              <Hammer className={cn(dashboardActionIconClass, 'mr-1')} />
               Build
             </Link>
           </Button>

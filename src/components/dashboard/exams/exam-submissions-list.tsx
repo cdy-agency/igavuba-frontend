@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight, ClipboardCheck, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   useExamSubmissions,
@@ -10,6 +10,10 @@ import {
 } from '@/hooks/use-exam';
 import { buildAssessmentsPath } from '@/lib/course-builder-navigation';
 import type { ExamSubmissionListItem } from '@/types/exam.types';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatDate(value: string | null) {
   if (!value) return '—';
@@ -91,11 +95,14 @@ export function ExamSubmissionsList({ examId }: { examId: string }) {
                     <td className="px-4 py-3">{submission.essayQuestions}</td>
                     <td className="px-4 py-3">{submission.status}</td>
                     <td className="px-4 py-3">
-                      <Button type="button" variant="ghost" size="sm" asChild>
-                        <Link href={`/dashboard/exams/${examId}/submissions/${submission.id}`}>
-                          Review
-                        </Link>
-                      </Button>
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Review submission"
+                          icon={ClipboardCheck}
+                          variant="primary"
+                          href={`/dashboard/exams/${examId}/submissions/${submission.id}`}
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

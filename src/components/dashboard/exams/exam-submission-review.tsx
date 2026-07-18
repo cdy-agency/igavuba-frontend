@@ -11,9 +11,11 @@ import {
   useExamSubmissionDetail,
   useGradeExamAnswer,
   usePublishExamResult,
+  useExamDetail,
 } from '@/hooks/use-exam';
 import { QuestionType } from '@/types/question';
 import { buildAssessmentsPath } from '@/lib/course-builder-navigation';
+import { GrantAttemptActions } from '@/components/academic/grant-attempt-actions';
 import { toast } from '@/lib/toast';
 
 export function ExamSubmissionReview({
@@ -24,6 +26,7 @@ export function ExamSubmissionReview({
   attemptId: string;
 }) {
   const { data, isPending } = useExamSubmissionDetail(attemptId, Boolean(attemptId));
+  const { data: exam } = useExamDetail(examId, Boolean(examId));
   const gradeEssay = useGradeExamAnswer(examId, attemptId);
   const publishResult = usePublishExamResult(examId);
 
@@ -82,11 +85,21 @@ export function ExamSubmissionReview({
           <ChevronRight className="h-4 w-4" />
           <span className="font-medium text-foreground">Review</span>
         </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Exam submission</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {data.student.name ?? data.student.email} · {data.status}
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Exam submission</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {data.student.name ?? data.student.email} · {data.status}
+            </p>
+          </div>
+          {data.learnerProfileId && exam?.assessmentId ? (
+            <GrantAttemptActions
+              assessmentId={exam.assessmentId}
+              learnerProfileId={data.learnerProfileId}
+              learnerName={data.student.name}
+              assessmentTitle={exam.assessment.title}
+            />
+          ) : null}
         </div>
       </div>
 

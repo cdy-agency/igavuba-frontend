@@ -33,6 +33,9 @@ export interface ExamDetail {
   timeLimitMinutes: number | null;
   availableFrom: string | null;
   availableTo: string | null;
+  required?: boolean;
+  countsTowardCertificate?: boolean;
+  blockProgressUntilPassed?: boolean;
   assessment: {
     id: string;
     contentId: string;
@@ -72,6 +75,7 @@ export interface ExamListItem {
 export interface ExamSubmissionListItem {
   id: string;
   status: ExamAttemptStatus;
+  learnerProfileId?: string;
   student: { id: string; name: string | null; email: string };
   submittedAt: string | null;
   autoScore: number;
@@ -88,4 +92,25 @@ export interface ExamMutationResponse<T = ExamDetail> {
   success: boolean;
   message: string;
   data: T;
+}
+
+export interface UpdateExamPayload {
+  title?: string;
+  description?: string;
+  instructions?: string;
+  settings?: {
+    showResults?: boolean;
+    showCorrectAnswers?: boolean;
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
+  };
+  passingScore?: number;
+  maxAttempts?: number;
+  timeLimitMinutes?: number | null;
+  availableFrom?: string | null;
+  availableTo?: string | null;
+  isPublished?: boolean;
+  required?: boolean;
+  countsTowardCertificate?: boolean;
+  blockProgressUntilPassed?: boolean;
 }

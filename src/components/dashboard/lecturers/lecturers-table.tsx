@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { format } from 'date-fns';
 import { Eye, Loader2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -28,6 +27,10 @@ import {
   getUserStatusLabel,
   isUserActiveStatus,
 } from '@/lib/status-utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function canToggleStatus(row: LecturerListItem) {
   return row.status !== UserStatus.PENDING;
@@ -82,8 +85,8 @@ export function LecturersTable() {
           </Select>
         </div>
         {canManage ? (
-          <Button type="button" onClick={() => setInviteOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
+          <Button type="button" size="sm" className="h-8 px-3 text-xs" onClick={() => setInviteOpen(true)}>
+            <UserPlus className="mr-1.5 h-3.5 w-3.5" />
             Invite Lecturer
           </Button>
         ) : null}
@@ -153,12 +156,14 @@ export function LecturersTable() {
                       </td>
                     ) : null}
                     <td className="px-4 py-3">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/lecturers/${row.id}`}>
-                          <Eye className="mr-1 h-3.5 w-3.5" />
-                          View
-                        </Link>
-                      </Button>
+                      <DashboardActionGroup>
+                        <DashboardActionIconButton
+                          label="View profile"
+                          icon={Eye}
+                          variant="primary"
+                          href={`/dashboard/lecturers/${row.id}`}
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

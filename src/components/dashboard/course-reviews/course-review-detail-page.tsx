@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ChevronRight, ExternalLink, Loader2, MessageSquare } from 'lucide-react';
 import { RoleGuard } from '@/guards/role-guard';
 import { UserRole } from '@/types/enum';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,10 @@ import { getCourseStatusClassName } from '@/lib/course-utils';
 import { getCourseLifecycleLabel } from '@/lib/status-utils';
 import { getRevisionBadgeClassName } from '@/lib/course-revision-feedback-context';
 import { cn } from '@/lib/utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 import { RequestChangesModal } from '@/components/dashboard/course-reviews/request-changes-modal';
 
 const REVIEW_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
@@ -222,62 +226,69 @@ export function CourseReviewDetailPage({
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <DashboardActionGroup>
             {canDecideInitial ? (
               <>
                 <Button
-                  className="bg-success text-white hover:bg-success/90"
+                  size="sm"
+                  className="h-8 bg-success px-3 text-xs text-white hover:bg-success/90"
                   disabled={approveMutation.isPending}
                   onClick={() => approveMutation.mutate(course.id)}
                 >
                   {approveMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                   ) : null}
                   Approve
                 </Button>
-                <Button variant="outline" onClick={() => setRequestChangesOpen(true)}>
-                  Request changes
-                </Button>
+                <DashboardActionIconButton
+                  label="Request changes"
+                  icon={MessageSquare}
+                  onClick={() => setRequestChangesOpen(true)}
+                />
               </>
             ) : null}
 
             {canDecideRevision ? (
               <>
-                <Button asChild variant="outline">
-                  <Link href={`/builder/course/${course.slug}`}>
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    Open builder
-                  </Link>
-                </Button>
+                <DashboardActionIconButton
+                  label="Open builder"
+                  icon={ExternalLink}
+                  variant="primary"
+                  href={`/builder/course/${course.slug}`}
+                />
                 <Button
-                  className="bg-success text-white hover:bg-success/90"
+                  size="sm"
+                  className="h-8 bg-success px-3 text-xs text-white hover:bg-success/90"
                   disabled={approveRevisionMutation.isPending}
                   onClick={() => approveRevisionMutation.mutate(course.id)}
                 >
                   {approveRevisionMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                   ) : null}
                   Approve revision
                 </Button>
-                <Button variant="outline" onClick={() => setRequestChangesOpen(true)}>
-                  Request changes
-                </Button>
+                <DashboardActionIconButton
+                  label="Request changes"
+                  icon={MessageSquare}
+                  onClick={() => setRequestChangesOpen(true)}
+                />
               </>
             ) : null}
 
             {canPublish ? (
               <Button
-                className="bg-success text-white hover:bg-success/90"
+                size="sm"
+                className="h-8 bg-success px-3 text-xs text-white hover:bg-success/90"
                 disabled={publishMutation.isPending}
                 onClick={() => publishMutation.mutate(course.id)}
               >
                 {publishMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : null}
                 Publish course
               </Button>
             ) : null}
-          </div>
+          </DashboardActionGroup>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -377,9 +388,13 @@ export function CourseReviewDetailPage({
                   Open the course builder to preview the full pending revision content side by
                   side with review tools.
                 </p>
-                <Button asChild className="mt-3" variant="outline">
-                  <Link href={`/builder/course/${course.slug}`}>Open course builder</Link>
-                </Button>
+                <DashboardActionIconButton
+                  label="Open course builder"
+                  icon={ExternalLink}
+                  variant="primary"
+                  className="mt-3"
+                  href={`/builder/course/${course.slug}`}
+                />
               </section>
             )}
           </div>

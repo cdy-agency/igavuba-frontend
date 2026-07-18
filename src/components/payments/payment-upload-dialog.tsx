@@ -23,6 +23,7 @@ interface PaymentUploadDialogProps {
   courseTitle: string;
   amount: number | null;
   currency?: string | null;
+  onSubmitted?: () => void;
 }
 
 export function PaymentUploadDialog({
@@ -32,6 +33,7 @@ export function PaymentUploadDialog({
   courseTitle,
   amount,
   currency = 'RWF',
+  onSubmitted,
 }: PaymentUploadDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const submitPayment = useSubmitPayment();
@@ -66,6 +68,7 @@ export function PaymentUploadDialog({
         referenceNumber: referenceNumber.trim() || undefined,
       });
       handleClose(false);
+      onSubmitted?.();
     } catch {
       // toast handled in hook / upload
     } finally {

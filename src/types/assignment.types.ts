@@ -43,6 +43,9 @@ export interface AssignmentSummary {
   allowLateSubmission: boolean;
   showFeedbackAfterGrading: boolean;
   submissionTypes: AssignmentSubmissionType[] | unknown;
+  required?: boolean;
+  countsTowardCertificate?: boolean;
+  blockProgressUntilPassed?: boolean;
 }
 
 export interface Assignment extends AssignmentSummary {
@@ -105,6 +108,9 @@ export interface UpdateAssignmentPayload {
   showFeedbackAfterGrading?: boolean;
   submissionTypes?: AssignmentSubmissionType[];
   isPublished?: boolean;
+  required?: boolean;
+  countsTowardCertificate?: boolean;
+  blockProgressUntilPassed?: boolean;
 }
 
 export interface AssignmentMutationResponse<T> {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ExternalLink, Loader2, XCircle } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { RoleGuard } from '@/guards/role-guard';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,10 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import { UserRole } from '@/types/enum';
 import type { PaymentRecordStatus } from '@/types/payment';
 import { cn } from '@/lib/utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 const ADMIN_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
 
@@ -78,12 +82,12 @@ function PaymentDetailPanel({ paymentId }: PaymentDetailPageProps) {
 
   return (
     <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit">
-        <Link href="/dashboard/payments">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to payments
-        </Link>
-      </Button>
+      <DashboardActionIconButton
+        label="Back to payments"
+        icon={ArrowLeft}
+        className="-ml-2"
+        href="/dashboard/payments"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <section className="rounded-xl border border-border/60 bg-card p-5 shadow-sm sm:p-6">
@@ -140,11 +144,12 @@ function PaymentDetailPanel({ paymentId }: PaymentDetailPageProps) {
           {isPdf ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">PDF receipt uploaded by the learner.</p>
-              <Button asChild variant="outline">
-                <a href={payment.proofFile} target="_blank" rel="noreferrer">
-                  Open receipt
-                </a>
-              </Button>
+              <DashboardActionIconButton
+                label="Open receipt"
+                icon={ExternalLink}
+                variant="primary"
+                externalHref={payment.proofFile}
+              />
             </div>
           ) : (
             <a href={payment.proofFile} target="_blank" rel="noreferrer" className="block">
@@ -160,15 +165,17 @@ function PaymentDetailPanel({ paymentId }: PaymentDetailPageProps) {
       </div>
 
       {isPendingReview ? (
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" onClick={() => setApproveOpen(true)}>
-            <CheckCircle2 className="mr-2 h-4 w-4" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" className="h-8 px-3 text-xs" onClick={() => setApproveOpen(true)}>
+            <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
             Approve payment
           </Button>
-          <Button type="button" variant="destructive" onClick={() => setRejectOpen(true)}>
-            <XCircle className="mr-2 h-4 w-4" />
-            Reject payment
-          </Button>
+          <DashboardActionIconButton
+            label="Reject payment"
+            icon={XCircle}
+            variant="destructive"
+            onClick={() => setRejectOpen(true)}
+          />
         </div>
       ) : null}
 

@@ -14,11 +14,29 @@ import {
   useStartContentProgress,
 } from '@/hooks/use-progress';
 import { mapFinalExamToLesson, mapLearningCourseToModules } from '@/lib/learning-utils';
+import {
+  applyPreviewAccessLocks,
+  getPaymentLockOptions,
+  isLessonPaymentLocked,
+  isPaymentEnrollmentError,
+  PREVIEW_PAYMENT_MESSAGE,
+  resolveAdjacentLesson,
+  resolvePreviewAccessState,
+  shouldGateLessonForPayment,
+  shouldGateNavigationFromPreview,
+  shouldShowPayToContinue,
+} from '@/lib/learn-payment-gate';
 import { useAuth } from '@/lib/hooks/use-auth';
 import type { AugmentedModule, LessonItem, LessonSummary } from '@/types/learning';
 import { PaymentUploadDialog } from '@/components/payments/payment-upload-dialog';
+import { PaymentPendingDialog } from '@/components/payments/payment-pending-dialog';
 import { useMyPayments } from '@/hooks/use-payments';
-import type { PaymentRecord } from '@/types/payment';
+import { useCourseCertificateEligibility } from '@/hooks/use-academic';
+import { BlockedProgressCard } from '@/components/academic/blocked-progress-card';
+import { buildBlockedProgressDetails, parseProgressBlockMessage } from '@/lib/academic-utils';
+import { getApiErrorMessage } from '@/lib/auth';
+import type { BlockedProgressDetails } from '@/types/academic.types';
+import { toast } from '@/lib/toast';
 
 type LockedAugmentedModule = AugmentedModule & { locked?: boolean };
 
@@ -28,9 +46,12 @@ export default function LearningPlayerPage() {
   const { slug } = useParams<{ slug: string }>() || {};
   const { user } = useAuth();
 
-  const { data: learningCourse, isLoading, isError } = useLearningCourse(slug ?? '');
+  const { data: learningCourse, isLoading, isError } = useLearningCourse(slug ?? '', true, {
+    fresh: true,
+  });
   const courseId = learningCourse?.id ?? '';
   const { data: resumeData } = useCourseResumeProgress(courseId, Boolean(courseId));
+  const { data: certificateEligibility } = useCourseCertificateEligibility(slug ?? '', undefined, Boolean(slug));
 
   const startContentProgress = useStartContentProgress(courseId, slug);
   const completeContentProgress = useCompleteContentProgress(courseId, slug);
@@ -42,24 +63,33 @@ export default function LearningPlayerPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showIncompleteModal, setShowIncompleteModal] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentPendingDialogOpen, setPaymentPendingDialogOpen] = useState(false);
   const [courseAcknowledged, setCourseAcknowledged] = useState(false);
   const [finalExamCompleted, setFinalExamCompleted] = useState(false);
+  const [blockedProgress, setBlockedProgress] = useState<BlockedProgressDetails | null>(null);
   const selectedLessonRef = useRef<LessonSummary | undefined>(undefined);
   const lastStartedContentIdRef = useRef<string | null>(null);
+  const paymentPromptShownRef = useRef(false);
   const startContentRef = useRef(startContentProgress.mutateAsync);
   startContentRef.current = startContentProgress.mutateAsync;
 
   const enrollmentId = learningCourse?.enrollment.id ?? '';
   const courseTitle = learningCourse?.title ?? 'Untitled Course';
-  const isPreviewAccess = learningCourse?.access.level === 'PREVIEW';
-  const { data: myPayments } = useMyPayments(Boolean(courseId) && isPreviewAccess);
-  const hasPendingPayment = useMemo(
-    () =>
-      myPayments?.some(
-        (payment: PaymentRecord) =>
-          payment.courseId === courseId && payment.status === 'PENDING',
-      ) ?? false,
-    [myPayments, courseId],
+  const requiresPayment = Boolean(learningCourse?.access.requiresPayment);
+  const previewContentId = learningCourse?.access.previewContentId ?? null;
+  const finalExamPaymentLocked = Boolean(learningCourse?.finalExam?.isPaymentLocked);
+  const finalExamId = learningCourse?.finalExam?.id;
+  const { data: myPayments, isFetched: paymentsFetched } = useMyPayments(
+    Boolean(courseId) && requiresPayment,
+    { refetchOnMount: 'always' },
+  );
+  const { isPreviewAccess, hasPendingPayment } = useMemo(
+    () => resolvePreviewAccessState(learningCourse, myPayments, courseId),
+    [learningCourse, myPayments, courseId],
+  );
+  const paymentLockOptions = useMemo(
+    () => getPaymentLockOptions(isPreviewAccess, previewContentId, finalExamPaymentLocked, finalExamId),
+    [isPreviewAccess, previewContentId, finalExamPaymentLocked, finalExamId],
   );
   const userName = user?.name ?? 'Student';
   const queryContentId = searchParams.get('contentId');
@@ -89,20 +119,61 @@ export default function LearningPlayerPage() {
   }, [enrollmentId]);
 
   useEffect(() => {
+    paymentPromptShownRef.current = false;
+  }, [courseId]);
+
+  useEffect(() => {
+    if (hasPendingPayment) {
+      setPaymentDialogOpen(false);
+    }
+  }, [hasPendingPayment]);
+
+  useEffect(() => {
+    if (!isPreviewAccess) {
+      setPaymentDialogOpen(false);
+      setPaymentPendingDialogOpen(false);
+    }
+  }, [isPreviewAccess]);
+
+  useEffect(() => {
+    if (
+      !learningCourse ||
+      !isPreviewAccess ||
+      !paymentsFetched ||
+      paymentPromptShownRef.current
+    ) {
+      return;
+    }
+
+    paymentPromptShownRef.current = true;
+
+    if (hasPendingPayment) {
+      return;
+    }
+
+    setPaymentDialogOpen(true);
+  }, [learningCourse, isPreviewAccess, hasPendingPayment, paymentsFetched]);
+
+  useEffect(() => {
     if (!learningCourse) return;
 
     setEnrollmentProgress(learningCourse.enrollment.progress);
     setFinalExamCompleted(learningCourse.finalExam?.completed ?? false);
 
-    const normalized = mapLearningCourseToModules(learningCourse, {
-      enableLockedModules: learningCourse.access.level === 'PREVIEW',
-    });
+    const normalized = applyPreviewAccessLocks(
+      mapLearningCourseToModules(learningCourse, {
+        enableLockedModules: isPreviewAccess,
+      }),
+      previewContentId,
+      isPreviewAccess,
+    );
 
     const moduleLessons = normalized.flatMap((module) => module.lessons || []);
     const finalExam = learningCourse.finalExam
       ? mapFinalExamToLesson({
           ...learningCourse.finalExam,
           completed: learningCourse.finalExam.completed,
+          isPaymentLocked: isPreviewAccess ? true : learningCourse.finalExam.isPaymentLocked,
         })
       : null;
     const allLessons = finalExam ? [...moduleLessons, finalExam] : moduleLessons;
@@ -112,22 +183,37 @@ export default function LearningPlayerPage() {
     let initialLesson: LessonSummary | undefined;
     let activeModuleId = '';
 
+    const isAccessibleLesson = (lesson: LessonSummary | undefined) =>
+      !isLessonPaymentLocked(lesson, paymentLockOptions);
+
     if (targetContentId) {
       initialLesson = allLessons.find((lesson) => lesson.id === targetContentId);
+      if (initialLesson && !isAccessibleLesson(initialLesson)) {
+        initialLesson = undefined;
+      }
     }
 
     if (!initialLesson) {
-      initialLesson = allLessons.find((lesson) => !lesson.completed);
+      initialLesson = allLessons.find((lesson) => !lesson.completed && isAccessibleLesson(lesson));
+    }
+
+    if (!initialLesson && previewContentId) {
+      initialLesson = allLessons.find((lesson) => lesson.id === previewContentId);
     }
 
     if (!initialLesson && normalized[0]?.lessons?.length) {
-      initialLesson = normalized[0].lessons[0];
+      initialLesson = normalized[0].lessons.find(isAccessibleLesson) ?? normalized[0].lessons[0];
     }
 
-    const preservedLesson =
+    const preservedCandidate =
       selectedLessonRef.current?.type === 'COURSE_COMPLETION'
         ? selectedLessonRef.current
         : allLessons.find((lesson) => lesson.id === selectedLessonRef.current?.id);
+
+    const preservedLesson =
+      preservedCandidate && isAccessibleLesson(preservedCandidate)
+        ? preservedCandidate
+        : undefined;
 
     const nextLesson = preservedLesson ?? initialLesson;
     if (nextLesson) {
@@ -146,10 +232,14 @@ export default function LearningPlayerPage() {
     );
 
     setSelectedLesson(nextLesson);
-  }, [learningCourse, resumeData, queryContentId]);
+  }, [learningCourse, resumeData, queryContentId, isPreviewAccess, previewContentId, paymentLockOptions]);
 
   useEffect(() => {
     if (!courseId || !selectedLesson?.id || selectedLesson.type === 'COURSE_COMPLETION') {
+      return;
+    }
+
+    if (isLessonPaymentLocked(selectedLesson, paymentLockOptions)) {
       return;
     }
 
@@ -159,7 +249,7 @@ export default function LearningPlayerPage() {
 
     lastStartedContentIdRef.current = selectedLesson.id;
     void startContentRef.current(selectedLesson.id);
-  }, [courseId, selectedLesson?.id, selectedLesson?.type]);
+  }, [courseId, selectedLesson?.id, selectedLesson?.type, paymentLockOptions]);
 
   const computeLocked = (mods: LockedAugmentedModule[]) =>
     mods.map((module) => ({
@@ -167,15 +257,36 @@ export default function LearningPlayerPage() {
       locked: Boolean(module.locked),
     }));
 
-  const isSelectedLessonPaymentLocked = Boolean(
-    selectedLesson?.raw?.isPaymentLocked ||
-      (learningCourse?.finalExam?.isPaymentLocked &&
-        selectedLesson?.id === learningCourse.finalExam.id),
+  const isSelectedLessonPaymentLocked = isLessonPaymentLocked(
+    selectedLesson,
+    paymentLockOptions,
   );
+  const showPayToContinue = shouldShowPayToContinue(selectedLesson?.id, paymentLockOptions);
 
   const openPaymentDialog = () => {
-    if (hasPendingPayment) return;
+    if (hasPendingPayment) {
+      setPaymentPendingDialogOpen(true);
+      return;
+    }
     setPaymentDialogOpen(true);
+  };
+
+  const handlePayToContinue = () => {
+    if (hasPendingPayment) {
+      setPaymentPendingDialogOpen(true);
+      return;
+    }
+    openPaymentDialog();
+  };
+
+  const tryNavigateToLesson = (lesson: LessonSummary) => {
+    if (shouldGateLessonForPayment(lesson, paymentLockOptions)) {
+      openPaymentDialog();
+      return false;
+    }
+
+    setSelectedLesson(lesson);
+    return true;
   };
 
   const handleToggleModule = (moduleId: string) => {
@@ -199,84 +310,66 @@ export default function LearningPlayerPage() {
         })
       : null;
 
-    if (selectedLesson.id === finalExam?.id) {
-      if (dir === 'next') {
+    if (shouldGateNavigationFromPreview(selectedLesson.id, dir, paymentLockOptions)) {
+      openPaymentDialog();
+      return;
+    }
+
+    const adjacentLesson = resolveAdjacentLesson(dir, selectedLesson, modules, finalExam);
+    if (!adjacentLesson) {
+      if (dir === 'next' && selectedLesson.id === finalExam?.id) {
         handleCourseCompletionClick();
         return;
       }
 
-      const lastModule = modules[modules.length - 1];
-      const lastLesson = lastModule?.lessons?.[lastModule.lessons.length - 1];
-      if (lastLesson) {
-        setSelectedLesson(lastLesson);
-        setModules((prev) =>
-          prev.map((entry) =>
-            entry.id === lastModule.id ? { ...entry, expanded: true } : entry,
-          ),
-        );
+      if (dir === 'next') {
+        const allModuleLessons = modules.flatMap((module) => module.lessons || []);
+        const allComplete =
+          allModuleLessons.length > 0 && allModuleLessons.every((lesson) => lesson.completed);
+        if (allComplete && !finalExam) {
+          handleCourseCompletionClick();
+        }
+      }
+      return;
+    }
+
+    if (shouldGateLessonForPayment(adjacentLesson, paymentLockOptions)) {
+      openPaymentDialog();
+      return;
+    }
+
+    if (selectedLesson.id === finalExam?.id) {
+      if (dir === 'prev') {
+        tryNavigateToLesson(adjacentLesson);
+        const lastModule = modules[modules.length - 1];
+        if (lastModule?.id) {
+          setModules((prev) =>
+            prev.map((entry) =>
+              entry.id === lastModule.id ? { ...entry, expanded: true } : entry,
+            ),
+          );
+        }
       }
       return;
     }
 
     if (selectedLesson.type === 'COURSE_COMPLETION') {
       if (dir === 'prev' && finalExam) {
-        setSelectedLesson(finalExam);
+        tryNavigateToLesson(finalExam);
       }
       return;
     }
 
-    const currentModules = modules;
-    const moduleIndex = currentModules.findIndex((module) =>
-      module.lessons?.some((lesson) => lesson.id === selectedLesson.id),
+    const ownerModule = modules.find((module) =>
+      module.lessons?.some((lesson) => lesson.id === adjacentLesson.id),
     );
-    if (moduleIndex === -1) return;
-
-    const lessons = currentModules[moduleIndex]?.lessons || [];
-    const index = lessons.findIndex((lesson) => lesson.id === selectedLesson.id);
-
-    if (dir === 'prev' && index > 0) {
-      setSelectedLesson(lessons[index - 1]);
-      return;
-    }
-
-    if (dir === 'next' && index < lessons.length - 1) {
-      setSelectedLesson(lessons[index + 1]);
-      return;
-    }
-
-    const step = dir === 'next' ? 1 : -1;
-    for (let i = moduleIndex + step; i >= 0 && i < currentModules.length; i += step) {
-      const module = currentModules[i];
-      if (!module?.lessons?.length || module.locked) continue;
-
-      const nextLesson =
-        dir === 'next' ? module.lessons[0] : module.lessons[module.lessons.length - 1];
-      setSelectedLesson(nextLesson);
+    if (ownerModule?.id) {
       setModules((prev) =>
-        prev.map((entry) => (entry.id === module.id ? { ...entry, expanded: true } : entry)),
+        prev.map((entry) => (entry.id === ownerModule.id ? { ...entry, expanded: true } : entry)),
       );
-      return;
     }
 
-    if (dir === 'next' && finalExam) {
-      const moduleLessonsComplete =
-        currentModules.flatMap((module) => module.lessons || []).every((lesson) => lesson.completed) ||
-        currentModules.flatMap((module) => module.lessons || []).length === 0;
-
-      if (moduleLessonsComplete) {
-        setSelectedLesson(finalExam);
-        return;
-      }
-    }
-
-    if (dir === 'next') {
-      const allModuleLessons = currentModules.flatMap((module) => module.lessons || []);
-      const allComplete =
-        allModuleLessons.length > 0 && allModuleLessons.every((lesson) => lesson.completed);
-      if (allComplete && !finalExam) {
-        handleCourseCompletionClick();
-      }
-    }
+    tryNavigateToLesson(adjacentLesson);
   };
 
   const markLessonInState = (contentId: string, moduleId: string, progress: number) => {
@@ -309,10 +402,28 @@ export default function LearningPlayerPage() {
   };
 
   const markLessonComplete = async () => {
-    if (!selectedLesson?.id || selectedLesson.completed) {
-      if (selectedLesson?.completed) {
-        navigateLesson('next');
+    if (!selectedLesson?.id) return;
+
+    if (showPayToContinue) {
+      handlePayToContinue();
+      return;
+    }
+
+    const finalExam = finalExamLesson;
+
+    if (selectedLesson.completed) {
+      if (shouldGateNavigationFromPreview(selectedLesson.id, 'next', paymentLockOptions)) {
+        openPaymentDialog();
+        return;
       }
+
+      const nextLesson = resolveAdjacentLesson('next', selectedLesson, modules, finalExam);
+      if (shouldGateLessonForPayment(nextLesson, paymentLockOptions)) {
+        openPaymentDialog();
+        return;
+      }
+
+      navigateLesson('next');
       return;
     }
 
@@ -323,16 +434,41 @@ export default function LearningPlayerPage() {
     );
     const isLastLesson =
       currentLessonIndex >= 0 && currentLessonIndex === allCurrentLessons.length - 1;
+    const completedPreviewLesson =
+      shouldGateNavigationFromPreview(selectedLesson.id, 'next', paymentLockOptions);
 
     try {
       const result = await completeContentProgress.mutateAsync(selectedLesson.id);
       markLessonInState(selectedLesson.id, moduleId, result.progress);
 
+      if (completedPreviewLesson) {
+        openPaymentDialog();
+        return;
+      }
+
+      const nextLesson = resolveAdjacentLesson('next', selectedLesson, modules, finalExam);
+      if (shouldGateLessonForPayment(nextLesson, paymentLockOptions)) {
+        openPaymentDialog();
+        return;
+      }
+
       if (!isLastLesson) {
         navigateLesson('next');
       }
-    } catch {
-      // toast handled in hook
+    } catch (error) {
+      const message = getApiErrorMessage(error);
+      if (isPreviewAccess && isPaymentEnrollmentError(message)) {
+        toast.error(PREVIEW_PAYMENT_MESSAGE);
+        openPaymentDialog();
+        return;
+      }
+      const assessmentTitle = parseProgressBlockMessage(message);
+      if (assessmentTitle) {
+        setBlockedProgress(
+          buildBlockedProgressDetails(assessmentTitle, certificateEligibility),
+        );
+        return;
+      }
     }
   };
 
@@ -341,8 +477,9 @@ export default function LearningPlayerPage() {
     return mapFinalExamToLesson({
       ...learningCourse.finalExam,
       completed: finalExamCompleted,
+      isPaymentLocked: isPreviewAccess ? true : learningCourse.finalExam.isPaymentLocked,
     });
-  }, [learningCourse?.finalExam, finalExamCompleted]);
+  }, [learningCourse?.finalExam, finalExamCompleted, isPreviewAccess]);
 
   const moduleLessonsComplete = useMemo(() => {
     const moduleLessons = modules.flatMap((module) => module.lessons || []);
@@ -427,16 +564,16 @@ export default function LearningPlayerPage() {
                 : (selectedLesson as unknown as LessonItem | undefined)
             }
             onSelectLesson={(lesson) => {
-              const paymentLocked = Boolean(
-                (lesson as LessonSummary).raw?.isPaymentLocked ||
-                  (learningCourse?.finalExam?.isPaymentLocked &&
-                    lesson.id === learningCourse.finalExam.id),
-              );
-              setSelectedLesson(lesson as unknown as LessonSummary);
-              if (isMobile) setSidebarOpen(false);
-              if (paymentLocked && !hasPendingPayment) {
+              const summary = lesson as unknown as LessonSummary;
+
+              if (shouldGateLessonForPayment(summary, paymentLockOptions)) {
                 openPaymentDialog();
+                return;
               }
+
+              setSelectedLesson(summary);
+              setBlockedProgress(null);
+              if (isMobile) setSidebarOpen(false);
             }}
             courseLockedEnabled={!isPreviewAccess}
             onBlockedLessonSelect={() => undefined}
@@ -450,7 +587,7 @@ export default function LearningPlayerPage() {
             finalExamLesson={finalExamLesson as unknown as LessonItem | null}
             onSelectFinalExam={() => {
               if (!finalExamLesson || !moduleLessonsComplete) return;
-              if (learningCourse?.finalExam?.isPaymentLocked) {
+              if (shouldGateLessonForPayment(finalExamLesson, paymentLockOptions)) {
                 openPaymentDialog();
                 return;
               }
@@ -468,37 +605,62 @@ export default function LearningPlayerPage() {
           } bg-white dark:bg-gray-800 overflow-hidden flex-1`}
         >
           {selectedLesson ? (
-            <LessonContent
-              lesson={{
-                id: selectedLesson.id,
-                type: selectedLesson.type,
-                title: selectedLesson.title,
-                raw: selectedLesson.raw,
-                completed: selectedLesson.completed,
-              }}
-              onPrev={() => navigateLesson('prev')}
-              onNext={() => navigateLesson('next')}
-              onComplete={markLessonComplete}
-              onAutoComplete={markLessonComplete}
-              onQuizProgressUpdated={(contentId, moduleId, progress) => {
-                markLessonInState(contentId, moduleId, progress);
-              }}
-              sidebarOpen={sidebarOpen}
-              onCloseSidebar={() => setSidebarOpen(false)}
-              courseId={courseId}
-              courseSlug={slug}
-              userId={user?.id || ''}
-              courseTitle={courseTitle}
-              enrollmentId={enrollmentId}
-              userName={userName}
-              isBlocked={isSelectedLessonPaymentLocked}
-              onBlockedAttempt={openPaymentDialog}
-              isPaymentLocked={isSelectedLessonPaymentLocked}
-              hasPendingPayment={hasPendingPayment}
-              onUploadPaymentProof={openPaymentDialog}
-              coursePrice={learningCourse.publicPrice}
-              courseCurrency={learningCourse.publicCurrency ?? learningCourse.access.currency}
-            />
+            <div className="relative h-full">
+              <LessonContent
+                lesson={{
+                  id: selectedLesson.id,
+                  type: selectedLesson.type,
+                  title: selectedLesson.title,
+                  raw: selectedLesson.raw,
+                  completed: selectedLesson.completed,
+                }}
+                onPrev={() => navigateLesson('prev')}
+                onNext={() => navigateLesson('next')}
+                onComplete={markLessonComplete}
+                onAutoComplete={markLessonComplete}
+                onQuizProgressUpdated={(contentId, moduleId, progress) => {
+                  markLessonInState(contentId, moduleId, progress);
+                }}
+                sidebarOpen={sidebarOpen}
+                onCloseSidebar={() => setSidebarOpen(false)}
+                courseId={courseId}
+                courseSlug={slug}
+                userId={user?.id || ''}
+                courseTitle={courseTitle}
+                enrollmentId={enrollmentId}
+                userName={userName}
+                isBlocked={isSelectedLessonPaymentLocked}
+                onBlockedAttempt={openPaymentDialog}
+                isPaymentLocked={isSelectedLessonPaymentLocked}
+                hasPendingPayment={hasPendingPayment}
+                onUploadPaymentProof={openPaymentDialog}
+                coursePrice={learningCourse.publicPrice}
+                courseCurrency={learningCourse.publicCurrency ?? learningCourse.access.currency}
+                showPayToContinue={showPayToContinue}
+                onPayToContinue={handlePayToContinue}
+              />
+              {blockedProgress ? (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/95 p-6 dark:bg-gray-900/95">
+                  <BlockedProgressCard
+                    details={blockedProgress}
+                    onRetry={() => setBlockedProgress(null)}
+                    onGoToAssessment={
+                      blockedProgress.assessmentContentId
+                        ? () => {
+                            const assessmentLesson = modules
+                              .flatMap((module) => module.lessons ?? [])
+                              .find((lesson) => lesson.id === blockedProgress.assessmentContentId);
+                            if (assessmentLesson) {
+                              setBlockedProgress(null);
+                              setSelectedLesson(assessmentLesson);
+                            }
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </main>
       </div>
@@ -509,6 +671,12 @@ export default function LearningPlayerPage() {
         courseTitle={courseTitle}
         amount={learningCourse.publicPrice}
         currency={learningCourse.publicCurrency ?? learningCourse.access.currency}
+        onSubmitted={() => setPaymentPendingDialogOpen(true)}
+      />
+      <PaymentPendingDialog
+        open={paymentPendingDialogOpen}
+        onOpenChange={setPaymentPendingDialogOpen}
+        courseTitle={courseTitle}
       />
       <IncompleteCourseModal
         isOpen={showIncompleteModal}

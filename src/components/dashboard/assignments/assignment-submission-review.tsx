@@ -16,6 +16,7 @@ import {
 import { gradeAssignmentSubmissionSchema } from '@/schema/assignment-submission.schema';
 import { AssignmentSubmissionStatus } from '@/types/assignment.types';
 import { buildAssessmentsPath } from '@/lib/course-builder-navigation';
+import { GrantAttemptActions } from '@/components/academic/grant-attempt-actions';
 import { toast } from '@/lib/toast';
 
 function formatDate(value: string | null) {
@@ -104,11 +105,19 @@ export function AssignmentSubmissionReview({
           <ChevronRight className="h-4 w-4" />
           <span className="font-medium text-foreground">Review</span>
         </div>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{assignment.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Attempt {submission.attemptNumber} · {submission.status}
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{assignment.title}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Attempt {submission.attemptNumber} · {submission.status}
+            </p>
+          </div>
+          <GrantAttemptActions
+            assessmentId={assignment.assessmentId}
+            learnerProfileId={submission.learner.id}
+            learnerName={submission.learner.name}
+            assessmentTitle={assignment.title}
+          />
         </div>
       </div>
 

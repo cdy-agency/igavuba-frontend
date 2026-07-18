@@ -8,11 +8,16 @@ export const learningQueryKeys = {
   course: (slug: string) => ['learning', 'course', slug] as const,
 };
 
-export function useLearningCourse(slug: string, enabled = true) {
+export function useLearningCourse(
+  slug: string,
+  enabled = true,
+  options?: { fresh?: boolean },
+) {
   return useQuery<LearningCourse>({
     queryKey: learningQueryKeys.course(slug),
     queryFn: () => getLearningCourse(slug),
     enabled: Boolean(slug) && enabled,
-    staleTime: 60_000,
+    staleTime: options?.fresh ? 0 : 60_000,
+    refetchOnMount: options?.fresh ? 'always' : true,
   });
 }

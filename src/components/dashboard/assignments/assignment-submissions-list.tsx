@@ -10,6 +10,10 @@ import {
 import type { LecturerAssignmentSubmission } from '@/types/assignment-submission.types';
 import { buildAssessmentsPath } from '@/lib/course-builder-navigation';
 import { AssignmentSubmissionStatus } from '@/types/assignment.types';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatDate(value: string | null) {
   if (!value) return '—';
@@ -120,14 +124,14 @@ export function AssignmentSubmissionsList({ assignmentId }: { assignmentId: stri
                       {formatDate(submission.publishedAt)}
                     </td>
                     <td className="px-4 py-3">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Review submission"
+                          icon={Eye}
+                          variant="primary"
                           href={`/dashboard/assignments/${assignmentId}/submissions/${submission.id}`}
-                        >
-                          <Eye className="mr-1 h-3.5 w-3.5" />
-                          Review
-                        </Link>
-                      </Button>
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

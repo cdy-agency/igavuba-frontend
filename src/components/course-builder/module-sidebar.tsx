@@ -50,13 +50,9 @@ import {
   useCourseBuilder,
   type LessonCreateType,
 } from '@/components/course-builder/course-builder-context';
-import {
-  useCourseModules,
-  useCreateModule,
-  useDeleteModule,
-  useReorderModules,
-  useUpdateModule,
-} from '@/hooks/use-course-modules';
+import { useCourseModules, useCreateModule, useDeleteModule, useReorderModules, useUpdateModule } from '@/hooks/use-course-modules';
+import { useCourseAcademicPolicy } from '@/hooks/use-academic';
+import type { CourseAcademicPolicyAssessment } from '@/types/academic.types';
 import {
   useDetachContent,
   useModuleContents,
@@ -68,6 +64,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { useAuthReady } from '@/hooks/use-auth-ready';
 import { CourseFinalExamSection } from '@/components/course-builder/course-final-exam-section';
+import { AcademicRuleBadges } from '@/components/academic/academic-rule-badge';
 
 interface ModuleSidebarProps {
   courseId: string;
@@ -143,12 +140,14 @@ function SortableLessonItem({
   onSelect,
   onDelete,
   readOnly = false,
+  academicAssessment,
 }: {
   item: ModuleContentItem;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
   readOnly?: boolean;
+  academicAssessment?: CourseAcademicPolicyAssessment;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.contentId,
@@ -190,6 +189,14 @@ function SortableLessonItem({
         <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           {label}
         </span>
+        {academicAssessment ? (
+          <AcademicRuleBadges
+            className="mt-1"
+            required={academicAssessment.required}
+            countsTowardCertificate={academicAssessment.countsTowardCertificate}
+            blockProgressUntilPassed={academicAssessment.blockProgressUntilPassed}
+          />
+        ) : null}
       </button>
       {!readOnly ? (
       <button
@@ -266,6 +273,7 @@ function ModuleLessons({
   onSearchMaterials,
   onDeleteModule,
   readOnly = false,
+  academicPolicyByContentId,
 }: {
   moduleId: string;
   selectedContentId: string | null;
@@ -274,6 +282,7 @@ function ModuleLessons({
   onSearchMaterials: () => void;
   onDeleteModule: () => void;
   readOnly?: boolean;
+  academicPolicyByContentId?: Map<string, CourseAcademicPolicyAssessment>;
 }) {
   const { data: contentsData, isPending } = useModuleContents(moduleId);
   const reorderMutation = useReorderModuleContents(moduleId);
@@ -329,6 +338,7 @@ function ModuleLessons({
                   onSelect={() => onSelectContent(item.contentId)}
                   onDelete={() => setLessonToDetach(item)}
                   readOnly={readOnly}
+                  academicAssessment={academicPolicyByContentId?.get(item.contentId)}
                 />
               ))}
             </SortableContext>
@@ -383,6 +393,7 @@ function SortableModuleCard({
   onOpenLessonTypeModal,
   onSearchMaterials,
   readOnly = false,
+  academicPolicyByContentId,
 }: {
   module: CourseModule;
   isExpanded: boolean;
@@ -398,6 +409,7 @@ function SortableModuleCard({
   onOpenLessonTypeModal: () => void;
   onSearchMaterials: () => void;
   readOnly?: boolean;
+  academicPolicyByContentId?: Map<string, CourseAcademicPolicyAssessment>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: module.id,
@@ -475,6 +487,7 @@ function SortableModuleCard({
           onSearchMaterials={onSearchMaterials}
           onDeleteModule={onDelete}
           readOnly={readOnly}
+          academicPolicyByContentId={academicPolicyByContentId}
         />
       ) : null}
     </div>
@@ -495,6 +508,7 @@ function ModuleCardWithCount({
   onOpenLessonTypeModal,
   onSearchMaterials,
   readOnly = false,
+  academicPolicyByContentId,
 }: {
   module: CourseModule;
   isExpanded: boolean;
@@ -509,6 +523,7 @@ function ModuleCardWithCount({
   onOpenLessonTypeModal: () => void;
   onSearchMaterials: () => void;
   readOnly?: boolean;
+  academicPolicyByContentId?: Map<string, CourseAcademicPolicyAssessment>;
 }) {
   const { data: contents } = useModuleContents(module.id, isExpanded);
 
@@ -528,6 +543,7 @@ function ModuleCardWithCount({
       onOpenLessonTypeModal={onOpenLessonTypeModal}
       onSearchMaterials={onSearchMaterials}
       readOnly={readOnly}
+      academicPolicyByContentId={academicPolicyByContentId}
     />
   );
 }
@@ -555,6 +571,14 @@ export function ModuleSidebar({
 
   const authReady = useAuthReady();
   const { data: modulesData, isPending } = useCourseModules(courseId, authReady);
+  const { data: academicPolicy } = useCourseAcademicPolicy(courseSlug, authReady);
+  const academicPolicyByContentId = useMemo(() => {
+    const map = new Map<string, CourseAcademicPolicyAssessment>();
+    for (const assessment of academicPolicy?.assessments ?? []) {
+      map.set(assessment.contentId, assessment);
+    }
+    return map;
+  }, [academicPolicy?.assessments]);
   const createModuleMutation = useCreateModule(courseId);
   const updateModuleMutation = useUpdateModule(courseId);
   const deleteModuleMutation = useDeleteModule(courseId);
@@ -693,6 +717,7 @@ export function ModuleSidebar({
                       onOpenLessonTypeModal={() => handleOpenLessonTypeModal(module.id)}
                       onSearchMaterials={() => handleOpenSearchMaterials(module.id)}
                       readOnly={readOnly}
+                      academicPolicyByContentId={academicPolicyByContentId}
                     />
                   ))}
                 </div>

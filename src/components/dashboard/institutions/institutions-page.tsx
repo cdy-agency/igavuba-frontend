@@ -12,7 +12,7 @@ export function InstitutionsPage() {
       <div className="space-y-8">
         <PageHeader
           title="Institutions"
-          description="Create institutions, invite administrators, and manage access."
+          description="Create and manage institutions."
           badge="Super Admin"
           actions={<CreateInstitutionDialog />}
         />

@@ -12,10 +12,15 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import type { AssignmentListItem } from '@/types/assignment.types';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import {
   buildAssessmentsPath,
   buildCourseBuilderContentPath,
 } from '@/lib/course-builder-navigation';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -75,9 +80,9 @@ export function AssignmentManagementPage({ embedded = false }: { embedded?: bool
                 Create assignments in the course builder, then review and grade submissions here.
               </p>
             </div>
-            <Button asChild>
+            <Button asChild size="sm" className="h-8 shrink-0 px-3 text-xs">
               <Link href="/dashboard/courses">
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
                 Create in Course Builder
               </Link>
             </Button>
@@ -88,9 +93,9 @@ export function AssignmentManagementPage({ embedded = false }: { embedded?: bool
           <p className="text-sm text-muted-foreground">
             Open attached course assignments to edit content, then manage submissions here.
           </p>
-          <Button asChild>
+          <Button asChild size="sm" className="h-8 shrink-0 px-3 text-xs">
             <Link href="/dashboard/courses">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
               Create in Course Builder
             </Link>
           </Button>
@@ -126,7 +131,7 @@ export function AssignmentManagementPage({ embedded = false }: { embedded?: bool
                   <th className="px-4 py-3 font-medium">Due Date</th>
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Created</th>
-                  <th className="px-4 py-3 font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -150,28 +155,25 @@ export function AssignmentManagementPage({ embedded = false }: { embedded?: bool
                     <td className="px-4 py-3">{assignment.status}</td>
                     <td className="px-4 py-3">{formatDate(assignment.createdAt)}</td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/dashboard/assignments/${assignment.id}/submissions`}>
-                            <Users className="mr-1 h-4 w-4" />
-                            Submissions
-                          </Link>
-                        </Button>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={getAssignmentBuilderHref(assignment)}>
-                            <Pencil className="mr-1 h-4 w-4" />
-                            Edit
-                          </Link>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Submissions"
+                          icon={Users}
+                          href={`/dashboard/assignments/${assignment.id}/submissions`}
+                        />
+                        <DashboardActionIconButton
+                          label="Edit"
+                          icon={Pencil}
+                          variant="primary"
+                          href={getAssignmentBuilderHref(assignment)}
+                        />
+                        <DashboardActionIconButton
+                          label="Delete"
+                          icon={Trash2}
+                          variant="destructive"
                           onClick={() => setAssignmentToDelete(assignment)}
-                        >
-                          <Trash2 className="mr-1 h-4 w-4" />
-                          Delete
-                        </Button>
-                      </div>
+                        />
+                      </DashboardActionGroup>
                     </td>
                   </tr>
                 ))}

@@ -19,11 +19,18 @@ export const paymentQueryKeys = {
   detail: (id: string) => ['payments', 'detail', id] as const,
 };
 
-export function useMyPayments(enabled = true) {
+export function useMyPayments(
+  enabled = true,
+  options?: { refetchOnMount?: boolean | 'always' },
+) {
+  const refetchOnMount = options?.refetchOnMount ?? true;
+
   return useQuery({
     queryKey: paymentQueryKeys.my,
     queryFn: getMyPayments,
     enabled,
+    staleTime: refetchOnMount === 'always' ? 0 : 30_000,
+    refetchOnMount,
   });
 }
 
@@ -52,7 +59,7 @@ export function useSubmitPayment() {
       toast.success(response.message || 'Payment proof uploaded successfully.');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
-      queryClient.invalidateQueries({ queryKey: ['learning-course'] });
+      queryClient.invalidateQueries({ queryKey: ['learning'] });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to submit payment proof.'));
@@ -69,6 +76,7 @@ export function useApprovePayment() {
       toast.success(response.message || 'Payment approved successfully.');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+      queryClient.invalidateQueries({ queryKey: ['learning'] });
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to approve payment.'));

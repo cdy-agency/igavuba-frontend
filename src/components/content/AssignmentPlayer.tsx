@@ -102,17 +102,16 @@ export function AssignmentPlayer({
   const canSubmit = attemptsRemaining > 0;
   const latestGrade = history?.latestGrade?.grade;
   const maxScore = history?.maxScore ?? assignmentMeta.maxScore ?? 100;
-  const awaitingReview =
-    attemptsUsed > 0 &&
-    !latestGrade &&
-    history?.submissions?.some(
-      (entry: AssignmentSubmission) =>
-        entry.status === AssignmentSubmissionStatus.SUBMITTED ||
-        entry.status === AssignmentSubmissionStatus.GRADED,
-    );
+  const hasPendingReview = history?.submissions?.some(
+    (entry: AssignmentSubmission) =>
+      entry.status === AssignmentSubmissionStatus.SUBMITTED ||
+      entry.status === AssignmentSubmissionStatus.GRADED,
+  );
+  const awaitingReview = hasPendingReview && !latestGrade;
   const contentCompleted = isCompleted || history?.contentCompleted === true;
   const hasPassed = latestGrade?.passed === true;
   const isFinished = contentCompleted || attemptsUsed > 0 || hasPassed;
+  const showSubmissionForm = canSubmit && !hasPendingReview && !hasPassed;
 
   useEffect(() => {
     if (
@@ -285,7 +284,7 @@ export function AssignmentPlayer({
         </div>
       ) : null}
 
-      {canSubmit ? (
+      {showSubmissionForm ? (
         <div className="space-y-4 rounded-lg border p-5">
           <h3 className="text-lg font-semibold">Submit your work</h3>
 
@@ -349,11 +348,11 @@ export function AssignmentPlayer({
             Submit Assignment
           </Button>
         </div>
-      ) : (
+      ) : !canSubmit && !hasPassed ? (
         <div className="rounded-lg border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
           You have used all available attempts for this assignment.
         </div>
-      )}
+      ) : null}
 
       {history?.submissions?.length ? (
         <div className="space-y-3">

@@ -15,12 +15,34 @@ import { UserRole } from '@/types/enum';
 
 function InstitutionSettingsPanel() {
   const authReady = useAuthReady();
-  const { role } = useDashboard();
+  const { role, user, institution } = useDashboard();
+  const institutionId = user?.institutionId ?? institution?.id ?? null;
   const canUpdate = role === UserRole.INSTITUTION_ADMIN;
-  const { data, isPending, isError } = useInstitutionSettings(authReady);
+  const canFetchSettings =
+    authReady &&
+    Boolean(institutionId) &&
+    (role === UserRole.INSTITUTION_ADMIN || role === UserRole.SUPER_ADMIN);
+  const { data, isPending, isError } = useInstitutionSettings(canFetchSettings);
   const updateSettings = useUpdateInstitutionSettings();
 
-  if (!authReady || isPending) {
+  if (!authReady) {
+    return (
+      <div className="flex min-h-[12rem] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!institutionId) {
+    return (
+      <div className="rounded-lg border border-amber-200/70 bg-amber-50/60 px-4 py-6 text-sm text-amber-950">
+        Institution context is required to view settings. Super admins must operate within an
+        institution context before these settings can be loaded.
+      </div>
+    );
+  }
+
+  if (isPending) {
     return (
       <div className="flex min-h-[12rem] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -58,6 +80,7 @@ function InstitutionSettingsPanel() {
           </div>
           <Switch
             id="require-course-approval"
+            size="default"
             checked={data.requireCourseApproval}
             disabled={!canUpdate || updateSettings.isPending}
             onCheckedChange={(checked) =>

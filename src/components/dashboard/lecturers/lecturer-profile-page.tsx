@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusSwitchCell } from '@/components/data-table/status-switch-cell';
@@ -14,6 +14,7 @@ import {
   getUserStatusLabel,
   isUserActiveStatus,
 } from '@/lib/status-utils';
+import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
 
 function formatPercent(value: number | null) {
   if (value === null || value === undefined) return '—';
@@ -166,9 +167,11 @@ export function LecturerProfilePage({ lecturerId }: { lecturerId: string }) {
       </div>
 
       <div className="flex justify-end">
-        <Button variant="outline" asChild>
-          <Link href="/dashboard/lecturers">Back to lecturers</Link>
-        </Button>
+        <DashboardActionIconButton
+          label="Back to lecturers"
+          icon={ArrowLeft}
+          href="/dashboard/lecturers"
+        />
       </div>
     </div>
   );

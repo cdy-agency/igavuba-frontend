@@ -12,7 +12,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import TiptapEditor from '@/components/editor/TiptapEditor';
+import {
+  AssessmentAcademicRules,
+  defaultAssessmentAcademicRules,
+} from '@/components/academic/assessment-academic-rules';
+import { AssessmentSettingsTabs } from '@/components/academic/assessment-settings-tabs';
+import { AcademicRuleBadges } from '@/components/academic/academic-rule-badge';
 import { useAssignmentDetail, useUpdateAssignment } from '@/hooks/use-assignment';
+import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
 import type { ModuleContentItem } from '@/types/content';
 import type { UpdateAssignmentPayload } from '@/types/assignment.types';
 import { AssignmentSubmissionType } from '@/types/assignment.types';
@@ -106,6 +113,9 @@ export function AssignmentLessonEditor({
     AssignmentSubmissionType.TEXT,
   ]);
   const [isVisible, setIsVisible] = useState(item.content.isPublished);
+  const [academicRules, setAcademicRules] = useState<AssessmentAcademicRulesFormValues>(
+    defaultAssessmentAcademicRules(),
+  );
 
   const updateAssignmentMutation = useUpdateAssignment(assignmentId ?? '', moduleId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -179,6 +189,15 @@ export function AssignmentLessonEditor({
     setShowFeedbackAfterGrading(assignment.showFeedbackAfterGrading);
     setSubmissionTypes(assignment.submissionTypes);
     setIsVisible(assignment.isPublished);
+    setAcademicRules(
+      defaultAssessmentAcademicRules({
+        required: assignment.required ?? true,
+        countsTowardCertificate: assignment.countsTowardCertificate ?? true,
+        blockProgressUntilPassed: assignment.blockProgressUntilPassed ?? false,
+        passingScore: assignment.passingScore,
+        maxAttempts: assignment.maxAttempts,
+      }),
+    );
     lastSavedRef.current = {
       title: assignment.title,
       description: assignment.description ?? '',
@@ -211,13 +230,12 @@ export function AssignmentLessonEditor({
     const payload: UpdateAssignmentPayload = {
       title: current.title.trim(),
       description: current.description.trim() || undefined,
-      passingScore: current.passingScore,
-      maxAttempts: current.maxAttempts,
       dueDate: current.dueDate ? new Date(current.dueDate).toISOString() : null,
       allowLateSubmission: current.allowLateSubmission,
       showFeedbackAfterGrading: current.showFeedbackAfterGrading,
       submissionTypes: current.submissionTypes,
       isPublished: current.isVisible,
+      ...academicRules,
     };
 
     if (includeInstructions) {
@@ -334,99 +352,106 @@ export function AssignmentLessonEditor({
       icon={<FileEdit className="h-4.5 w-4.5 text-yellow-600" strokeWidth={2} />}
       settings={
         <div className="space-y-3">
-          <p className="text-[13px] font-semibold text-foreground">Assignment settings</p>
-          <LessonSettingsGroup>
-            <ContentVisibilityToggle
-              visible={isVisible}
-              disabled={readOnly}
-              onChange={(visible) => {
-                if (readOnly) return;
-                setIsVisible(visible);
-                void updateAssignmentMutation
-                  .mutateAsync({ isPublished: visible })
-                  .then(syncLastSavedFromForm);
-              }}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[13px] font-semibold text-foreground">Assignment configuration</p>
+            <AcademicRuleBadges
+              required={academicRules.required}
+              countsTowardCertificate={academicRules.countsTowardCertificate}
+              blockProgressUntilPassed={academicRules.blockProgressUntilPassed}
             />
-          </LessonSettingsGroup>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label>Passing score (%)</Label>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={passingScore}
-                disabled={readOnly}
-                onChange={(event) => setPassingScore(Number(event.target.value) || 0)}
-                onBlur={readOnly ? undefined : () => scheduleSave()}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Max attempts</Label>
-              <Input
-                type="number"
-                min={1}
-                value={maxAttempts}
-                disabled={readOnly}
-                onChange={(event) => setMaxAttempts(Number(event.target.value) || 1)}
-                onBlur={readOnly ? undefined : () => scheduleSave()}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label>Due date</Label>
-              <Input
-                type="datetime-local"
-                value={dueDate}
-                disabled={readOnly}
-                onChange={(event) => setDueDate(event.target.value)}
-                onBlur={readOnly ? undefined : () => scheduleSave()}
-              />
-            </div>
-            <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
-              <Label>Allow late submission</Label>
-              <Switch
-                checked={allowLateSubmission}
-                disabled={readOnly}
-                onCheckedChange={(checked) => {
+          </div>
+          <AssessmentSettingsTabs
+            settingsContent={
+              <>
+                <LessonSettingsGroup>
+                  <ContentVisibilityToggle
+                    visible={isVisible}
+                    disabled={readOnly}
+                    onChange={(visible) => {
+                      if (readOnly) return;
+                      setIsVisible(visible);
+                      void updateAssignmentMutation
+                        .mutateAsync({ isPublished: visible })
+                        .then(syncLastSavedFromForm);
+                    }}
+                  />
+                </LessonSettingsGroup>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Due date</Label>
+                    <Input
+                      type="datetime-local"
+                      value={dueDate}
+                      disabled={readOnly}
+                      onChange={(event) => setDueDate(event.target.value)}
+                      onBlur={readOnly ? undefined : () => scheduleSave()}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
+                    <Label>Allow late submission</Label>
+                    <Switch
+                      checked={allowLateSubmission}
+                      disabled={readOnly}
+                      onCheckedChange={(checked) => {
+                        if (readOnly) return;
+                        setAllowLateSubmission(checked);
+                        void updateAssignmentMutation
+                          .mutateAsync({ allowLateSubmission: checked })
+                          .then(syncLastSavedFromForm);
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
+                    <Label>Show feedback after grading</Label>
+                    <Switch
+                      checked={showFeedbackAfterGrading}
+                      disabled={readOnly}
+                      onCheckedChange={(checked) => {
+                        if (readOnly) return;
+                        setShowFeedbackAfterGrading(checked);
+                        void updateAssignmentMutation
+                          .mutateAsync({ showFeedbackAfterGrading: checked })
+                          .then(syncLastSavedFromForm);
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Submission types</Label>
+                  {SUBMISSION_TYPE_OPTIONS.map((option) => (
+                    <label key={option.value} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={submissionTypes.includes(option.value)}
+                        disabled={readOnly}
+                        onCheckedChange={(checked) => {
+                          if (readOnly) return;
+                          toggleSubmissionType(option.value, checked === true);
+                        }}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              </>
+            }
+            academicRulesContent={
+              <AssessmentAcademicRules
+                idPrefix={`assignment-${item.contentId}`}
+                values={academicRules}
+                readOnly={readOnly}
+                disabled={updateAssignmentMutation.isPending}
+                onChange={(values) =>
+                  setAcademicRules((current) => ({ ...current, ...values }))
+                }
+                onBlur={() => {
                   if (readOnly) return;
-                  setAllowLateSubmission(checked);
                   void updateAssignmentMutation
-                    .mutateAsync({ allowLateSubmission: checked })
+                    .mutateAsync(academicRules)
                     .then(syncLastSavedFromForm);
                 }}
               />
-            </div>
-            <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
-              <Label>Show feedback after grading</Label>
-              <Switch
-                checked={showFeedbackAfterGrading}
-                disabled={readOnly}
-                onCheckedChange={(checked) => {
-                  if (readOnly) return;
-                  setShowFeedbackAfterGrading(checked);
-                  void updateAssignmentMutation
-                    .mutateAsync({ showFeedbackAfterGrading: checked })
-                    .then(syncLastSavedFromForm);
-                }}
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Submission types</Label>
-            {SUBMISSION_TYPE_OPTIONS.map((option) => (
-              <label key={option.value} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={submissionTypes.includes(option.value)}
-                  disabled={readOnly}
-                  onCheckedChange={(checked) => {
-                    if (readOnly) return;
-                    toggleSubmissionType(option.value, checked === true);
-                  }}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
+            }
+          />
         </div>
       }
     >

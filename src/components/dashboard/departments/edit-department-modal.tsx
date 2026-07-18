@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Pencil } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import {
   Dialog,
@@ -53,26 +53,38 @@ export function EditDepartmentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Department</DialogTitle>
-          <DialogDescription>Update the department name.</DialogDescription>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md sm:rounded-xl">
+        <DialogHeader className="space-y-3 border-b border-border/60 bg-muted/30 px-6 py-5 pr-12">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Pencil className="h-5 w-5" strokeWidth={2} />
+            </span>
+            <div className="space-y-1 pt-0.5">
+              <DialogTitle className="text-lg">Edit department</DialogTitle>
+              <DialogDescription className="text-[13px] leading-relaxed">
+                Update the department name used for lecturers and courses.
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form className="space-y-4" onSubmit={onSubmit}>
+        <form className="space-y-5 px-6 py-5" onSubmit={onSubmit}>
           <div className="space-y-1.5">
-            <Label htmlFor="edit-department-name">Name</Label>
+            <Label htmlFor="edit-department-name">Department name</Label>
             <Input
               id="edit-department-name"
+              placeholder="e.g. Computer Science"
               disabled={updateDepartment.isPending}
               {...form.register('name')}
             />
             {form.formState.errors.name ? (
-              <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+              <p className="text-xs font-medium text-destructive">
+                {form.formState.errors.name.message}
+              </p>
             ) : null}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 border-t border-border/60 px-0 pb-0 pt-1 sm:gap-2">
             <Button
               type="button"
               variant="outline"
@@ -88,7 +100,7 @@ export function EditDepartmentModal({
                   Saving...
                 </>
               ) : (
-                'Save Changes'
+                'Save changes'
               )}
             </Button>
           </DialogFooter>

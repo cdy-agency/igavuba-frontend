@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Play, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { RoleGuard } from '@/guards/role-guard';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,10 @@ import { useAuthReady } from '@/hooks/use-auth-ready';
 import { UserRole } from '@/types/enum';
 import type { PaymentRecord, PaymentRecordStatus } from '@/types/payment';
 import { cn } from '@/lib/utils';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
 import { useState } from 'react';
 
 function formatDate(value: string | null) {
@@ -104,19 +108,23 @@ function StudentPaymentsPanel() {
                   <TableCell>{formatDate(payment.createdAt)}</TableCell>
                   <TableCell className="text-right">
                     {payment.status === 'REJECTED' ? (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setResubmitPayment(payment)}
-                      >
-                        <Upload className="mr-2 h-4 w-4" />
-                        Resubmit
-                      </Button>
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Resubmit payment"
+                          icon={Upload}
+                          variant="primary"
+                          onClick={() => setResubmitPayment(payment)}
+                        />
+                      </DashboardActionGroup>
                     ) : payment.status === 'APPROVED' ? (
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/learn/${payment.course.slug}`}>Continue learning</Link>
-                      </Button>
+                      <DashboardActionGroup className="justify-end">
+                        <DashboardActionIconButton
+                          label="Continue learning"
+                          icon={Play}
+                          variant="primary"
+                          href={`/learn/${payment.course.slug}`}
+                        />
+                      </DashboardActionGroup>
                     ) : null}
                   </TableCell>
                 </TableRow>

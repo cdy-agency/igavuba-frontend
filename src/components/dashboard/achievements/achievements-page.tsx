@@ -10,6 +10,7 @@ import {
   FileText,
   GraduationCap,
   Loader2,
+  Play,
   Target,
   Trophy,
 } from 'lucide-react';
@@ -21,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMyAchievements } from '@/hooks/use-achievements';
 import { useAuthReady } from '@/hooks/use-auth-ready';
 import { UserRole } from '@/types/enum';
+import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
+import { CourseAchievementCertificateProgress } from '@/components/dashboard/achievements/course-achievement-certificate-progress';
 import type {
   AchievementAssessmentItem,
   AchievementAssessmentStatus,
@@ -210,9 +213,14 @@ function CourseMetricsPanel({ course }: { course: CourseAchievement }) {
           />
         </div>
 
-        <Button variant="outline" size="sm" className="mt-3 h-8 w-full text-xs" asChild>
-          <Link href={`/learn/${course.slug}`}>Continue</Link>
-        </Button>
+        <div className="mt-3 flex justify-center">
+          <DashboardActionIconButton
+            label="Continue learning"
+            icon={Play}
+            variant="primary"
+            href={`/learn/${course.slug}`}
+          />
+        </div>
       </div>
     </div>
   );
@@ -380,7 +388,12 @@ function CourseAchievementCard({ course }: { course: CourseAchievement }) {
       </div>
 
       <div className="p-4 sm:p-5">
-        <Tabs defaultValue={defaultTab}>
+        <CourseAchievementCertificateProgress
+          courseSlug={course.slug}
+          courseTitle={course.title}
+        />
+
+        <Tabs defaultValue={defaultTab} className="mt-5">
           <TabsList className="mb-4 h-auto flex-wrap justify-start gap-1 bg-muted/40 p-1">
             <TabsTrigger value="quizzes" className="gap-1.5">
               <Target className="h-3.5 w-3.5" />

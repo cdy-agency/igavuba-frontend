@@ -1,5 +1,6 @@
 import type { CourseLifecycleStatus } from './course-status';
 import type { CourseLanguageCode } from './course-language';
+import type { UpdateCourseAcademicPolicyPayload } from './academic.types';
 
 export enum CourseAccessType {
   INTERNAL_ONLY = 'INTERNAL_ONLY',
@@ -114,6 +115,9 @@ export interface Course {
   institutionSettings?: {
     requireCourseApproval: boolean;
   };
+  requireFinalExam?: boolean;
+  requireAssignments?: boolean;
+  requireAllRequiredAssessments?: boolean;
 }
 
 export interface CourseListQueryParams {
@@ -141,7 +145,7 @@ export interface CreateCoursePayload {
   categoryIds?: string[];
 }
 
-export type UpdateCoursePayload = Partial<CreateCoursePayload>;
+export type UpdateCoursePayload = Partial<CreateCoursePayload> & UpdateCourseAcademicPolicyPayload;
 
 export interface CourseOwnerDetails {
   id: string;

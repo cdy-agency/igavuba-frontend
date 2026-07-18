@@ -2,33 +2,32 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BookOpen, Loader2, Pencil, Search, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { CreateDepartmentModal } from '@/components/dashboard/departments/create-department-modal';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DepartmentIcon } from '@/components/dashboard/departments/department-icon';
 import { EditDepartmentModal } from '@/components/dashboard/departments/edit-department-modal';
+import { DeleteDepartmentDialog } from '@/components/dashboard/departments/delete-department-dialog';
 import { useDashboard } from '@/contexts/dashboard-context';
-import { useDeleteDepartment, useDepartmentsList } from '@/hooks/use-departments';
+import { useDepartmentsList } from '@/hooks/use-departments';
 import type { Department } from '@/types/department.types';
 import { UserRole } from '@/types/enum';
+import {
+  DashboardActionGroup,
+  DashboardActionIconButton,
+} from '@/components/dashboard/dashboard-action-icon-button';
+import { cn } from '@/lib/utils';
 
 export function DepartmentsTable() {
   const { role } = useDashboard();
   const canManage = role === UserRole.INSTITUTION_ADMIN;
+  const isSuperAdmin = role === UserRole.SUPER_ADMIN;
 
   const [searchInput, setSearchInput] = useState('');
   const [searchq, setSearchq] = useState('');
-  const [createOpen, setCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editDepartment, setEditDepartment] = useState<Department | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Department | null>(null);
 
@@ -42,114 +41,151 @@ export function DepartmentsTable() {
     [searchq],
   );
 
-  const { data: departments = [], isPending, isFetching } = useDepartmentsList(queryParams);
-  const deleteDepartment = useDeleteDepartment();
+  const { data: departmentsData, isPending, isFetching } = useDepartmentsList(queryParams);
+  const departments = departmentsData ?? [];
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  const allSelected =
+    departments.length > 0 &&
+    departments.every((row: Department) => selectedIds.includes(row.id));
 
-    await deleteDepartment.mutateAsync(deleteTarget.id);
-    setDeleteTarget(null);
+  const toggleAll = (checked: boolean) => {
+    setSelectedIds(checked ? departments.map((row: Department) => row.id) : []);
+  };
+
+  const toggleOne = (id: string, checked: boolean) => {
+    setSelectedIds((current) =>
+      checked ? [...current, id] : current.filter((value) => value !== id),
+    );
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Input
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search departments..."
-          className="w-full max-w-xs"
-        />
-        {canManage ? (
-          <Button type="button" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Department
-          </Button>
-        ) : null}
-      </div>
+    <>
+      <div className="space-y-4">
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search departments..."
+            className="h-10 pl-9"
+          />
+        </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        {isPending || isFetching ? (
-          <div className="flex min-h-[240px] items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : departments.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-            {canManage
-              ? 'No departments yet. Create one to assign lecturers and courses.'
-              : 'No departments found.'}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="border-b bg-muted/30 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  {role === UserRole.SUPER_ADMIN ? (
-                    <th className="px-4 py-3 font-medium">Institution</th>
-                  ) : null}
-                  <th className="px-4 py-3 font-medium">Lecturers</th>
-                  <th className="px-4 py-3 font-medium">Courses</th>
-                  <th className="px-4 py-3 font-medium">Created</th>
-                  {canManage ? <th className="px-4 py-3 font-medium">Actions</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {departments.map((row: Department) => (
-                  <tr key={row.id} className="border-b last:border-b-0">
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{row.name}</p>
-                      <p className="text-xs text-muted-foreground">{row.slug}</p>
-                    </td>
-                    {role === UserRole.SUPER_ADMIN ? (
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {row.institution?.name ?? '—'}
-                      </td>
+        <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+          {isPending || isFetching ? (
+            <div className="flex min-h-[280px] items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : departments.length === 0 ? (
+            <div className="px-6 py-16 text-center text-sm text-muted-foreground">
+              {canManage
+                ? 'No departments yet. Create one to assign lecturers and courses.'
+                : 'No departments found.'}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="border-b bg-muted/25 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="w-12 px-4 py-3">
+                      <Checkbox
+                        checked={allSelected}
+                        onCheckedChange={(checked) => toggleAll(Boolean(checked))}
+                        aria-label="Select all departments"
+                      />
+                    </th>
+                    <th className="px-4 py-3 font-medium">Name</th>
+                    {isSuperAdmin ? (
+                      <th className="px-4 py-3 font-medium">Institution</th>
                     ) : null}
-                    <td className="px-4 py-3">{row.lecturersCount}</td>
-                    <td className="px-4 py-3">{row.coursesCount}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {format(new Date(row.createdAt), 'MMM d, yyyy')}
-                    </td>
+                    <th className="px-4 py-3 font-medium">Lecturers</th>
+                    <th className="px-4 py-3 font-medium">Courses</th>
+                    <th className="px-4 py-3 font-medium">Created</th>
                     {canManage ? (
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditDepartment(row)}
-                          >
-                            <Pencil className="mr-1 h-3.5 w-3.5" />
-                            Edit
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDeleteTarget(row)}
-                            disabled={
-                              row.coursesCount > 0 || row.lecturersCount > 0
-                            }
-                          >
-                            <Trash2 className="mr-1 h-3.5 w-3.5" />
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
+                      <th className="px-4 py-3 text-right font-medium">Actions</th>
                     ) : null}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {departments.map((row: Department, index: number) => (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        'border-b border-border/60 transition-colors last:border-b-0',
+                        index % 2 === 1 ? 'bg-primary/[0.03]' : 'bg-background',
+                        selectedIds.includes(row.id) && 'bg-primary/[0.06]',
+                      )}
+                    >
+                      <td className="px-4 py-4">
+                        <Checkbox
+                          checked={selectedIds.includes(row.id)}
+                          onCheckedChange={(checked) => toggleOne(row.id, Boolean(checked))}
+                          aria-label={`Select ${row.name}`}
+                        />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex min-w-[12rem] items-center gap-3">
+                          <DepartmentIcon name={row.name} size="sm" />
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold text-foreground">{row.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{row.slug}</p>
+                          </div>
+                        </div>
+                      </td>
+                      {isSuperAdmin ? (
+                        <td className="px-4 py-4 text-muted-foreground">
+                          {row.institution?.name ?? '—'}
+                        </td>
+                      ) : null}
+                      <td className="px-4 py-4">
+                        <Badge
+                          variant="outline"
+                          className="gap-1 border-border/80 bg-muted/30 font-normal"
+                        >
+                          <Users className="h-3 w-3" />
+                          {row.lecturersCount}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4">
+                        <Badge
+                          variant="outline"
+                          className="gap-1 border-border/80 bg-muted/30 font-normal"
+                        >
+                          {row.coursesCount}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                        {format(new Date(row.createdAt), 'MMM d, yyyy')}
+                      </td>
+                      {canManage ? (
+                        <td className="px-4 py-4">
+                          <DashboardActionGroup className="justify-end">
+                            <DashboardActionIconButton
+                              label="Edit"
+                              icon={Pencil}
+                              variant="primary"
+                              onClick={() => setEditDepartment(row)}
+                            />
+                            <DashboardActionIconButton
+                              label="Delete"
+                              icon={Trash2}
+                              variant="destructive"
+                              onClick={() => setDeleteTarget(row)}
+                            />
+                          </DashboardActionGroup>
+                        </td>
+                      ) : null}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {canManage ? (
         <>
-          <CreateDepartmentModal open={createOpen} onOpenChange={setCreateOpen} />
           <EditDepartmentModal
             department={editDepartment}
             open={Boolean(editDepartment)}
@@ -157,36 +193,15 @@ export function DepartmentsTable() {
               if (!open) setEditDepartment(null);
             }}
           />
-          <AlertDialog
+          <DeleteDepartmentDialog
+            department={deleteTarget}
             open={Boolean(deleteTarget)}
             onOpenChange={(open) => {
               if (!open) setDeleteTarget(null);
             }}
-          >
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete department?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete{' '}
-                  <strong>{deleteTarget?.name}</strong>. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel disabled={deleteDepartment.isPending}>
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDelete}
-                  disabled={deleteDepartment.isPending}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  {deleteDepartment.isPending ? 'Deleting...' : 'Delete'}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          />
         </>
       ) : null}
-    </div>
+    </>
   );
 }

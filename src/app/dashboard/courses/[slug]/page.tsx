@@ -1,18 +1,18 @@
 'use client';
 
-import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { RoleGuard } from '@/guards/role-guard';
 import { UserRole } from '@/types/enum';
-import { Button } from '@/components/ui/button';
 import { CourseForm } from '@/components/dashboard/courses/course-form';
 import { CourseFormShell } from '@/components/dashboard/courses/course-form-shell';
 import { CourseOwnerSection } from '@/components/dashboard/courses/course-owner-section';
+import { CourseSubNav } from '@/components/dashboard/courses/course-sub-nav';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { useCourseDetail } from '@/hooks/use-courses';
 import { getApiErrorMessage } from '@/lib/auth';
 import { canEditCourse } from '@/components/dashboard/courses/course-owner-section';
+import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
 
 const COURSE_MANAGER_ROLES = [
   UserRole.SUPER_ADMIN,
@@ -41,12 +41,17 @@ export default function EditCoursePage() {
             <p className="text-sm text-destructive">
               {getApiErrorMessage(error, 'Unable to load course.')}
             </p>
-            <Button asChild variant="outline" size="sm" className="mt-4 h-8 text-xs">
-              <Link href="/dashboard/courses">Return to courses</Link>
-            </Button>
+            <div className="mt-4 flex justify-center">
+              <DashboardActionIconButton
+                label="Return to courses"
+                icon={ArrowLeft}
+                href="/dashboard/courses"
+              />
+            </div>
           </div>
         ) : (
           <div className="space-y-5">
+            <CourseSubNav slug={slug} active="edit" />
             <CourseOwnerSection course={course} />
             {!editable ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

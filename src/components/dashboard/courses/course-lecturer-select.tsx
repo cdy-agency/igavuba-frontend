@@ -15,8 +15,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useLecturersList } from '@/hooks/use-lecturers';
 import { useAuthReady } from '@/hooks/use-auth-ready';
+import { useDashboard } from '@/contexts/dashboard-context';
 import type { LecturerListItem } from '@/types/lecturer.types';
-import { UserStatus } from '@/types/enum';
+import { UserRole, UserStatus } from '@/types/enum';
+import { hasAnyRole } from '@/lib/role-utils';
 import { courseFormSelectTriggerClass } from '@/components/dashboard/courses/course-form-field';
 import { cn } from '@/lib/utils';
 
@@ -53,10 +55,12 @@ export function CourseLecturerSelect({
   showSelectionStatus = true,
 }: CourseLecturerSelectProps) {
   const authReady = useAuthReady();
+  const { role } = useDashboard();
+  const canListLecturers = hasAnyRole(role, [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN]);
   const [open, setOpen] = useState(false);
   const { data: lecturers = [], isPending } = useLecturersList(
     { status: UserStatus.ACTIVE },
-    authReady,
+    authReady && canListLecturers,
   );
 
   const activeLecturers = useMemo(

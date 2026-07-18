@@ -30,6 +30,13 @@ import {
 import type { ModuleContentItem } from '@/types/content';
 import { QuestionType, type Question } from '@/types/question';
 import {
+  AssessmentAcademicRules,
+  defaultAssessmentAcademicRules,
+} from '@/components/academic/assessment-academic-rules';
+import { AssessmentSettingsTabs } from '@/components/academic/assessment-settings-tabs';
+import { AcademicRuleBadges } from '@/components/academic/academic-rule-badge';
+import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
+import {
   createEmptyDraftQuestion,
   defaultQuizSettings,
   questionTypeLabel,
@@ -53,13 +60,14 @@ export function ExamLessonEditor({
 
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
-  const [passingScore, setPassingScore] = useState(70);
-  const [maxAttempts, setMaxAttempts] = useState(1);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
   const [availableTo, setAvailableTo] = useState('');
   const [isVisible, setIsVisible] = useState(item.content.isPublished);
   const [settings, setSettings] = useState(defaultQuizSettings());
+  const [academicRules, setAcademicRules] = useState<AssessmentAcademicRulesFormValues>(
+    defaultAssessmentAcademicRules(),
+  );
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
 
   const updateExamMutation = useUpdateExam(examId ?? '', moduleId);
@@ -72,8 +80,6 @@ export function ExamLessonEditor({
     if (!exam) return;
     setTitle(exam.assessment.title);
     setDescription(exam.assessment.description ?? '');
-    setPassingScore(exam.passingScore);
-    setMaxAttempts(exam.maxAttempts);
     setTimeLimitMinutes(exam.timeLimitMinutes ? String(exam.timeLimitMinutes) : '');
     setAvailableFrom(
       exam.availableFrom ? new Date(exam.availableFrom).toISOString().slice(0, 16) : '',
@@ -81,6 +87,15 @@ export function ExamLessonEditor({
     setAvailableTo(exam.availableTo ? new Date(exam.availableTo).toISOString().slice(0, 16) : '');
     setIsVisible(exam.assessment.content.isPublished);
     setSettings(exam.assessment.settings ?? defaultQuizSettings());
+    setAcademicRules(
+      defaultAssessmentAcademicRules({
+        required: exam.required ?? true,
+        countsTowardCertificate: exam.countsTowardCertificate ?? true,
+        blockProgressUntilPassed: exam.blockProgressUntilPassed ?? false,
+        passingScore: exam.passingScore,
+        maxAttempts: exam.maxAttempts,
+      }),
+    );
   }, [exam]);
 
   const questions: Question[] = exam?.questions ?? [];
@@ -94,14 +109,18 @@ export function ExamLessonEditor({
     await updateExamMutation.mutateAsync({
       title: title.trim(),
       description: description.trim() || undefined,
-      passingScore,
-      maxAttempts,
       timeLimitMinutes: timeLimitMinutes ? Number(timeLimitMinutes) : null,
       availableFrom: availableFrom ? new Date(availableFrom).toISOString() : null,
       availableTo: availableTo ? new Date(availableTo).toISOString() : null,
       isPublished: isVisible,
       settings,
+      ...academicRules,
     });
+  };
+
+  const persistAcademicRules = async (nextRules: AssessmentAcademicRulesFormValues) => {
+    if (readOnly || !examId) return;
+    await updateExamMutation.mutateAsync(nextRules);
   };
 
   const handleAddQuestion = async (type: QuestionType) => {
@@ -159,104 +178,107 @@ export function ExamLessonEditor({
       icon={<ClipboardList className="h-4.5 w-4.5 text-rose-600" strokeWidth={2} />}
       settings={
         <div className="space-y-3">
-          <p className="text-[13px] font-semibold text-foreground">Exam settings</p>
-          <LessonSettingsGroup>
-            <ContentVisibilityToggle
-              visible={isVisible}
-              disabled={readOnly}
-              onChange={(visible) => {
-                if (readOnly) return;
-                setIsVisible(visible);
-                void updateExamMutation.mutateAsync({ isPublished: visible });
-              }}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[13px] font-semibold text-foreground">Exam configuration</p>
+            <AcademicRuleBadges
+              required={academicRules.required}
+              countsTowardCertificate={academicRules.countsTowardCertificate}
+              blockProgressUntilPassed={academicRules.blockProgressUntilPassed}
             />
-          </LessonSettingsGroup>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor={`exam-passing-${item.contentId}`}>Passing score (%)</Label>
-              <Input
-                id={`exam-passing-${item.contentId}`}
-                type="number"
-                min={0}
-                max={100}
-                value={passingScore}
-                onChange={(event) => setPassingScore(Number(event.target.value) || 0)}
-                onBlur={readOnly ? undefined : persistExamMeta}
-                disabled={readOnly}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`exam-attempts-${item.contentId}`}>Max attempts</Label>
-              <Input
-                id={`exam-attempts-${item.contentId}`}
-                type="number"
-                min={1}
-                value={maxAttempts}
-                onChange={(event) => setMaxAttempts(Number(event.target.value) || 1)}
-                onBlur={readOnly ? undefined : persistExamMeta}
-                disabled={readOnly}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor={`exam-time-${item.contentId}`}>Time limit (minutes)</Label>
-              <Input
-                id={`exam-time-${item.contentId}`}
-                type="number"
-                min={1}
-                value={timeLimitMinutes}
-                onChange={(event) => setTimeLimitMinutes(event.target.value)}
-                onBlur={readOnly ? undefined : persistExamMeta}
-                disabled={readOnly}
-                placeholder="Optional"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`exam-from-${item.contentId}`}>Available from</Label>
-              <Input
-                id={`exam-from-${item.contentId}`}
-                type="datetime-local"
-                value={availableFrom}
-                onChange={(event) => setAvailableFrom(event.target.value)}
-                onBlur={readOnly ? undefined : persistExamMeta}
-                disabled={readOnly}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`exam-to-${item.contentId}`}>Available to</Label>
-              <Input
-                id={`exam-to-${item.contentId}`}
-                type="datetime-local"
-                value={availableTo}
-                onChange={(event) => setAvailableTo(event.target.value)}
-                onBlur={readOnly ? undefined : persistExamMeta}
-                disabled={readOnly}
-              />
-            </div>
-            {(
-              [
-                ['showResults', 'Show results'],
-                ['showCorrectAnswers', 'Show correct answers'],
-                ['shuffleQuestions', 'Shuffle questions'],
-                ['shuffleOptions', 'Shuffle options'],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="flex items-center justify-between rounded-md border px-3 py-2">
-                <Label htmlFor={`exam-${key}-${item.contentId}`}>{label}</Label>
-                <Switch
-                  id={`exam-${key}-${item.contentId}`}
-                  checked={settings[key]}
-                  disabled={readOnly}
-                  onCheckedChange={(checked) => {
-                    if (readOnly) return;
-                    setSettings((current) => ({ ...current, [key]: checked }));
-                    void updateExamMutation.mutateAsync({
-                      settings: { ...settings, [key]: checked },
-                    });
-                  }}
-                />
-              </div>
-            ))}
           </div>
+          <AssessmentSettingsTabs
+            settingsContent={
+              <>
+                <LessonSettingsGroup>
+                  <ContentVisibilityToggle
+                    visible={isVisible}
+                    disabled={readOnly}
+                    onChange={(visible) => {
+                      if (readOnly) return;
+                      setIsVisible(visible);
+                      void updateExamMutation.mutateAsync({ isPublished: visible });
+                    }}
+                  />
+                </LessonSettingsGroup>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label htmlFor={`exam-time-${item.contentId}`}>Time limit (minutes)</Label>
+                    <Input
+                      id={`exam-time-${item.contentId}`}
+                      type="number"
+                      min={1}
+                      value={timeLimitMinutes}
+                      onChange={(event) => setTimeLimitMinutes(event.target.value)}
+                      onBlur={readOnly ? undefined : persistExamMeta}
+                      disabled={readOnly}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`exam-from-${item.contentId}`}>Available from</Label>
+                    <Input
+                      id={`exam-from-${item.contentId}`}
+                      type="datetime-local"
+                      value={availableFrom}
+                      onChange={(event) => setAvailableFrom(event.target.value)}
+                      onBlur={readOnly ? undefined : persistExamMeta}
+                      disabled={readOnly}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`exam-to-${item.contentId}`}>Available to</Label>
+                    <Input
+                      id={`exam-to-${item.contentId}`}
+                      type="datetime-local"
+                      value={availableTo}
+                      onChange={(event) => setAvailableTo(event.target.value)}
+                      onBlur={readOnly ? undefined : persistExamMeta}
+                      disabled={readOnly}
+                    />
+                  </div>
+                  {(
+                    [
+                      ['showResults', 'Show results'],
+                      ['showCorrectAnswers', 'Show correct answers'],
+                      ['shuffleQuestions', 'Shuffle questions'],
+                      ['shuffleOptions', 'Shuffle options'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between rounded-md border px-3 py-2"
+                    >
+                      <Label htmlFor={`exam-${key}-${item.contentId}`}>{label}</Label>
+                      <Switch
+                        id={`exam-${key}-${item.contentId}`}
+                        checked={settings[key]}
+                        disabled={readOnly}
+                        onCheckedChange={(checked) => {
+                          if (readOnly) return;
+                          setSettings((current) => ({ ...current, [key]: checked }));
+                          void updateExamMutation.mutateAsync({
+                            settings: { ...settings, [key]: checked },
+                          });
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            }
+            academicRulesContent={
+              <AssessmentAcademicRules
+                idPrefix={`exam-${item.contentId}`}
+                values={academicRules}
+                readOnly={readOnly}
+                disabled={updateExamMutation.isPending}
+                onChange={(values) =>
+                  setAcademicRules((current) => ({ ...current, ...values }))
+                }
+                onBlur={() => void persistAcademicRules(academicRules)}
+              />
+            }
+          />
         </div>
       }
     >
