@@ -1,6 +1,7 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { DashboardStubPage } from '@/components/dashboard/dashboard-stub-page';
 import { InstitutionAdminsPage } from '@/components/dashboard/institution-admins/institution-admins-page';
 import { InstitutionsPage } from '@/components/dashboard/institutions/institutions-page';
@@ -83,5 +84,23 @@ export default function DashboardSectionPage() {
     return <StudentsPage />;
   }
 
+  if (section === 'certificates') {
+    return <CertificatesRedirect />;
+  }
+
   return <DashboardStubPage section={section} />;
+}
+
+function CertificatesRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/certificate/builder');
+  }, [router]);
+
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  );
 }

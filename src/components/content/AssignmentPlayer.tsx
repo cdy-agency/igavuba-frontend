@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Calendar, CheckCircle2, ExternalLink, Loader2, Trash2, Upload } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle2, ExternalLink, Loader2, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,6 +43,7 @@ interface AssignmentPlayerProps {
   onComplete?: () => void;
   onContinue?: () => void;
   onProgressUpdated?: (progress: number) => void;
+  continueBlockMessage?: string | null;
 }
 
 function formatDueDate(value: string | null) {
@@ -71,6 +72,7 @@ export function AssignmentPlayer({
   onComplete,
   onContinue,
   onProgressUpdated,
+  continueBlockMessage,
 }: AssignmentPlayerProps) {
   const { data: history, isPending } = useMyAssignmentSubmissions(
     assignmentId,
@@ -88,6 +90,7 @@ export function AssignmentPlayer({
   const [linkUrl, setLinkUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [continueError, setContinueError] = useState<string | null>(null);
   const [submissionToDelete, setSubmissionToDelete] = useState<AssignmentSubmission | null>(
     null,
   );
@@ -98,7 +101,6 @@ export function AssignmentPlayer({
   );
 
   const attemptsRemaining = history?.attemptsRemaining ?? assignmentMeta.maxAttempts;
-  const attemptsUsed = history?.attemptsUsed ?? 0;
   const canSubmit = attemptsRemaining > 0;
   const latestGrade = history?.latestGrade?.grade;
   const maxScore = history?.maxScore ?? assignmentMeta.maxScore ?? 100;
@@ -110,18 +112,38 @@ export function AssignmentPlayer({
   const awaitingReview = hasPendingReview && !latestGrade;
   const contentCompleted = isCompleted || history?.contentCompleted === true;
   const hasPassed = latestGrade?.passed === true;
-  const isFinished = contentCompleted || attemptsUsed > 0 || hasPassed;
+  const hasSubmitted = (history?.submissions?.length ?? 0) > 0;
   const showSubmissionForm = canSubmit && !hasPendingReview && !hasPassed;
+  const lastReportedProgressRef = useRef<number | null>(null);
+  const onProgressUpdatedRef = useRef(onProgressUpdated);
+  onProgressUpdatedRef.current = onProgressUpdated;
+
+  useEffect(() => {
+    if (continueBlockMessage) {
+      setContinueError(continueBlockMessage);
+    }
+  }, [continueBlockMessage, assignmentId]);
+
+  useEffect(() => {
+    lastReportedProgressRef.current = null;
+  }, [assignmentId]);
 
   useEffect(() => {
     if (
-      history?.contentCompleted &&
-      history.courseProgress !== undefined &&
-      onProgressUpdated
+      !history?.contentCompleted ||
+      history.courseProgress === undefined ||
+      !onProgressUpdatedRef.current
     ) {
-      onProgressUpdated(history.courseProgress);
+      return;
     }
-  }, [history?.contentCompleted, history?.courseProgress, onProgressUpdated]);
+
+    if (lastReportedProgressRef.current === history.courseProgress) {
+      return;
+    }
+
+    lastReportedProgressRef.current = history.courseProgress;
+    onProgressUpdatedRef.current(history.courseProgress);
+  }, [history?.contentCompleted, history?.courseProgress]);
 
   const handleFileUpload = async (file: File | null) => {
     if (!file) return;
@@ -153,6 +175,7 @@ export function AssignmentPlayer({
     }
 
     setFormError(null);
+    setContinueError(null);
 
     try {
       const response = await submitAssignment.mutateAsync({
@@ -173,11 +196,19 @@ export function AssignmentPlayer({
 
   const handleContinue = () => {
     if (contentCompleted) {
+      setContinueError(null);
       onContinue?.();
       return;
     }
 
-    if (isFinished && onComplete) {
+    if (!hasSubmitted) {
+      setContinueError('Submit this assignment before continuing to the next lesson.');
+      return;
+    }
+
+    setContinueError(null);
+
+    if (onComplete) {
       onComplete();
       return;
     }
@@ -415,6 +446,16 @@ export function AssignmentPlayer({
               ) : null}
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {continueError ? (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{continueError}</p>
         </div>
       ) : null}
 

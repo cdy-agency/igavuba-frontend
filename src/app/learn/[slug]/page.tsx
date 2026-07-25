@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import CourseHeader from '@/components/learn/CourseHeader';
@@ -31,11 +31,8 @@ import type { AugmentedModule, LessonItem, LessonSummary } from '@/types/learnin
 import { PaymentUploadDialog } from '@/components/payments/payment-upload-dialog';
 import { PaymentPendingDialog } from '@/components/payments/payment-pending-dialog';
 import { useMyPayments } from '@/hooks/use-payments';
-import { useCourseCertificateEligibility } from '@/hooks/use-academic';
-import { BlockedProgressCard } from '@/components/academic/blocked-progress-card';
-import { buildBlockedProgressDetails, parseProgressBlockMessage } from '@/lib/academic-utils';
+import { parseProgressBlockMessage } from '@/lib/academic-utils';
 import { getApiErrorMessage } from '@/lib/auth';
-import type { BlockedProgressDetails } from '@/types/academic.types';
 import { toast } from '@/lib/toast';
 
 type LockedAugmentedModule = AugmentedModule & { locked?: boolean };
@@ -51,7 +48,6 @@ export default function LearningPlayerPage() {
   });
   const courseId = learningCourse?.id ?? '';
   const { data: resumeData } = useCourseResumeProgress(courseId, Boolean(courseId));
-  const { data: certificateEligibility } = useCourseCertificateEligibility(slug ?? '', undefined, Boolean(slug));
 
   const startContentProgress = useStartContentProgress(courseId, slug);
   const completeContentProgress = useCompleteContentProgress(courseId, slug);
@@ -66,7 +62,10 @@ export default function LearningPlayerPage() {
   const [paymentPendingDialogOpen, setPaymentPendingDialogOpen] = useState(false);
   const [courseAcknowledged, setCourseAcknowledged] = useState(false);
   const [finalExamCompleted, setFinalExamCompleted] = useState(false);
-  const [blockedProgress, setBlockedProgress] = useState<BlockedProgressDetails | null>(null);
+  const [assignmentContinueBlock, setAssignmentContinueBlock] = useState<{
+    contentId: string;
+    message: string;
+  } | null>(null);
   const selectedLessonRef = useRef<LessonSummary | undefined>(undefined);
   const lastStartedContentIdRef = useRef<string | null>(null);
   const paymentPromptShownRef = useRef(false);
@@ -372,18 +371,26 @@ export default function LearningPlayerPage() {
     tryNavigateToLesson(adjacentLesson);
   };
 
-  const markLessonInState = (contentId: string, moduleId: string, progress: number) => {
-    setEnrollmentProgress(progress);
+  const markLessonInState = useCallback((contentId: string, moduleId: string, progress: number) => {
+    setEnrollmentProgress((current) => (current === progress ? current : progress));
 
     if (learningCourse?.finalExam?.id === contentId) {
       setFinalExamCompleted(true);
       setSelectedLesson((prev) =>
-        prev && prev.id === contentId ? { ...prev, completed: true } : prev,
+        prev && prev.id === contentId && !prev.completed ? { ...prev, completed: true } : prev,
       );
       return;
     }
 
     setModules((prev) => {
+      const targetLesson = prev
+        .flatMap((module) => module.lessons ?? [])
+        .find((lesson) => lesson.id === contentId);
+
+      if (targetLesson?.completed) {
+        return prev;
+      }
+
       const updated = prev.map((module) =>
         module.id === moduleId
           ? {
@@ -397,9 +404,16 @@ export default function LearningPlayerPage() {
       return computeLocked(updated);
     });
     setSelectedLesson((prev) =>
-      prev && prev.id === contentId ? { ...prev, completed: true } : prev,
+      prev && prev.id === contentId && !prev.completed ? { ...prev, completed: true } : prev,
     );
-  };
+  }, [learningCourse?.finalExam?.id]);
+
+  const handleQuizProgressUpdated = useCallback(
+    (contentId: string, moduleId: string, progress: number) => {
+      markLessonInState(contentId, moduleId, progress);
+    },
+    [markLessonInState],
+  );
 
   const markLessonComplete = async () => {
     if (!selectedLesson?.id) return;
@@ -464,9 +478,22 @@ export default function LearningPlayerPage() {
       }
       const assessmentTitle = parseProgressBlockMessage(message);
       if (assessmentTitle) {
-        setBlockedProgress(
-          buildBlockedProgressDetails(assessmentTitle, certificateEligibility),
-        );
+        const assessmentLesson = modules
+          .flatMap((module) => module.lessons ?? [])
+          .find(
+            (lesson) =>
+              lesson.title === assessmentTitle ||
+              lesson.title.includes(assessmentTitle) ||
+              assessmentTitle.includes(lesson.title),
+          );
+
+        if (assessmentLesson) {
+          setAssignmentContinueBlock({
+            contentId: assessmentLesson.id,
+            message: `${assessmentTitle} must be submitted before continuing.`,
+          });
+          setSelectedLesson(assessmentLesson);
+        }
         return;
       }
     }
@@ -572,7 +599,7 @@ export default function LearningPlayerPage() {
               }
 
               setSelectedLesson(summary);
-              setBlockedProgress(null);
+              setAssignmentContinueBlock(null);
               if (isMobile) setSidebarOpen(false);
             }}
             courseLockedEnabled={!isPreviewAccess}
@@ -618,9 +645,7 @@ export default function LearningPlayerPage() {
                 onNext={() => navigateLesson('next')}
                 onComplete={markLessonComplete}
                 onAutoComplete={markLessonComplete}
-                onQuizProgressUpdated={(contentId, moduleId, progress) => {
-                  markLessonInState(contentId, moduleId, progress);
-                }}
+                onQuizProgressUpdated={handleQuizProgressUpdated}
                 sidebarOpen={sidebarOpen}
                 onCloseSidebar={() => setSidebarOpen(false)}
                 courseId={courseId}
@@ -638,28 +663,12 @@ export default function LearningPlayerPage() {
                 courseCurrency={learningCourse.publicCurrency ?? learningCourse.access.currency}
                 showPayToContinue={showPayToContinue}
                 onPayToContinue={handlePayToContinue}
+                assignmentContinueBlockMessage={
+                  assignmentContinueBlock?.contentId === selectedLesson.id
+                    ? assignmentContinueBlock.message
+                    : null
+                }
               />
-              {blockedProgress ? (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/95 p-6 dark:bg-gray-900/95">
-                  <BlockedProgressCard
-                    details={blockedProgress}
-                    onRetry={() => setBlockedProgress(null)}
-                    onGoToAssessment={
-                      blockedProgress.assessmentContentId
-                        ? () => {
-                            const assessmentLesson = modules
-                              .flatMap((module) => module.lessons ?? [])
-                              .find((lesson) => lesson.id === blockedProgress.assessmentContentId);
-                            if (assessmentLesson) {
-                              setBlockedProgress(null);
-                              setSelectedLesson(assessmentLesson);
-                            }
-                          }
-                        : undefined
-                    }
-                  />
-                </div>
-              ) : null}
             </div>
           ) : null}
         </main>

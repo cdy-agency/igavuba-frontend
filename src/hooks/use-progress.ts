@@ -10,6 +10,7 @@ import {
 } from '@/api/progress.api';
 import { enrollmentQueryKeys } from '@/hooks/use-enrollment';
 import { learningQueryKeys } from '@/hooks/use-learning';
+import { isProgressBlockMessage } from '@/lib/academic-utils';
 import { getApiErrorMessage } from '@/lib/auth';
 import { isPaymentEnrollmentError } from '@/lib/learn-payment-gate';
 import { toast } from '@/lib/toast';
@@ -86,7 +87,7 @@ export function useCompleteContentProgress(courseId: string, courseSlug?: string
     },
     onError: (error) => {
       const message = getApiErrorMessage(error);
-      if (isPaymentEnrollmentError(message)) {
+      if (isPaymentEnrollmentError(message) || isProgressBlockMessage(message)) {
         return;
       }
       toast.error(getApiErrorMessage(error, 'Unable to mark lesson as complete.'));

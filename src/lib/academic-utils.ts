@@ -23,6 +23,10 @@ export function parseProgressBlockMessage(message: string | undefined) {
   return null;
 }
 
+export function isProgressBlockMessage(message: string | undefined) {
+  return parseProgressBlockMessage(message) !== null;
+}
+
 export function buildBlockedProgressDetails(
   assessmentTitle: string,
   eligibility?: CertificateEligibilityResult,

@@ -307,6 +307,7 @@ interface Props {
   courseCurrency?: string | null;
   showPayToContinue?: boolean;
   onPayToContinue?: () => void;
+  assignmentContinueBlockMessage?: string | null;
 }
 
 const PAYMENT_SUPPORT_EMAIL = 'info@cdyagency.com';
@@ -335,6 +336,7 @@ const LessonContent = ({
   courseCurrency,
   showPayToContinue = false,
   onPayToContinue,
+  assignmentContinueBlockMessage,
 }: Props) => {
   const { viewerState, openViewer, closeViewer } = useDocumentViewer();
   const [hasReachedBottom, setHasReachedBottom] = useState(false);
@@ -465,6 +467,7 @@ const LessonContent = ({
     return (
       <CourseCompletionPage
         courseId={courseId}
+        courseSlug={courseSlug}
         userId={userId}
         courseTitle={courseTitle}
         enrollmentId={enrollmentId}
@@ -562,6 +565,7 @@ const LessonContent = ({
                 isCompleted={isCompleted}
                 onComplete={onComplete}
                 onContinue={() => onNext?.()}
+                continueBlockMessage={assignmentContinueBlockMessage}
                 onProgressUpdated={(progress) => {
                   const moduleId = String(lesson?.raw?.moduleId || '');
                   if (lesson?.id && moduleId) {

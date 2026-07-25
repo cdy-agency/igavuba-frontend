@@ -112,6 +112,11 @@ export interface Course {
   skills: CourseSkill[];
   tools: CourseTool[];
   categories?: Array<{ category: CourseCategorySummary }>;
+  certificateTemplateId?: string | null;
+  certificateTemplate?: {
+    id: string;
+    title: string;
+  } | null;
   institutionSettings?: {
     requireCourseApproval: boolean;
   };

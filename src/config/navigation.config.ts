@@ -38,7 +38,7 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/grades',
   '/dashboard/enrollments',
   '/dashboard/payments',
-  '/dashboard/certificates',
+  '/certificate/builder',
   '/dashboard/lecturers',
   '/dashboard/students',
   '/dashboard/reports',
@@ -130,7 +130,7 @@ export const navigationConfig: NavigationItem[] = [
   },
   {
     title: 'Certificates',
-    href: '/dashboard/certificates',
+    href: '/certificate/builder',
     icon: Award,
     roles: [UserRole.INSTITUTION_ADMIN, UserRole.LECTURER, UserRole.LEARNER],
     section: 'main',
@@ -233,6 +233,7 @@ export const NAVIGATION_CHILD_ROUTES: Record<string, string[]> = {
     '/dashboard/assignments',
   ],
   '/dashboard/courses': ['/dashboard/course-builder'],
+  '/certificate/builder': ['/certificate/link-certificate'],
 };
 
 function resolveSection(item: NavigationItem): NavigationSection {
@@ -371,9 +372,9 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     title: 'Payments',
     description: 'Review payment proofs or track your course payment submissions.',
   },
-  '/dashboard/certificates': {
-    title: 'Certificates',
-    description: 'Issue and manage learning certificates.',
+  '/certificate/builder': {
+    title: 'Certificate Builder',
+    description: 'Design certificate templates and assign them to your courses.',
   },
   '/dashboard/lecturers': {
     title: 'Lecturers',
