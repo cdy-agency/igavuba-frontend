@@ -11,6 +11,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +64,8 @@ export function EditInstitutionModal({
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
+  const [activeTab, setActiveTab] = useState('details');
+  const [adminToRemove, setAdminToRemove] = useState<InstitutionAdminSummary | null>(null);
 
   useEffect(() => {
     if (!institution || !open) return;
@@ -63,6 +75,8 @@ export function EditInstitutionModal({
     setLogoFile(null);
     setAdminName('');
     setAdminEmail('');
+    setActiveTab('details');
+    setAdminToRemove(null);
   }, [institution, open]);
 
   const handleSaveDetails = async () => {
@@ -82,10 +96,10 @@ export function EditInstitutionModal({
   };
 
   const handleInviteAdmin = async () => {
-    if (!adminName.trim() || !adminEmail.trim()) return;
+    if (!adminEmail.trim()) return;
 
     await inviteAdmin.mutateAsync({
-      name: adminName.trim(),
+      ...(adminName.trim() ? { name: adminName.trim() } : {}),
       email: adminEmail.trim(),
     });
 
@@ -93,11 +107,19 @@ export function EditInstitutionModal({
     setAdminEmail('');
   };
 
+  const handleRemoveAdmin = async () => {
+    if (!adminToRemove) return;
+
+    await removeAdmin.mutateAsync(adminToRemove.id);
+    setAdminToRemove(null);
+  };
+
   const isSaving = updateInstitution.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[90vh] w-[calc(100vw-2rem)] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:rounded-xl">
         <DialogHeader className="shrink-0 border-b px-6 py-5 pr-12">
           <DialogTitle>Edit institution</DialogTitle>
           <DialogDescription>Update the institution details.</DialogDescription>
@@ -108,7 +130,7 @@ export function EditInstitutionModal({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <Tabs defaultValue="details" className="flex min-h-0 flex-1 flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex min-h-0 flex-1 flex-col">
             <TabsList className="mx-6 mt-4 h-auto w-auto justify-start rounded-none border-b bg-transparent p-0">
               <TabsTrigger
                 value="details"
@@ -191,7 +213,7 @@ export function EditInstitutionModal({
                     <Input
                       value={adminName}
                       onChange={(event) => setAdminName(event.target.value)}
-                      placeholder="Full name"
+                      placeholder="Full name (optional)"
                     />
                     <Input
                       type="email"
@@ -203,7 +225,7 @@ export function EditInstitutionModal({
                   <Button
                     type="button"
                     className="mt-3"
-                    disabled={inviteAdmin.isPending || !adminName.trim() || !adminEmail.trim()}
+                    disabled={inviteAdmin.isPending || !adminEmail.trim()}
                     onClick={() => void handleInviteAdmin()}
                   >
                     {inviteAdmin.isPending ? (
@@ -245,7 +267,7 @@ export function EditInstitutionModal({
                             icon={Trash2}
                             variant="destructive"
                             disabled={removeAdmin.isPending}
-                            onClick={() => void removeAdmin.mutateAsync(admin.id)}
+                            onClick={() => setAdminToRemove(admin)}
                           />
                         </div>
                       </div>
@@ -255,26 +277,73 @@ export function EditInstitutionModal({
               </div>
             </TabsContent>
 
-            <DialogFooter className="shrink-0 border-t px-6 py-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={isSaving || !name.trim() || !abbreviation.trim()}
-                onClick={() =>
-                  void handleSaveDetails().catch((error) => {
-                    toast.error(getApiErrorMessage(error, 'Failed to save institution'));
-                  })
-                }
-              >
-                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Update institution
-              </Button>
-            </DialogFooter>
+            {activeTab === 'details' ? (
+              <DialogFooter className="shrink-0 border-t px-6 py-4">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  disabled={isSaving || !name.trim() || !abbreviation.trim()}
+                  onClick={() =>
+                    void handleSaveDetails().catch((error) => {
+                      toast.error(getApiErrorMessage(error, 'Failed to save institution'));
+                    })
+                  }
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating institution...
+                    </>
+                  ) : (
+                    'Update institution'
+                  )}
+                </Button>
+              </DialogFooter>
+            ) : null}
           </Tabs>
         )}
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog
+        open={Boolean(adminToRemove)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !removeAdmin.isPending) {
+            setAdminToRemove(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove institution admin</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove{' '}
+              <span className="font-medium text-foreground">
+                {adminToRemove?.name || adminToRemove?.email}
+              </span>{' '}
+              from this institution? This will revoke their institution admin access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeAdmin.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeAdmin.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleRemoveAdmin();
+              }}
+            >
+              {removeAdmin.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Remove admin
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

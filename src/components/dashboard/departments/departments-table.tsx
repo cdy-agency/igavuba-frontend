@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { BookOpen, Loader2, Pencil, Search, Trash2, Users } from 'lucide-react';
+import { BookOpen, Pencil, Search, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import {
   DashboardActionGroup,
   DashboardActionIconButton,
 } from '@/components/dashboard/dashboard-action-icon-button';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { cn } from '@/lib/utils';
 
 export function DepartmentsTable() {
@@ -73,9 +74,7 @@ export function DepartmentsTable() {
 
         <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
           {isPending || isFetching ? (
-            <div className="flex min-h-[280px] items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <DashboardTableLoadingSkeleton columnCount={6} rowCount={4} showPagination={false} />
           ) : departments.length === 0 ? (
             <div className="px-6 py-16 text-center text-sm text-muted-foreground">
               {canManage

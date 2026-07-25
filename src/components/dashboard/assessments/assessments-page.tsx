@@ -10,7 +10,6 @@ import { ExamManagementPage } from '@/components/dashboard/exams/exam-management
 import { AssignmentManagementPage } from '@/components/dashboard/assignments/assignment-management-page';
 
 const ASSESSMENT_MANAGER_ROLES = [
-  UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

@@ -11,6 +11,7 @@ import type {
   ListLecturersQuery,
   VerifyLecturerInvitationData,
 } from '@/types/lecturer.types';
+import type { PaginatedResponse } from '@/types/pagination';
 import { UserStatus } from '@/types/enum';
 
 type PublicAuthConfig = AxiosRequestConfig & { skipAuthRefresh?: boolean };
@@ -41,11 +42,10 @@ export async function activateLecturer(payload: ActivateLecturerPayload) {
   return response.data;
 }
 export async function listLecturers(params?: ListLecturersQuery) {
-  const response = await apiClient.get<LecturerMutationResponse<LecturerListItem[]>>(
-    '/lecturers',
-    { params },
-  );
-  return response.data.data;
+  const response = await apiClient.get<PaginatedResponse<LecturerListItem>>('/lecturers', {
+    params,
+  });
+  return response.data;
 }
 
 export async function listLecturerDepartments() {

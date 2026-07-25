@@ -732,17 +732,34 @@ html:has(.course-builder-layout-shell) body {
   }
 
   .dashboard-rail-nav-item {
-    @apply relative flex w-full flex-col items-center justify-center gap-1 px-1 py-3 text-white/75 transition-colors duration-150;
+    @apply relative flex w-full flex-col items-center justify-center gap-1 px-1 py-3 transition-colors duration-150;
+    color: var(--sidebar-foreground);
+    opacity: 0.75;
+  }
+
+  .dashboard-rail-nav-item--mobile {
+    @apply flex-row items-center justify-start gap-3 px-4 py-3;
+    text-align: left;
+    border-radius: 0.75rem;
+  }
+
+  .dashboard-rail-nav-item--mobile .dashboard-rail-nav-label {
+    @apply min-w-0 truncate;
   }
 
   .dashboard-rail-nav-item:hover {
     background: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
+    opacity: 1;
   }
 
   .dashboard-rail-nav-item--active {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
+    background: rgba(255, 255, 255, 0.18);
+    color: var(--sidebar-foreground);
+    opacity: 1;
+  }
+
+  .dashboard-rail-nav-item--active::before {
+    background: var(--primary);
   }
 
   .dashboard-rail-nav-item--active::before {
@@ -761,12 +778,13 @@ html:has(.course-builder-layout-shell) body {
   }
 
   .dashboard-rail-toggle {
-    @apply flex w-full flex-col items-center justify-center gap-1 py-3 text-white/60 transition-colors duration-150;
+    @apply flex w-full flex-col items-center justify-center gap-1 py-3 transition-colors duration-150;
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .dashboard-rail-toggle:hover {
     background: rgba(255, 255, 255, 0.06);
-    color: #ffffff;
+    color: var(--sidebar-foreground);
   }
 
   /* Platform scrollbars — custom design (not browser default) */

@@ -34,7 +34,7 @@ export interface InstitutionDetail extends InstitutionListItem {
 }
 
 export interface InviteInstitutionAdminPayload {
-  name: string;
+  name?: string;
   email: string;
 }
 
@@ -42,6 +42,9 @@ export interface UpdateInstitutionPayload {
   name?: string;
   abbreviation?: string;
   logo?: string;
+  website?: string;
+  contactPhone?: string;
+  description?: string;
 }
 
 export interface UserListItem {

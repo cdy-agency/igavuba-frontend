@@ -41,7 +41,6 @@ export function ActivateAccountForm() {
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [institutionName, setInstitutionName] = useState('');
   const [isPrimaryAdmin, setIsPrimaryAdmin] = useState(true);
-  const [hasPrefilledName, setHasPrefilledName] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -79,7 +78,6 @@ export function ActivateAccountForm() {
         step1Form.setValue('email', result.email);
         if (result.name?.trim()) {
           step1Form.setValue('name', result.name.trim());
-          setHasPrefilledName(true);
         }
         setInstitutionName(result.institutionName);
         setIsPrimaryAdmin(result.isPrimaryAdmin);
@@ -209,9 +207,7 @@ export function ActivateAccountForm() {
               <Input
                 id="name"
                 placeholder="Enter your full name"
-                readOnly={hasPrefilledName}
-                disabled={hasPrefilledName}
-                className={hasPrefilledName ? 'h-11 bg-muted/50 pr-10' : 'h-11 pr-10'}
+                className="h-11 pr-10"
                 {...step1Form.register('name')}
               />
               <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

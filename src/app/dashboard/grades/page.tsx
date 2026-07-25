@@ -8,7 +8,7 @@ import type { Course } from '@/types/course';
 import { UserRole } from '@/types/enum';
 import { cn } from '@/lib/utils';
 
-const GRADES_ROLES = [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER];
+const GRADES_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.LECTURER];
 
 function GradesHubContent() {
   const { data, isPending } = useCoursesList({ page: 1, limit: 50 });

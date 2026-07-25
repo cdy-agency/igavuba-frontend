@@ -29,7 +29,7 @@ export const lecturerQueryKeys = {
 };
 
 export function useLecturersList(params?: ListLecturersQuery, enabled = true) {
-  return useQuery<LecturerListItem[]>({
+  return useQuery({
     queryKey: lecturerQueryKeys.list(params),
     queryFn: () => listLecturers(params),
     enabled,

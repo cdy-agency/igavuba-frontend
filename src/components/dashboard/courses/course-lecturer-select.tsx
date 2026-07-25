@@ -58,10 +58,11 @@ export function CourseLecturerSelect({
   const { role } = useDashboard();
   const canListLecturers = hasAnyRole(role, [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN]);
   const [open, setOpen] = useState(false);
-  const { data: lecturers = [], isPending } = useLecturersList(
+  const { data, isPending } = useLecturersList(
     { status: UserStatus.ACTIVE },
     authReady && canListLecturers,
   );
+  const lecturers: LecturerListItem[] = data?.data ?? [];
 
   const activeLecturers = useMemo(
     () =>

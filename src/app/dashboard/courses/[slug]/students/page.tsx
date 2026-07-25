@@ -9,7 +9,6 @@ import { UserRole } from '@/types/enum';
 const COURSE_STUDENT_ROLES = [
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
-  UserRole.SUPER_ADMIN,
 ];
 
 export default function DashboardCourseStudentsPage() {

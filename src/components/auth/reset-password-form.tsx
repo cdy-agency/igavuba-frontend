@@ -3,15 +3,14 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useResetPasswordMutation } from '@/hooks/use-auth-mutations';
-import { getApiErrorMessage } from '@/lib/auth';
+import { clearStoredAuthState, getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
 import { GUEST_ROUTES } from '@/lib/routes';
 import type { ResetPasswordFormData } from '@/types';
@@ -23,6 +22,7 @@ export function ResetPasswordForm() {
   const resetPasswordMutation = useResetPasswordMutation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resetSucceeded, setResetSucceeded] = useState(false);
 
   const resetTokenFromQuery = searchParams.get('token') ?? '';
 
@@ -36,13 +36,17 @@ export function ResetPasswordForm() {
   });
 
   useEffect(() => {
+    if (resetSucceeded) {
+      return;
+    }
+
     if (resetTokenFromQuery) {
       form.setValue('resetToken', resetTokenFromQuery);
       return;
     }
 
     router.replace(GUEST_ROUTES.FORGOT_PASSWORD);
-  }, [resetTokenFromQuery, form, router]);
+  }, [resetSucceeded, resetTokenFromQuery, form, router]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -50,8 +54,15 @@ export function ResetPasswordForm() {
         resetToken: values.resetToken,
         newPassword: values.newPassword,
       });
-      toast.success(response.message, 'You can now sign in with your new password');
-      router.push(GUEST_ROUTES.LOGIN);
+      clearStoredAuthState();
+      toast.success(
+        response.message,
+        'Your password has been successfully reset. Please log in with your new credentials.',
+      );
+      setResetSucceeded(true);
+      window.setTimeout(() => {
+        router.replace(`${GUEST_ROUTES.LOGIN}?reset=success`);
+      }, 1800);
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Password reset failed'));
     }
@@ -59,6 +70,25 @@ export function ResetPasswordForm() {
 
   if (!resetTokenFromQuery) {
     return null;
+  }
+
+  if (resetSucceeded) {
+    return (
+      <div className="w-full">
+        <div className="rounded-lg border border-primary-muted bg-primary-subtle p-5 text-primary">
+          <div className="flex gap-3">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+            <div className="space-y-2">
+              <h1 className="text-xl font-semibold text-primary">Password reset complete</h1>
+              <p className="text-sm text-primary">
+                Your password has been successfully reset. Please log in with your new credentials.
+              </p>
+              <p className="text-sm text-primary/80">Redirecting you to login...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -6,7 +6,7 @@ import { UserRole } from '@/types/enum';
 import { CourseResultsPage } from '@/components/dashboard/course-results/course-results-page';
 
 const COURSE_RESULTS_ROLES = [
-  UserRole.SUPER_ADMIN,
+
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

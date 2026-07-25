@@ -6,7 +6,7 @@ export interface Institution {
   id: string;
   name: string;
   slug?: string;
-  logo?: string;
+  logo?: string | null;
 }
 
 export type NavigationSection = 'main' | 'tools' | 'workspace' | 'footer';

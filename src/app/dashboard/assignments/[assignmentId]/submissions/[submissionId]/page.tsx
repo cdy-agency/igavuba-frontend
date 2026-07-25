@@ -6,7 +6,6 @@ import { UserRole } from '@/types/enum';
 import { AssignmentSubmissionReview } from '@/components/dashboard/assignments/assignment-submission-review';
 
 const ASSIGNMENT_MANAGER_ROLES = [
-  UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

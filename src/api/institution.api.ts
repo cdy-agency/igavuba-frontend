@@ -68,6 +68,21 @@ export async function updateInstitution(id: string, payload: UpdateInstitutionPa
   return response.data;
 }
 
+export async function getCurrentInstitutionProfile() {
+  const response = await apiClient.get<InstitutionMutationResponse<InstitutionDetail>>(
+    '/institutions/me',
+  );
+  return response.data.data;
+}
+
+export async function updateCurrentInstitutionProfile(payload: UpdateInstitutionPayload) {
+  const response = await apiClient.patch<InstitutionMutationResponse<InstitutionDetail>>(
+    '/institutions/me',
+    payload,
+  );
+  return response.data;
+}
+
 export async function deleteInstitution(id: string) {
   const response = await apiClient.delete<InstitutionMutationResponse<{ id: string }>>(
     `/institutions/${id}`,

@@ -34,10 +34,13 @@ export function useMyPayments(
   });
 }
 
-export function useInstitutionPayments(enabled = true) {
+export function useInstitutionPayments(
+  params: Record<string, string | number> | undefined = undefined,
+  enabled = true,
+) {
   return useQuery({
-    queryKey: paymentQueryKeys.institution,
-    queryFn: getInstitutionPayments,
+    queryKey: [...paymentQueryKeys.institution, params ?? {}],
+    queryFn: () => getInstitutionPayments(params ?? {}),
     enabled,
   });
 }

@@ -11,6 +11,9 @@ import type {
   ResetPasswordResponse,
   SignupDto,
   SignupResponse,
+  ChangePasswordDto,
+  ChangePasswordResponse,
+  UpdateProfileDto,
   VerifyEmailDto,
   VerifyEmailResponse,
   VerifyResetOtpDto,
@@ -78,6 +81,19 @@ export const authApi = {
 
   async getMe() {
     const response = await apiClient.get<MeResponse>('/auth/me');
+    return response.data;
+  },
+
+  async updateMe(payload: UpdateProfileDto) {
+    const response = await apiClient.patch<MeResponse>('/auth/me', payload);
+    return response.data;
+  },
+
+  async changePassword(payload: ChangePasswordDto) {
+    const response = await apiClient.patch<ChangePasswordResponse>(
+      '/auth/me/password',
+      payload,
+    );
     return response.data;
   },
 };

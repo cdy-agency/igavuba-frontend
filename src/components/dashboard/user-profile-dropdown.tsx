@@ -5,7 +5,7 @@ import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { getRoleLabel } from '@/lib/role-utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,6 +44,9 @@ export function UserProfileDropdown() {
           )}
         >
           <Avatar className="h-8 w-8 ring-2 ring-primary-muted">
+            {user?.profileImage ? (
+              <AvatarImage src={user.profileImage} alt={user.name || user.email || 'User'} />
+            ) : null}
             <AvatarFallback className="bg-gradient-to-br from-primary-subtle to-primary-muted text-sm font-semibold text-primary">
               {getInitials(user?.name, user?.email)}
             </AvatarFallback>

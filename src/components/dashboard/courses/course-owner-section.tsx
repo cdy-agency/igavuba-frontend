@@ -31,7 +31,8 @@ export function CourseOwnerSection({ course }: { course: Course }) {
   const [selectedLecturerId, setSelectedLecturerId] = useState(course.lecturerId ?? undefined);
   const isInstitutionAdmin = role === UserRole.INSTITUTION_ADMIN;
   const assignOwner = useAssignCourseOwner(course.slug);
-  const { data: lecturers = [] } = useLecturersList(undefined, isInstitutionAdmin);
+  const { data, isPending } = useLecturersList(undefined, isInstitutionAdmin);
+  const lecturers: LecturerListItem[] = data?.data ?? [];
 
   const isOwner = user?.id === course.ownerId;
   const categoryLabel =

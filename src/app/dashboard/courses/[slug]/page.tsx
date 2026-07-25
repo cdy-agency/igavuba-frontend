@@ -15,7 +15,6 @@ import { canEditCourse } from '@/components/dashboard/courses/course-owner-secti
 import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
 
 const COURSE_MANAGER_ROLES = [
-  UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

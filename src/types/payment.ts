@@ -48,9 +48,9 @@ export interface RejectPaymentPayload {
   rejectionReason: string;
 }
 
-export interface PaymentsListResponse {
-  data: PaymentRecord[];
-}
+import type { PaginatedResponse } from './pagination';
+
+export type PaymentsListResponse = PaginatedResponse<PaymentRecord>;
 
 export interface PaymentDetailResponse {
   data: PaymentRecord;

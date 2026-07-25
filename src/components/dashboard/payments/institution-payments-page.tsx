@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Eye, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Eye } from 'lucide-react';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { RoleGuard } from '@/guards/role-guard';
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +16,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useInstitutionPayments } from '@/hooks/use-payments';
+import { CoursesPaginationFooter } from '@/components/dashboard/courses/courses-pagination-footer';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { useAuthReady } from '@/hooks/use-auth-ready';
 import { UserRole } from '@/types/enum';
 import type { PaymentRecord, PaymentRecordStatus } from '@/types/payment';
@@ -47,12 +50,18 @@ function statusBadgeClass(status: PaymentRecordStatus) {
 
 function InstitutionPaymentsPanel() {
   const authReady = useAuthReady();
-  const { data, isPending, isError } = useInstitutionPayments(authReady);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  const { data, isPending, isError, isFetching } = useInstitutionPayments(
+    authReady ? { page, limit: PAGE_SIZE } : undefined,
+    authReady,
+  );
 
   if (!authReady || isPending) {
     return (
-      <div className="flex min-h-[12rem] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="rounded-xl border border-border/60 bg-card shadow-sm">
+        <DashboardTableLoadingSkeleton columnCount={7} rowCount={5} showPagination={false} />
       </div>
     );
   }
@@ -65,7 +74,7 @@ function InstitutionPaymentsPanel() {
     );
   }
 
-  const payments = data ?? [];
+  const payments = data?.data ?? [];
 
   return (
     <div className="rounded-xl border border-border/60 bg-card shadow-sm">
@@ -121,6 +130,17 @@ function InstitutionPaymentsPanel() {
           )}
         </TableBody>
       </Table>
+
+      <div className="px-4 py-4">
+        <CoursesPaginationFooter
+          total={data?.pagination?.total ?? 0}
+          page={data?.pagination?.page ?? page}
+          totalPages={data?.pagination?.totalPages ?? 1}
+          limit={data?.pagination?.limit ?? PAGE_SIZE}
+          onPageChange={setPage}
+          isLoading={isPending || (isFetching && payments.length === 0)}
+        />
+      </div>
     </div>
   );
 }

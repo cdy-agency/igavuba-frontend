@@ -5,7 +5,6 @@ import { UserRole } from '@/types/enum';
 import { ExamManagementPage } from '@/components/dashboard/exams/exam-management-page';
 
 const EXAM_MANAGER_ROLES = [
-  UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

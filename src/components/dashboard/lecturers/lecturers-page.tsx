@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { LecturersTable } from '@/components/dashboard/lecturers/lecturers-table';
 import { useDashboard } from '@/contexts/dashboard-context';
 
-const LECTURER_MANAGER_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
+const LECTURER_MANAGER_ROLES = [UserRole.INSTITUTION_ADMIN];
 
 export function LecturersPage() {
   const { role } = useDashboard();

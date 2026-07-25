@@ -77,6 +77,59 @@ export const confirmPasswordSchema = z.object({
 
 export type ConfirmPasswordFormData = z.infer<typeof confirmPasswordSchema>;
 
+export const profileSchema = z.object({
+  name: signupSchema.shape.name,
+  phoneNumber: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || isValidSignupPhoneNumber(val), {
+      message:
+        "Please enter a valid phone number (e.g. +250788888888 or 0788888888)",
+    }),
+  profileImage: z.string().trim().optional().or(z.literal("")),
+});
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string().min(1, "Confirm your new password"),
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
+
+export const institutionProfileSchema = z.object({
+  name: z.string().trim().min(2, "Institution name must be at least 2 characters").max(200),
+  abbreviation: z.string().trim().min(1, "Abbreviation is required").max(20),
+  website: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || /^https?:\/\/.+/.test(val), {
+      message: "Website must include http:// or https://",
+    }),
+  contactPhone: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || isValidSignupPhoneNumber(val), {
+      message:
+        "Please enter a valid phone number (e.g. +250788888888 or 0788888888)",
+    }),
+  logo: z.string().trim().optional().or(z.literal("")),
+  description: z.string().trim().max(1000, "Description is too long").optional().or(z.literal("")),
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type SignupFormData = z.infer<typeof signupSchema>;
 export type VerifyEmailFormData = z.infer<typeof verifyEmailSchema>;
@@ -84,3 +137,6 @@ export type ResendVerificationFormData = z.infer<typeof resendVerificationSchema
 export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 export type VerifyResetPasswordFormData = z.infer<typeof verifyResetPasswordSchema>;
 export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+export type ProfileFormData = z.infer<typeof profileSchema>;
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
+export type InstitutionProfileFormData = z.infer<typeof institutionProfileSchema>;

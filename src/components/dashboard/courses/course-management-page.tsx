@@ -45,6 +45,11 @@ export function CourseManagementPage({ className }: CourseManagementPageProps) {
   const canManageCategories = user?.role
     ? CATEGORY_MANAGER_ROLES.has(user.role as UserRole)
     : false;
+  const canCreateCourses =
+    user?.role &&
+    user.role !== UserRole.SUPER_ADMIN &&
+    CATEGORY_MANAGER_ROLES.has(user.role as UserRole);
+  const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
   const [managementTab, setManagementTab] = useState<CourseManagementTab>('courses');
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
@@ -139,7 +144,8 @@ export function CourseManagementPage({ className }: CourseManagementPageProps) {
             ) : null}
           </div>
 
-          <div className="inline-flex w-fit rounded-md border border-border bg-muted/30 p-0.5">
+          {!isSuperAdmin ? (
+            <div className="inline-flex w-fit rounded-md border border-border bg-muted/30 p-0.5">
             <button
               type="button"
               onClick={() => setManagementTab('courses')}
@@ -166,24 +172,29 @@ export function CourseManagementPage({ className }: CourseManagementPageProps) {
               <Shapes className="h-3.5 w-3.5 text-primary" />
               Categories
             </button>
-          </div>
+            </div>
+          ) : null}
 
-          {managementTab === 'courses' ? (
-            <Button asChild size="sm" className="h-8 w-full shrink-0 px-3 text-xs lg:w-auto">
-              <Link href="/dashboard/courses/new">
+          {!isSuperAdmin ? (
+            managementTab === 'courses' ? (
+              <Button asChild size="sm" className="h-8 w-full shrink-0 px-3 text-xs lg:w-auto" disabled={!canCreateCourses}>
+                <Link href={canCreateCourses ? "/dashboard/courses/new" : "#"}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  Create Course
+                </Link>
+              </Button>
+            ) : canManageCategories ? (
+              <Button
+                size="sm"
+                className="h-8 w-full shrink-0 px-3 text-xs lg:w-auto"
+                onClick={() => setCreateCategoryOpen(true)}
+              >
                 <Plus className="mr-1.5 h-3.5 w-3.5" />
-                Create Course
-              </Link>
-            </Button>
-          ) : canManageCategories ? (
-            <Button
-              size="sm"
-              className="h-8 w-full shrink-0 px-3 text-xs lg:w-auto"
-              onClick={() => setCreateCategoryOpen(true)}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Create Category
-            </Button>
+                Create Category
+              </Button>
+            ) : (
+              <div className="hidden lg:block lg:w-[8.5rem]" />
+            )
           ) : (
             <div className="hidden lg:block lg:w-[8.5rem]" />
           )}

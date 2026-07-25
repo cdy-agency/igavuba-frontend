@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Eye, Loader2, UserPlus } from 'lucide-react';
+import { Eye, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,8 @@ import {
   useLecturersList,
   useUpdateLecturerStatus,
 } from '@/hooks/use-lecturers';
+import { CoursesPaginationFooter } from '@/components/dashboard/courses/courses-pagination-footer';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { useDashboard } from '@/contexts/dashboard-context';
 import type { LecturerListItem } from '@/types/lecturer.types';
 import { UserRole, UserStatus } from '@/types/enum';
@@ -59,8 +61,16 @@ export function LecturersTable() {
     [searchq, statusFilter],
   );
 
-  const { data: lecturers = [], isPending, isFetching } = useLecturersList(queryParams);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  const { data, isPending, isFetching } = useLecturersList(
+    { ...(queryParams as Record<string, any>), page, limit: PAGE_SIZE },
+  );
+  const lecturers = data?.data ?? [];
   const updateStatus = useUpdateLecturerStatus();
+  const showInitialSkeleton = isPending || (isFetching && lecturers.length === 0);
+  const columnCount = canManage ? 7 : 6;
 
   return (
     <div className="space-y-4">
@@ -92,11 +102,14 @@ export function LecturersTable() {
         ) : null}
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-        {isPending || isFetching ? (
-          <div className="flex min-h-[240px] items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
+      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+        {showInitialSkeleton ? (
+          <DashboardTableLoadingSkeleton
+            columnCount={columnCount}
+            rowCount={5}
+            showPagination={false}
+            showToolbar={false}
+          />
         ) : lecturers.length === 0 ? (
           <div className="px-6 py-12 text-center text-sm text-muted-foreground">
             No lecturers found.
@@ -172,10 +185,20 @@ export function LecturersTable() {
           </div>
         )}
       </div>
-
       {canManage ? (
         <InviteLecturerModal open={inviteOpen} onOpenChange={setInviteOpen} />
       ) : null}
+
+      <div className="px-4 py-4">
+        <CoursesPaginationFooter
+          total={data?.pagination?.total ?? 0}
+          page={data?.pagination?.page ?? page}
+          totalPages={data?.pagination?.totalPages ?? 1}
+          limit={data?.pagination?.limit ?? PAGE_SIZE}
+          onPageChange={setPage}
+          isLoading={isPending || (isFetching && lecturers.length === 0)}
+        />
+      </div>
     </div>
   );
 }

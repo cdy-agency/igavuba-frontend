@@ -1,10 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Loader2, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { StatusSwitchCell } from '@/components/data-table/status-switch-cell';
 import { DataTableSortSelect } from '@/components/data-table/data-table-sort-select';
 import { useUsersList, useUpdateUserActive } from '@/hooks/use-admin-tables';
@@ -12,6 +19,7 @@ import type { UserListItem } from '@/types/admin';
 import { UserRole, UserStatus } from '@/types/enum';
 import { getUserStatusLabel, isUserActiveStatus } from '@/lib/status-utils';
 import { DEFAULT_USER_SORT, USER_SORT_OPTIONS } from '@/lib/user-table-sort';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
@@ -57,6 +65,7 @@ export function UsersTable() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [searchq, setSearchq] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sort, setSort] = useState(DEFAULT_USER_SORT);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -68,12 +77,18 @@ export function UsersTable() {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  const { data, isPending, isFetching } = useUsersList({
-    page,
-    limit: PAGE_SIZE,
-    searchq: searchq || undefined,
-    sort,
-  });
+  const queryParams = useMemo(
+    () => ({
+      page,
+      limit: PAGE_SIZE,
+      searchq: searchq || undefined,
+      status: statusFilter === 'all' ? undefined : (statusFilter as UserStatus),
+      sort,
+    }),
+    [page, searchq, statusFilter, sort],
+  );
+
+  const { data, isPending, isFetching } = useUsersList(queryParams);
 
   const updateActive = useUpdateUserActive();
   const users = data?.data ?? [];
@@ -82,14 +97,32 @@ export function UsersTable() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative w-full max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="Search users..."
-            className="h-10 pl-9"
-          />
+        <div className="flex flex-wrap gap-3">
+          <div className="relative w-full max-w-sm">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search users..."
+              className="h-10 pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={(value) => {
+            setStatusFilter(value);
+            setPage(1);
+          }}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value={UserStatus.ACTIVE}>Active</SelectItem>
+              <SelectItem value={UserStatus.INACTIVE}>Inactive</SelectItem>
+              <SelectItem value={UserStatus.PENDING}>Pending</SelectItem>
+              <SelectItem value={UserStatus.SUSPENDED}>Suspended</SelectItem>
+              <SelectItem value={UserStatus.BANNED}>Banned</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <DataTableSortSelect
           value={sort}
@@ -103,9 +136,7 @@ export function UsersTable() {
 
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         {isPending || isFetching ? (
-          <div className="flex min-h-[280px] items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
+          <DashboardTableLoadingSkeleton columnCount={6} rowCount={4} showPagination={false} />
         ) : users.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted-foreground">
             No users found.

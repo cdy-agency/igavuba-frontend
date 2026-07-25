@@ -32,6 +32,10 @@ interface CourseCardProps {
 export function CourseCard({ course, onArchive, onPermanentDelete }: CourseCardProps) {
   const categoryLabel = course.department?.name ?? getCourseLevelLabel(course.level);
 
+  // hide management actions for super-admins (read-only view)
+  const { role } = require('@/contexts/dashboard-context').useDashboard();
+  const isReadOnly = role === require('@/types/enum').UserRole.SUPER_ADMIN;
+
   return (
     <article className="flex flex-col gap-3 rounded border border-border bg-card p-3 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start gap-3">
@@ -76,41 +80,45 @@ export function CourseCard({ course, onArchive, onPermanentDelete }: CourseCardP
       </div>
 
       <div className="flex items-center gap-2 border-t border-border/60 pt-2.5">
-        <Button asChild variant="outline" size="sm" className="h-7 flex-1 text-xs">
-          <Link href={`/builder/course/${course.slug}`}>
-            <Hammer className="mr-1 h-3 w-3" />
-            Build
-          </Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
-          <Link href={`/dashboard/courses/${course.slug}`}>
-            <Pencil className="mr-1 h-3 w-3" />
-            Edit
-          </Link>
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-              <MoreHorizontal className="h-4 w-4" />
+        {!isReadOnly ? (
+          <>
+            <Button asChild variant="outline" size="sm" className="h-7 flex-1 text-xs">
+              <Link href={`/builder/course/${course.slug}`}>
+                <Hammer className="mr-1 h-3 w-3" />
+                Build
+              </Link>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {course.status !== CourseLifecycleStatus.ARCHIVED ? (
-              <DropdownMenuItem onClick={() => onArchive(course)}>
-                <Archive className="mr-2 h-4 w-4" />
-                Archive course
-              </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => onPermanentDelete(course)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete permanently
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+              <Link href={`/dashboard/courses/${course.slug}`}>
+                <Pencil className="mr-1 h-3 w-3" />
+                Edit
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {course.status !== CourseLifecycleStatus.ARCHIVED ? (
+                  <DropdownMenuItem onClick={() => onArchive(course)}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archive course
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => onPermanentDelete(course)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete permanently
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        ) : null}
       </div>
     </article>
   );

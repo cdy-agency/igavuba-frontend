@@ -46,7 +46,7 @@ function getLogoInitials(name?: string | null): string {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { institution, role, user } = useDashboard();
+  const { institution, role } = useDashboard();
   const { state, toggleSidebar, isMobile } = useSidebar();
   const navItems = getPrimaryNavigationForRole(role);
   const footerNav = getFooterNavigationForRole(role);
@@ -64,20 +64,31 @@ export function AppSidebar() {
       className="dashboard-rail-sidebar border-r-0 text-sidebar-foreground"
     >
       <SidebarHeader className="dashboard-rail-header shrink-0 p-0">
-        <div className="flex items-center justify-center px-2 py-4">
-          <Link href="/dashboard" className="dashboard-rail-logo" title="E-Learning">
-            {user?.institution?.logo ? (
-              <Image
-                src={user.institution.logo}
-                alt={user.institution.name}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full object-cover"
-              />
-            ) : (
-              <span className="dashboard-rail-logo-text">{logoInitials}</span>
-            )}
-          </Link>
+        <div className="flex items-center justify-between gap-3 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="dashboard-rail-logo" title={institution?.name ?? 'Dashboard'}>
+              {institution?.logo ? (
+                <Image
+                  src={institution.logo}
+                  alt={institution.name}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <span className="dashboard-rail-logo-text">{logoInitials}</span>
+              )}
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sidebar-border bg-background text-sidebar-foreground shadow-sm transition hover:bg-sidebar-accent/10 sm:hidden"
+            aria-label="Close sidebar"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
       </SidebarHeader>
 

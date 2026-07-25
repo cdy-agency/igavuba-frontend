@@ -49,6 +49,7 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/users',
   '/dashboard/settings',
   '/dashboard/profile',
+  '/dashboard/audit-logs',
 ] as const;
 
 const ALL_ROLES = Object.values(UserRole);
@@ -79,7 +80,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Departments',
     href: '/dashboard/departments',
     icon: School,
-    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN],
+    roles: [UserRole.INSTITUTION_ADMIN],
     section: 'main',
   },
   {
@@ -94,7 +95,6 @@ export const navigationConfig: NavigationItem[] = [
     href: '/dashboard/course-reviews',
     icon: FileCheck,
     roles: [
-      UserRole.SUPER_ADMIN,
       UserRole.INSTITUTION_ADMIN,
       UserRole.CONTENT_REVIEWER,
     ],
@@ -104,14 +104,14 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Assessments',
     href: '/dashboard/assessments',
     icon: Layers,
-    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
+    roles: [UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
     section: 'main',
   },
   {
     title: 'Grades',
     href: '/dashboard/grades',
     icon: FileCheck,
-    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
+    roles: [UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
     section: 'main',
   },
   {
@@ -139,7 +139,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Lecturers',
     href: '/dashboard/lecturers',
     icon: GraduationCap,
-    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN],
+    roles: [UserRole.INSTITUTION_ADMIN],
     section: 'main',
   },
   {
@@ -211,6 +211,13 @@ export const navigationConfig: NavigationItem[] = [
     section: 'main',
   },
   {
+    title: 'Audit Logs',
+    href: '/dashboard/audit-logs',
+    icon: FileCheck,
+    roles: [UserRole.SUPER_ADMIN],
+    section: 'main',
+  },
+  {
     title: 'Settings',
     href: '/dashboard/settings',
     icon: Settings,
@@ -221,7 +228,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Profile',
     href: '/dashboard/profile',
     icon: UserCog,
-    roles: [UserRole.LEARNER],
+    roles: ALL_ROLES,
     section: 'footer',
   },
 ];
@@ -422,7 +429,7 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   },
   '/dashboard/profile': {
     title: 'Profile',
-    description: 'Manage your learner profile and preferences.',
+    description: 'Manage your profile, password, and account details.',
   },
   '/dashboard/modules': {
     title: 'Modules',
@@ -443,6 +450,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   '/dashboard/assignments': {
     title: 'Assignments',
     description: 'Manage assignments and submissions.',
+  },
+  '/dashboard/audit-logs': {
+    title: 'Audit Logs',
+    description: 'View system audit logs and administrative actions.',
   },
 };
 

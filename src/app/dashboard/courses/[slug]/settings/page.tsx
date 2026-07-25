@@ -7,7 +7,6 @@ import { CourseSettingsPage } from '@/components/dashboard/courses/course-settin
 import { UserRole } from '@/types/enum';
 
 const COURSE_MANAGER_ROLES = [
-  UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

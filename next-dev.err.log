@@ -1,0 +1,12 @@
+⚠ `eslint` configuration in next.config.js is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+⚠ Invalid next.config.js options detected: 
+⚠     Unrecognized key(s) in object: 'eslint'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          9192
+- Dir:          D:\PROJECTS\CDY-AGENCY\E-LEARNING\igavuba-fn
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 9192 /F to stop it.

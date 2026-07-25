@@ -86,4 +86,6 @@ export interface ListLecturersQuery {
   status?: UserStatus;
   departmentId?: string;
   institutionId?: string;
+  page?: number;
+  limit?: number;
 }

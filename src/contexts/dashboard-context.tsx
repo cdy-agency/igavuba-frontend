@@ -20,7 +20,7 @@ interface DashboardProviderProps {
 }
 
 function mapInstitution(
-  institution?: { id: string; name: string; slug: string } | null,
+  institution?: { id: string; name: string; slug: string; logo?: string | null } | null,
 ): Institution | null {
   if (!institution) {
     return null;
@@ -30,6 +30,7 @@ function mapInstitution(
     id: institution.id,
     name: institution.name,
     slug: institution.slug,
+    logo: institution.logo ?? null,
   };
 }
 

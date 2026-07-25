@@ -36,6 +36,7 @@ export function SidebarNavLink({ href, title, icon: Icon, isActive, badge }: Sid
       href={href}
       className={cn(
         'dashboard-rail-nav-item',
+        isMobile && 'dashboard-rail-nav-item--mobile',
         isActive && 'dashboard-rail-nav-item--active',
       )}
       aria-label={title}

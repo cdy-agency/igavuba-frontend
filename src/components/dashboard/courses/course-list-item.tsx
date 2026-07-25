@@ -38,6 +38,8 @@ import {
   dashboardActionIconClass,
   getDashboardLabeledActionButtonClass,
 } from '@/lib/dashboard-action-button';
+import { useDashboard } from '@/contexts/dashboard-context';
+import { UserRole } from '@/types/enum';
 
 interface CourseListItemProps {
   course: Course;
@@ -61,6 +63,8 @@ export function CourseListItem({
   onPermanentDelete,
   className,
 }: CourseListItemProps) {
+  const { role } = useDashboard();
+  const isReadOnly = role === UserRole.SUPER_ADMIN;
   const ownerName =
     course.owner?.name ??
     course.owner?.email ??
@@ -126,75 +130,77 @@ export function CourseListItem({
           {getCourseLifecycleLabel(course.status)}
         </Badge>
 
-        <div className={dashboardActionGroupClass}>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className={getDashboardLabeledActionButtonClass('primary')}
-          >
-            <Link href={`/dashboard/courses/${course.slug}`}>
-              <Pencil className={cn(dashboardActionIconClass, 'mr-1')} />
-              Edit
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className={getDashboardLabeledActionButtonClass()}
-          >
-            <Link href={`/dashboard/courses/${course.slug}/results`}>
-              <BarChart3 className={cn(dashboardActionIconClass, 'mr-1')} />
-              Results
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className={getDashboardLabeledActionButtonClass()}
-          >
-            <Link href={`/dashboard/courses/${course.slug}/students`}>
-              <Users className={cn(dashboardActionIconClass, 'mr-1')} />
-              Students
-            </Link>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className={getDashboardLabeledActionButtonClass()}
-          >
-            <Link href={`/builder/course/${course.slug}`}>
-              <Hammer className={cn(dashboardActionIconClass, 'mr-1')} />
-              Build
-            </Link>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {course.status !== CourseLifecycleStatus.ARCHIVED ? (
-                <DropdownMenuItem onClick={() => onArchive(course)}>
-                  <Archive className="mr-2 h-4 w-4" />
-                  Archive course
+        {!isReadOnly ? (
+          <div className={dashboardActionGroupClass}>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={getDashboardLabeledActionButtonClass('primary')}
+            >
+              <Link href={`/dashboard/courses/${course.slug}`}>
+                <Pencil className={cn(dashboardActionIconClass, 'mr-1')} />
+                Edit
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={getDashboardLabeledActionButtonClass()}
+            >
+              <Link href={`/dashboard/courses/${course.slug}/results`}>
+                <BarChart3 className={cn(dashboardActionIconClass, 'mr-1')} />
+                Results
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={getDashboardLabeledActionButtonClass()}
+            >
+              <Link href={`/dashboard/courses/${course.slug}/students`}>
+                <Users className={cn(dashboardActionIconClass, 'mr-1')} />
+                Students
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className={getDashboardLabeledActionButtonClass()}
+            >
+              <Link href={`/builder/course/${course.slug}`}>
+                <Hammer className={cn(dashboardActionIconClass, 'mr-1')} />
+                Build
+              </Link>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {course.status !== CourseLifecycleStatus.ARCHIVED ? (
+                  <DropdownMenuItem onClick={() => onArchive(course)}>
+                    <Archive className="mr-2 h-4 w-4" />
+                    Archive course
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => onPermanentDelete(course)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete permanently
                 </DropdownMenuItem>
-              ) : null}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => onPermanentDelete(course)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete permanently
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        ) : null}
       </div>
     </article>
   );

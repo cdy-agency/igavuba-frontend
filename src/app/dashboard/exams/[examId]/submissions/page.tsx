@@ -6,7 +6,6 @@ import { UserRole } from '@/types/enum';
 import { ExamSubmissionsList } from '@/components/dashboard/exams/exam-submissions-list';
 
 const EXAM_MANAGER_ROLES = [
-  UserRole.SUPER_ADMIN,
   UserRole.INSTITUTION_ADMIN,
   UserRole.LECTURER,
 ];

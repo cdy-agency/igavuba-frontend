@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Pencil, Search, Trash2 } from 'lucide-react';
+import { Pencil, Search, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,7 @@ import {
   DashboardActionGroup,
   DashboardActionIconButton,
 } from '@/components/dashboard/dashboard-action-icon-button';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
@@ -107,9 +108,7 @@ export function InstitutionsTable() {
 
         <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
           {isPending || isFetching ? (
-            <div className="flex min-h-[280px] items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <DashboardTableLoadingSkeleton columnCount={5} rowCount={4} showPagination={false} />
           ) : institutions.length === 0 ? (
             <div className="px-6 py-16 text-center text-sm text-muted-foreground">
               No institutions yet. Create one to get started.

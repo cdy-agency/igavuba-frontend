@@ -5,7 +5,9 @@ import type {
   PaymentsListResponse,
   RejectPaymentPayload,
   SubmitPaymentPayload,
+  PaymentRecord,
 } from '@/types/payment';
+import type { PaginatedResponse } from '@/types/pagination';
 
 export async function submitPayment(payload: SubmitPaymentPayload) {
   const response = await apiClient.post<PaymentMutationResponse>('/payments', payload);
@@ -13,13 +15,15 @@ export async function submitPayment(payload: SubmitPaymentPayload) {
 }
 
 export async function getMyPayments() {
-  const response = await apiClient.get<PaymentsListResponse>('/payments/my');
+  const response = await apiClient.get<{ data: PaymentRecord[] }>('/payments/my');
   return response.data.data;
 }
 
-export async function getInstitutionPayments() {
-  const response = await apiClient.get<PaymentsListResponse>('/payments');
-  return response.data.data;
+export async function getInstitutionPayments(params: Record<string, string | number> = {}) {
+  const response = await apiClient.get<PaymentsListResponse>('/payments', {
+    params,
+  });
+  return response.data;
 }
 
 export async function getPaymentById(id: string) {

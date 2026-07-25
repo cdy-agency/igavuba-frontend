@@ -39,7 +39,7 @@ import {
 } from '@/components/dashboard/dashboard-action-icon-button';
 import { cn } from '@/lib/utils';
 
-const REVIEW_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
+const REVIEW_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.CONTENT_REVIEWER];
 
 type QueueTab = 'initial' | 'revisions';
 

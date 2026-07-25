@@ -10,10 +10,12 @@ import { CoursesPage } from '@/components/dashboard/courses/courses-page';
 import { MyLearningPage } from '@/components/dashboard/my-learning/my-learning-page';
 import { AchievementsPage } from '@/components/dashboard/achievements/achievements-page';
 import { InstitutionSettingsPage } from '@/components/dashboard/settings/institution-settings-page';
+import { ProfileSettingsPage } from '@/components/dashboard/profile/profile-settings-page';
 import { InstitutionPaymentsPage } from '@/components/dashboard/payments/institution-payments-page';
 import { StudentPaymentsPage } from '@/components/dashboard/payments/student-payments-page';
 import { AssessmentsPage } from '@/components/dashboard/assessments/assessments-page';
 import { StudentsPage } from '@/components/dashboard/students/students-page';
+import { AuditLogsPage } from '@/components/dashboard/audit-logs/audit-logs-page';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { UserRole } from '@/types/enum';
 import type { AssessmentTab } from '@/components/dashboard/assessments/assessments-page';
@@ -67,6 +69,10 @@ export default function DashboardSectionPage() {
     return <InstitutionSettingsPage />;
   }
 
+  if (section === 'profile') {
+    return <ProfileSettingsPage />;
+  }
+
   if (section === 'payments') {
     return <PaymentsSectionPage />;
   }
@@ -82,6 +88,10 @@ export default function DashboardSectionPage() {
 
   if (section === 'students') {
     return <StudentsPage />;
+  }
+
+  if (section === 'audit-logs') {
+    return <AuditLogsPage />;
   }
 
   if (section === 'certificates') {

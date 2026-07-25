@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import { useRoleDashboard } from '@/hooks/use-role-dashboard';
 import { UserRole } from '@/types/enum';
 import { InstitutionAdminDashboard } from '@/components/dashboard/InstitutionAdminDashboard';
@@ -9,6 +8,7 @@ import { LecturerDashboard } from '@/components/dashboard/LecturerDashboard';
 import { SuperAdminDashboard } from '@/components/dashboard/SuperAdminDashboard';
 import { RoleDashboardView } from '@/components/dashboard/role-dashboard-view';
 import { EmptyState } from '@/components/dashboard/shared/empty-state';
+import { OazisDashboardSkeleton } from '@/components/dashboard/shared/oazis-dashboard-skeleton';
 import {
   ContentReviewerDashboard,
   DataManagerDashboard,
@@ -19,11 +19,7 @@ export function DashboardHome() {
   const { data, isLoading, isError } = useRoleDashboard();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[320px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <OazisDashboardSkeleton />;
   }
 
   if (isError || !data) {
