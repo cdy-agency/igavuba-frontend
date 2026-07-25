@@ -19,6 +19,7 @@ import { useCourseCertificate, useIssueCourseCertificate } from '@/hooks/use-cer
 import { downloadCertificateByCode } from '@/lib/certificate-download';
 import { getApiErrorMessage } from '@/lib/auth';
 import type { IssuedCertificate } from '@/api/certificates.api';
+import type { AssessmentSummaryItem } from '@/types/academic.types';
 
 interface CourseCompletionPageProps {
   courseId: string;
@@ -189,7 +190,7 @@ function CertificateClaimSection({
   const canGenerateCertificate =
     eligibility.eligibilityStatus === 'ELIGIBLE' &&
     eligibility.pendingAssessments.length === 0 &&
-    eligibility.requiredAssessments.every((item) => item.status === 'PASSED');
+    eligibility.requiredAssessments.every((item: AssessmentSummaryItem) => item.status === 'PASSED');
 
   if (issuedCertificate) {
     return <IssuedCertificateCard certificate={issuedCertificate} />;

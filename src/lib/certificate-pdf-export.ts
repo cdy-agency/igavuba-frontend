@@ -184,7 +184,7 @@ async function captureElementToCanvas(element: HTMLElement): Promise<HTMLCanvasE
       scrollX: 0,
       scrollY: -window.scrollY,
       letterRendering: true,
-      onclone: (_doc, clonedNode) => {
+      onclone: (_doc: Document, clonedNode: Node) => {
         if (clonedNode instanceof HTMLElement) {
           fixCertificateCloneForCapture(clonedNode);
         }
