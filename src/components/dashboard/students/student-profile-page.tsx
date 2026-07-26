@@ -126,10 +126,10 @@ export function StudentProfilePage({ studentId }: { studentId: string }) {
                           variant="outline"
                           size="sm"
                           className="text-xs"
-                          disabled={removeEnrollment.isLoading}
+                          disabled={removeEnrollment.isPending}
                           onClick={() => removeEnrollment.mutate(entry.course.slug)}
                         >
-                          {removeEnrollment.isLoading ? 'Removing…' : 'Remove assignment'}
+                          {removeEnrollment.isPending ? 'Removing…' : 'Remove assignment'}
                         </Button>
                       ) : null}
                     </div>
