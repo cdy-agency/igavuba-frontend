@@ -68,16 +68,16 @@ export function CoursesTableContent({ searchInput, viewMode }: CoursesTableConte
   const showNeedReviewTab =
     role === UserRole.INSTITUTION_ADMIN || role === UserRole.SUPER_ADMIN;
   const showChangesRequestedTab = role === UserRole.LECTURER;
-  const { data: departmentRows = [] } = useDepartmentsList(undefined, authReady);
+  const { data: departmentData } = useDepartmentsList(undefined, authReady);
 
   const departments = useMemo<CourseDepartment[]>(
     () =>
-      departmentRows.map((department: { id: string; name: string; slug: string }) => ({
+      (departmentData?.data ?? []).map((department: { id: string; name: string; slug: string }) => ({
         id: department.id,
         name: department.name,
         slug: department.slug,
       })),
-    [departmentRows],
+    [departmentData],
   );
 
   const { counts: statusCounts, isLoading: isLoadingCounts } = useCourseStatusCounts({

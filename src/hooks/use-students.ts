@@ -7,6 +7,7 @@ import {
   getStudent,
   importStudents,
   inviteStudent,
+  cancelStudentInvitation,
   listStudents,
   previewStudentImport,
   resetStudentPassword,
@@ -132,6 +133,18 @@ export function useResetStudentPassword() {
       toast.success(response.message || 'Password reset email sent.');
     },
     onError: (error) => toast.error(getApiErrorMessage(error, 'Unable to reset password.')),
+  });
+}
+
+export function useCancelStudentInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (email: string) => cancelStudentInvitation(email),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Invitation cancelled.');
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+    onError: (error) => toast.error(getApiErrorMessage(error, 'Unable to cancel invitation.')),
   });
 }
 

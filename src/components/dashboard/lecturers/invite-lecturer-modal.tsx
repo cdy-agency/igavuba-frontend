@@ -48,7 +48,8 @@ export function InviteLecturerModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const inviteLecturer = useInviteLecturer();
-  const { data: departments = [] } = useDepartmentsList(undefined, open);
+  const { data } = useDepartmentsList(undefined, open);
+  const departments = data?.data ?? [];
 
   const form = useForm<InviteLecturerFormValues>({
     resolver: zodResolver(inviteLecturerSchema),

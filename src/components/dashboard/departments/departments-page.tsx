@@ -10,12 +10,16 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { UserRole } from '@/types/enum';
 import { Button } from '@/components/ui/button';
 
-const DEPARTMENT_VIEWER_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN];
+const DEPARTMENT_VIEWER_ROLES = [
+  UserRole.INSTITUTION_ADMIN,
+  UserRole.SUPER_ADMIN,
+  UserRole.LECTURER,
+];
 
 export function DepartmentsPage() {
   const { role } = useDashboard();
-  const isReadOnly = role === UserRole.SUPER_ADMIN;
   const canManage = role === UserRole.INSTITUTION_ADMIN;
+  const isReadOnly = !canManage;
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
@@ -25,7 +29,7 @@ export function DepartmentsPage() {
           title="Departments"
           description={
             isReadOnly
-              ? 'View academic departments across all institutions.'
+              ? 'View departments and manage course assignments based on your role.'
               : 'Create and manage departments for lecturers and courses.'
           }
           actions={

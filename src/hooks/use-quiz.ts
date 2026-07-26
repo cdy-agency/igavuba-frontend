@@ -56,18 +56,23 @@ export function useCreateQuiz() {
   });
 }
 
-export function useUpdateQuiz(quizId: string) {
+export function useUpdateQuiz(quizId: string, options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
+  const silent = options?.silent === true;
 
   return useMutation({
     mutationFn: (payload: UpdateQuizPayload) => updateQuiz(quizId, payload),
     onSuccess: (response) => {
-      toast.success(response.message || 'Quiz updated successfully');
+      if (!silent) {
+        toast.success(response.message || 'Quiz updated successfully');
+      }
       queryClient.invalidateQueries({ queryKey: quizQueryKeys.detail(quizId) });
       queryClient.invalidateQueries({ queryKey: quizListQueryKeys.all });
     },
     onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Unable to update quiz.'));
+      if (!silent) {
+        toast.error(getApiErrorMessage(error, 'Unable to update quiz.'));
+      }
     },
   });
 }

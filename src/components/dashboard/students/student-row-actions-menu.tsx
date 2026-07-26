@@ -19,6 +19,7 @@ type StudentRowActionsMenuProps = {
   resetPasswordPending?: boolean;
   onAssignCourses: (student: StudentListItem) => void;
   onResetPassword: (studentId: string) => void;
+  onCancelInvitation?: (email: string) => void;
 };
 
 export function StudentRowActionsMenu({
@@ -27,6 +28,7 @@ export function StudentRowActionsMenu({
   resetPasswordPending,
   onAssignCourses,
   onResetPassword,
+  onCancelInvitation,
 }: StudentRowActionsMenuProps) {
   const isActive = student.status === UserStatus.ACTIVE;
 
@@ -63,6 +65,17 @@ export function StudentRowActionsMenu({
           >
             <KeyRound className="mr-2 h-4 w-4" />
             Reset password
+          </DropdownMenuItem>
+        ) : null}
+        {canManage && student.status === UserStatus.PENDING ? (
+          <DropdownMenuItem
+            onClick={() => {
+              if (!onCancelInvitation) return;
+              void onCancelInvitation(student.email);
+            }}
+          >
+            <KeyRound className="mr-2 h-4 w-4" />
+            Cancel invitation
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>

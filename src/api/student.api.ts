@@ -119,3 +119,11 @@ export async function resetStudentPassword(studentId: string) {
   );
   return response.data;
 }
+
+export async function cancelStudentInvitation(email: string) {
+  const response = await apiClient.delete<StudentMutationResponse<{ email: string }>>(
+    `/students/invitation`,
+    { params: { email } },
+  );
+  return response.data;
+}

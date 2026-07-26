@@ -90,7 +90,8 @@ export function InviteStudentModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const inviteStudent = useInviteStudent();
-  const { data: departments = [] } = useDepartmentsList(undefined, open);
+  const { data } = useDepartmentsList(undefined, open);
+  const departments = data?.data ?? [];
   const isPending = inviteStudent.isPending;
 
   const form = useForm<InviteStudentFormValues>({

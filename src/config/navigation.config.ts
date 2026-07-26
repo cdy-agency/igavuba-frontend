@@ -42,7 +42,7 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/lecturers',
   '/dashboard/students',
   '/dashboard/reports',
-  '/dashboard/analytics',
+  // '/dashboard/analytics',
   '/dashboard/live-sessions',
   '/dashboard/content-approval',
   '/dashboard/support-tickets',
@@ -80,7 +80,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Departments',
     href: '/dashboard/departments',
     icon: School,
-    roles: [UserRole.INSTITUTION_ADMIN],
+    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
     section: 'main',
   },
   {
@@ -161,13 +161,13 @@ export const navigationConfig: NavigationItem[] = [
     ],
     section: 'main',
   },
-  {
-    title: 'Analytics',
-    href: '/dashboard/analytics',
-    icon: BarChart3,
-    roles: [UserRole.SUPER_ADMIN],
-    section: 'main',
-  },
+  // {
+  //   title: 'Analytics',
+  //   href: '/dashboard/analytics',
+  //   icon: BarChart3,
+  //   roles: [UserRole.SUPER_ADMIN],
+  //   section: 'main',
+  // },
   {
     title: 'Live Sessions',
     href: '/dashboard/live-sessions',
@@ -395,10 +395,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     title: 'Reports',
     description: 'Generate and review operational reports.',
   },
-  '/dashboard/analytics': {
-    title: 'Analytics',
-    description: 'Platform-wide analytics and insights.',
-  },
+  // '/dashboard/analytics': {
+  //   title: 'Analytics',
+  //   description: 'Platform-wide analytics and insights.',
+  // },
   '/dashboard/live-sessions': {
     title: 'Live Sessions',
     description: 'Schedule and manage live teaching sessions.',

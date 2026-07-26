@@ -9,9 +9,10 @@ import {
   updateCourse,
   updateCourseStatus,
 } from '@/api/course.api';
-import type { CourseListQueryParams, UpdateCoursePayload } from '@/types/course';
+import type { Course, CourseListQueryParams, UpdateCoursePayload } from '@/types/course';
 import { CourseLifecycleStatus } from '@/types/course-status';
 import type { CourseFormValues } from '@/schema/course.schema';
+import type { PaginatedResponse } from '@/types/pagination';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
 
@@ -25,11 +26,54 @@ const listQueryOptions = {
   placeholderData: <T,>(previousData: T | undefined) => previousData,
 };
 
-export function useCoursesList(params: CourseListQueryParams) {
-  return useQuery({
+export function useCoursesList(params: CourseListQueryParams, enabled = true) {
+  return useQuery<PaginatedResponse<Course>>({
     queryKey: courseQueryKeys.list(params),
     queryFn: () => getCourses(params),
+    enabled,
     ...listQueryOptions,
+  });
+}
+
+export function useAssignCoursesToDepartment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { departmentId: string; courseIds: string[] }) => {
+      const results = await Promise.all(
+        payload.courseIds.map((courseId) =>
+          updateCourse(courseId, { departmentId: payload.departmentId }),
+        ),
+      );
+      return results;
+    },
+    onSuccess: () => {
+      toast.success('Courses assigned to department successfully.');
+      queryClient.invalidateQueries({ queryKey: courseQueryKeys.all, exact: false });
+      queryClient.invalidateQueries({ queryKey: ['departments'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['lecturers', 'departments'], exact: false });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to assign courses to department.'));
+    },
+  });
+}
+
+export function useUpdateCourseDepartment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: { courseId: string; departmentId: string | null }) =>
+      updateCourse(payload.courseId, { departmentId: payload.departmentId }),
+    onSuccess: () => {
+      toast.success('Course department updated successfully.');
+      queryClient.invalidateQueries({ queryKey: courseQueryKeys.all, exact: false });
+      queryClient.invalidateQueries({ queryKey: ['departments'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['lecturers', 'departments'], exact: false });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to update course department.'));
+    },
   });
 }
 

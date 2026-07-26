@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils';
 interface BuilderHeaderProps {
   course: Course;
   isSaving?: boolean;
+  saveStatusMessage?: string;
   isActionPending?: boolean;
   readOnly?: boolean;
   canPublish?: boolean;
@@ -63,6 +64,7 @@ interface BuilderHeaderProps {
 export function BuilderHeader({
   course,
   isSaving,
+  saveStatusMessage,
   isActionPending,
   readOnly = false,
   canPublish = false,
@@ -526,10 +528,10 @@ export function BuilderHeader({
             {readOnly ? (
               <span className="text-[11px] text-muted-foreground">Read-only</span>
             ) : null}
-            {isSaving ? (
+            {saveStatusMessage || isSaving ? (
               <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                Saving...
+                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                {saveStatusMessage ?? 'Saving...'}
               </span>
             ) : null}
           </div>

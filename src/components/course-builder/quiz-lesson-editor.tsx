@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
+import { useCourseBuilder } from '@/components/course-builder/course-builder-context';
 import {
   ContentVisibilityToggle,
   LessonSettingsGroup,
@@ -17,8 +18,10 @@ import { QuizManagedQuestionBuilder } from '@/components/quiz/quiz-managed-quest
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useAutoSave } from '@/hooks/use-autosave';
 import { useUpdateQuiz, useQuizDetail } from '@/hooks/use-quiz';
 import type { ModuleContentItem } from '@/types/content';
+import type { AssessmentSettings } from '@/types/quiz';
 import { defaultQuizSettings } from '@/lib/quiz-utils';
 import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
 
@@ -37,17 +40,18 @@ export function QuizLessonEditor({
 }: QuizLessonEditorProps) {
   const quizId = item.content.assessment?.quiz?.id ?? null;
   const { data: quiz, isPending } = useQuizDetail(quizId ?? '', Boolean(quizId));
+  const { setBuilderSaveState } = useCourseBuilder();
 
   const [title, setTitle] = useState(item.content.title);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState('');
   const [isVisible, setIsVisible] = useState(item.content.isPublished);
-  const [settings, setSettings] = useState(defaultQuizSettings());
+  const [settings, setSettings] = useState<AssessmentSettings>(defaultQuizSettings());
   const [academicRules, setAcademicRules] = useState<AssessmentAcademicRulesFormValues>(
     defaultAssessmentAcademicRules(),
   );
 
-  const updateQuizMutation = useUpdateQuiz(quizId ?? '');
+  const updateQuizMutation = useUpdateQuiz(quizId ?? '', { silent: true });
 
   useEffect(() => {
     if (!quiz) return;
@@ -67,29 +71,71 @@ export function QuizLessonEditor({
     );
   }, [quiz]);
 
-  const persistQuizMeta = async (overrides: Record<string, unknown> = {}) => {
+  const saveFormValue = async (next: {
+    title: string;
+    description: string;
+    timeLimitMinutes: string;
+    isVisible: boolean;
+    settings: AssessmentSettings;
+    academicRules: AssessmentAcademicRulesFormValues;
+  }) => {
     if (readOnly || !quizId) return;
     await updateQuizMutation.mutateAsync({
-      title: title.trim(),
-      description: description.trim() || undefined,
-      timeLimitMinutes: timeLimitMinutes ? Number(timeLimitMinutes) : null,
-      isPublished: isVisible,
-      settings,
-      ...academicRules,
-      ...overrides,
+      title: next.title.trim(),
+      description: next.description.trim() || undefined,
+      timeLimitMinutes: next.timeLimitMinutes ? Number(next.timeLimitMinutes) : null,
+      isPublished: next.isVisible,
+      settings: next.settings,
+      required: next.academicRules.required,
+      countsTowardCertificate: next.academicRules.countsTowardCertificate,
+      blockProgressUntilPassed: next.academicRules.blockProgressUntilPassed,
+      passingScore: next.academicRules.passingScore,
+      maxAttempts: next.academicRules.maxAttempts,
     });
   };
 
-  const persistAcademicRulesPatch = async (
-    patch: Partial<AssessmentAcademicRulesFormValues>,
-  ) => {
-    if (readOnly || !quizId) return;
-    await updateQuizMutation.mutateAsync(patch);
-  };
+  const autoSave = useAutoSave({
+    storageKey: `course-builder-quiz-${quizId}`,
+    value: {
+      title,
+      description,
+      timeLimitMinutes,
+      isVisible,
+      settings,
+      academicRules,
+    },
+    onChange: (next) => {
+      setTitle(next.title);
+      setDescription(next.description);
+      setTimeLimitMinutes(next.timeLimitMinutes);
+      setIsVisible(next.isVisible);
+      setSettings(next.settings);
+      setAcademicRules(next.academicRules);
+    },
+    saveFn: async (next) => {
+      if (!quizId) return;
+      await saveFormValue(next);
+    },
+    debounceMs: 700,
+    restoreOnMount: Boolean(quizId),
+    onStatusChange: (status, message) => {
+      setBuilderSaveState({
+        status,
+        message: message || (status === 'saving' ? 'Saving...' : status === 'offline' ? 'Offline draft' : 'Pending changes'),
+        isSaving: status === 'saving',
+      });
+    },
+  });
+
+  useEffect(() => {
+    return () => {
+      autoSave.flush();
+      setBuilderSaveState(null);
+    };
+  }, [autoSave, setBuilderSaveState]);
 
   const handleAcademicRulesChange = (patch: Partial<AssessmentAcademicRulesFormValues>) => {
     setAcademicRules((current) => ({ ...current, ...patch }));
-    void persistAcademicRulesPatch(patch);
   };
 
   if (!quizId) {
@@ -113,10 +159,16 @@ export function QuizLessonEditor({
       readOnly={readOnly}
       title={title}
       onTitleChange={setTitle}
-      onTitleBlur={readOnly ? undefined : () => void persistQuizMeta()}
+      onTitleBlur={readOnly ? undefined : () => {
+        void autoSave.flush();
+      }}
       description={description}
-      onDescriptionChange={setDescription}
-      onDescriptionBlur={readOnly ? undefined : () => void persistQuizMeta()}
+      onDescriptionChange={(value) => {
+        setDescription(value);
+      }}
+      onDescriptionBlur={readOnly ? undefined : () => {
+        void autoSave.flush();
+      }}
       onDelete={readOnly ? undefined : onDelete}
       icon={<CheckCircle2 className="h-4.5 w-4.5 text-orange-600" strokeWidth={2} />}
       settings={
@@ -139,7 +191,6 @@ export function QuizLessonEditor({
                     onChange={(visible) => {
                       if (readOnly) return;
                       setIsVisible(visible);
-                      void updateQuizMutation.mutateAsync({ isPublished: visible });
                     }}
                   />
                 </LessonSettingsGroup>
@@ -159,11 +210,9 @@ export function QuizLessonEditor({
                           passingScore: Number(event.target.value) || 0,
                         }))
                       }
-                      onBlur={(event) =>
-                        void persistAcademicRulesPatch({
-                          passingScore: Number(event.currentTarget.value) || 0,
-                        })
-                      }
+                      onBlur={() => {
+                        void autoSave.flush();
+                      }}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -180,11 +229,9 @@ export function QuizLessonEditor({
                           maxAttempts: Number(event.target.value) || 1,
                         }))
                       }
-                      onBlur={(event) =>
-                        void persistAcademicRulesPatch({
-                          maxAttempts: Number(event.currentTarget.value) || 1,
-                        })
-                      }
+                      onBlur={() => {
+                        void autoSave.flush();
+                      }}
                     />
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
@@ -196,7 +243,7 @@ export function QuizLessonEditor({
                       value={timeLimitMinutes}
                       disabled={readOnly}
                       onChange={(event) => setTimeLimitMinutes(event.target.value)}
-                      onBlur={readOnly ? undefined : () => void persistQuizMeta()}
+                      onBlur={readOnly ? undefined : () => void autoSave.flush()}
                       placeholder="Optional"
                     />
                   </div>
@@ -221,7 +268,6 @@ export function QuizLessonEditor({
                           if (readOnly) return;
                           const nextSettings = { ...settings, [key]: checked };
                           setSettings(nextSettings);
-                          void updateQuizMutation.mutateAsync({ settings: nextSettings });
                         }}
                       />
                     </div>

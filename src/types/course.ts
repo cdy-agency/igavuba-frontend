@@ -123,6 +123,12 @@ export interface Course {
   requireFinalExam?: boolean;
   requireAssignments?: boolean;
   requireAllRequiredAssessments?: boolean;
+  // New course-level configuration
+  requireCourseCompletion?: boolean;
+  certificateGenerationStrategy?: 'AUTOMATIC' | 'MANUAL_APPROVAL';
+  defaultPassingScore?: number;
+  defaultMaxAttempts?: number;
+  defaultBlockProgressUntilPassed?: boolean;
 }
 
 export interface CourseListQueryParams {
@@ -150,7 +156,10 @@ export interface CreateCoursePayload {
   categoryIds?: string[];
 }
 
-export type UpdateCoursePayload = Partial<CreateCoursePayload> & UpdateCourseAcademicPolicyPayload;
+export type UpdateCoursePayload = Omit<Partial<CreateCoursePayload>, 'departmentId'> &
+  UpdateCourseAcademicPolicyPayload & {
+    departmentId?: string | null;
+  };
 
 export interface CourseOwnerDetails {
   id: string;

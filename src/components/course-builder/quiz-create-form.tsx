@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import {
@@ -14,6 +14,7 @@ import {
   mapDraftQuestionsToPayload,
   validateDraftQuestions,
 } from '@/components/quiz/quiz-question-builder';
+import { useLocalDraft } from '@/hooks/use-autosave';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -32,19 +33,59 @@ interface QuizCreateFormProps {
 }
 
 export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateFormProps) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [passingScore, setPassingScore] = useState(70);
-  const [maxAttempts, setMaxAttempts] = useState(1);
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState('');
-  const [settings, setSettings] = useState(defaultQuizSettings());
-  const [isVisible, setIsVisible] = useState(true);
-  const [questions, setQuestions] = useState<DraftQuestionValues[]>(createInitialDraftQuestions);
+  const draftStorageKey = `course-builder-quiz-create-${moduleId}`;
+  const initialDraftState = {
+    title: '',
+    description: '',
+    passingScore: 70,
+    maxAttempts: 1,
+    timeLimitMinutes: '',
+    settings: defaultQuizSettings(),
+    isVisible: true,
+    questions: createInitialDraftQuestions(),
+  };
+  const { draft, setDraft, clearDraft, hydrated } = useLocalDraft(draftStorageKey, initialDraftState);
+
+  const [title, setTitle] = useState(initialDraftState.title);
+  const [description, setDescription] = useState(initialDraftState.description);
+  const [passingScore, setPassingScore] = useState(initialDraftState.passingScore);
+  const [maxAttempts, setMaxAttempts] = useState(initialDraftState.maxAttempts);
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState(initialDraftState.timeLimitMinutes);
+  const [settings, setSettings] = useState(initialDraftState.settings);
+  const [isVisible, setIsVisible] = useState(initialDraftState.isVisible);
+  const [questions, setQuestions] = useState<DraftQuestionValues[]>(initialDraftState.questions);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPersistingQuestions, setIsPersistingQuestions] = useState(false);
 
   const createQuiz = useCreateQuizContent(moduleId);
   const isSubmitting = createQuiz.isPending || isPersistingQuestions;
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setTitle(draft.title);
+    setDescription(draft.description);
+    setPassingScore(draft.passingScore);
+    setMaxAttempts(draft.maxAttempts);
+    setTimeLimitMinutes(draft.timeLimitMinutes);
+    setSettings(draft.settings);
+    setIsVisible(draft.isVisible);
+    setQuestions(draft.questions);
+  }, [hydrated, draft]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+
+    setDraft({
+      title,
+      description,
+      passingScore,
+      maxAttempts,
+      timeLimitMinutes,
+      settings,
+      isVisible,
+      questions,
+    });
+  }, [hydrated, title, description, passingScore, maxAttempts, timeLimitMinutes, settings, isVisible, questions, setDraft]);
 
   const validateForm = () => {
     const infoResult = quizInfoSchema.safeParse({ title, description });
@@ -98,6 +139,7 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
 
       setIsPersistingQuestions(true);
       await persistQuizQuestions(quizRecord.id, mapDraftQuestionsToPayload(questions));
+      clearDraft();
       onCreated(response.data.contentId);
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Unable to create quiz.'));

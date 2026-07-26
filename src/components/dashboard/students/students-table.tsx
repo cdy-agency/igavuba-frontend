@@ -22,6 +22,7 @@ import {
   useResetStudentPassword,
   useStudentsList,
   useUpdateStudentStatus,
+  useCancelStudentInvitation,
 } from '@/hooks/use-students';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -75,6 +76,7 @@ export function StudentsTable() {
   const students = studentsData ?? [];
   const updateStatus = useUpdateStudentStatus();
   const resetPassword = useResetStudentPassword();
+  const cancelInvitation = useCancelStudentInvitation();
 
   return (
     <div className="space-y-4">
@@ -203,6 +205,7 @@ export function StudentsTable() {
                           setAssignOpen(true);
                         }}
                         onResetPassword={(studentId) => resetPassword.mutateAsync(studentId)}
+                        onCancelInvitation={(email) => cancelInvitation.mutateAsync(email)}
                       />
                     </td>
                   </tr>

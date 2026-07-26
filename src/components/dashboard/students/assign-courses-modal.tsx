@@ -23,14 +23,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useCoursesList } from '@/hooks/use-courses';
 import { useDepartmentsList } from '@/hooks/use-departments';
-import { useBulkInternalEnrollment } from '@/hooks/use-internal-enrollment';
+import { useBulkInternalEnrollment, useStudentCourses } from '@/hooks/use-internal-enrollment';
 import { getCourseLevelLabel } from '@/lib/course-utils';
 import { cn } from '@/lib/utils';
 import type { Course } from '@/types/course';
 import { CourseLevel } from '@/types/course';
 import { CourseLifecycleStatus } from '@/types/course-status';
 import type { Department } from '@/types/department.types';
-import type { StudentListItem } from '@/types/student.types';
+import type { StudentCourseEnrollment, StudentListItem } from '@/types/student.types';
 
 const COURSE_FETCH_LIMIT = 100;
 
@@ -49,8 +49,11 @@ export function AssignCoursesModal({
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [levelFilter, setLevelFilter] = useState('all');
 
-  const { data: departmentsData } = useDepartmentsList(undefined, open);
-  const departments = useMemo<Department[]>(() => departmentsData ?? [], [departmentsData]);
+  const { data: departmentData } = useDepartmentsList(undefined, open);
+  const departments = useMemo<Department[]>(() => departmentData?.data ?? [], [departmentData]);
+  const studentId = students.length === 1 ? students[0].id : undefined;
+  const { data: studentCoursesData } = useStudentCourses(studentId ?? '', Boolean(studentId) && open);
+  const enrolledCourseIds = useMemo(() => new Set<string>(studentCoursesData?.map((entry: StudentCourseEnrollment) => entry.course.id) ?? []), [studentCoursesData]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 300);
@@ -196,18 +199,22 @@ export function AssignCoursesModal({
             ) : (
               courses.map((course) => {
                 const isSelected = selectedCourseIds.includes(course.id);
+                const isAlreadyAssigned = enrolledCourseIds.has(course.id);
 
                 return (
                   <label
                     key={course.id}
                     className={cn(
-                      'flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-3 transition-colors hover:bg-muted/40',
+                      'flex cursor-pointer items-start gap-3 rounded-md border border-transparent p-3 transition-colors',
+                      isAlreadyAssigned && 'cursor-not-allowed opacity-60',
+                      !isAlreadyAssigned && 'hover:bg-muted/40',
                       isSelected && 'border-primary/20 bg-primary/5',
                     )}
                   >
                     <Checkbox
                       className="mt-0.5"
                       checked={isSelected}
+                      disabled={isAlreadyAssigned}
                       onCheckedChange={(checked) => toggleCourse(course.id, Boolean(checked))}
                     />
                     <div className="min-w-0 flex-1 space-y-1.5">
@@ -226,6 +233,9 @@ export function AssignCoursesModal({
                           </Badge>
                         ) : null}
                       </div>
+                      {isAlreadyAssigned ? (
+                        <p className="text-xs text-muted-foreground">Already assigned to this student</p>
+                      ) : null}
                     </div>
                   </label>
                 );

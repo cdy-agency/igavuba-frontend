@@ -158,7 +158,8 @@ export function CourseForm({ mode, course, readOnly = false, onSuccess, onCancel
   const [isSavingSkillsTools, setIsSavingSkillsTools] = useState(false);
 
   const authReady = useAuthReady();
-  const { data: departments = [] } = useDepartmentsList(undefined, authReady);
+  const { data: departmentData } = useDepartmentsList(undefined, authReady);
+  const departments = departmentData?.data ?? [];
 
   const createCourseMutation = useCreateCourse();
   const updateIdentifier = course?.slug ?? course?.id ?? '';
@@ -523,15 +524,13 @@ export function CourseForm({ mode, course, readOnly = false, onSuccess, onCancel
             icon={Clock}
             label="Duration"
             optional
-            hint="Estimated time to complete the course (hours)."
+            hint="Estimated time to complete the course. Examples: 2 hours, 4 weeks."
             error={form.formState.errors.estimatedHours?.message}
           >
             <Input
               id="course-estimated-hours"
-              type="number"
-              min={1}
-              step={1}
-              placeholder="e.g. 40"
+              type="text"
+              placeholder="e.g. 2 hours, 4 weeks"
               disabled={isSubmitting}
               className={courseFormInputClass}
               {...form.register('estimatedHours')}

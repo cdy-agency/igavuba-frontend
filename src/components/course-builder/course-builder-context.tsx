@@ -5,6 +5,14 @@ import type { ContentType } from '@/types/content';
 
 export type LessonCreateType = 'text' | 'video' | 'document' | 'quiz' | 'assignment' | 'exam';
 
+export type BuilderSaveStatus = 'idle' | 'saving' | 'pending' | 'offline' | 'saved';
+
+export interface BuilderSaveState {
+  status: BuilderSaveStatus;
+  message: string;
+  isSaving: boolean;
+}
+
 interface CourseBuilderContextValue {
   selectedModuleId: string | null;
   setSelectedModuleId: (moduleId: string | null) => void;
@@ -16,6 +24,8 @@ interface CourseBuilderContextValue {
   creatingLessonType: LessonCreateType | null;
   startCreatingLesson: (type: LessonCreateType) => void;
   cancelCreatingLesson: () => void;
+  builderSaveState: BuilderSaveState | null;
+  setBuilderSaveState: (state: BuilderSaveState | null) => void;
 }
 
 const CourseBuilderContext = createContext<CourseBuilderContextValue | null>(null);
@@ -25,6 +35,7 @@ export function CourseBuilderProvider({ children }: { children: ReactNode }) {
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
   const [viewingFinalExam, setViewingFinalExam] = useState(false);
   const [creatingLessonType, setCreatingLessonType] = useState<LessonCreateType | null>(null);
+  const [builderSaveState, setBuilderSaveState] = useState<BuilderSaveState | null>(null);
 
   const value = useMemo(
     () => ({
@@ -56,8 +67,10 @@ export function CourseBuilderProvider({ children }: { children: ReactNode }) {
         setViewingFinalExam(false);
       },
       cancelCreatingLesson: () => setCreatingLessonType(null),
+      builderSaveState,
+      setBuilderSaveState,
     }),
-    [selectedModuleId, selectedContentId, viewingFinalExam, creatingLessonType],
+    [selectedModuleId, selectedContentId, viewingFinalExam, creatingLessonType, builderSaveState],
   );
 
   return (

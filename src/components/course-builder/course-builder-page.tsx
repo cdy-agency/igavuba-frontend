@@ -55,7 +55,7 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
   const [requestChangesOpen, setRequestChangesOpen] = useState(false);
   const [reviewChatOpen, setReviewChatOpen] = useState(false);
   const { data: course, isPending, isError, error, refetch } = useCourseDetail(slug, authReady);
-  const { selectedModuleId, viewingFinalExam } = useCourseBuilder();
+  const { selectedModuleId, viewingFinalExam, builderSaveState } = useCourseBuilder();
   const publishMutation = usePublishCourse();
   const submitReviewMutation = useSubmitCourseForReview();
   const resubmitMutation = useResubmitCourseForReview();
@@ -208,6 +208,8 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
         canReviewRevisionAsAdmin={canReviewRevisionAsAdmin}
         canResubmit={canResubmit}
         isActionPending={isActionPending}
+        isSaving={builderSaveState?.isSaving}
+        saveStatusMessage={builderSaveState?.message}
         showFeedbackButton={feedbackContext?.showFeedbackButton}
         feedbackLabel={feedbackContext?.feedbackLabel}
         feedbackBadgeCount={feedbackContext?.badgeCount}

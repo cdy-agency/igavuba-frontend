@@ -9,7 +9,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { InstitutionLogo } from '@/components/dashboard/institutions/institution-logo';
 import { EditInstitutionModal } from '@/components/dashboard/institutions/edit-institution-modal';
 import { DeleteInstitutionDialog } from '@/components/dashboard/institutions/delete-institution-dialog';
-import { useInstitutionsList } from '@/hooks/use-admin-tables';
+import { DeleteDialog } from '@/components/dialog/delete-dialog';
+import { useDeleteInstitution, useInstitutionsList } from '@/hooks/use-admin-tables';
+import { deleteInstitution as deleteInstitutionApi } from '@/api/institution.api';
+import { useQueryClient } from '@tanstack/react-query';
+import { getApiErrorMessage } from '@/lib/auth';
+import { toast } from '@/lib/toast';
 import type { InstitutionListItem } from '@/types/admin';
 import { DataTableSortSelect } from '@/components/data-table/data-table-sort-select';
 import {
@@ -50,6 +55,40 @@ export function InstitutionsTable() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<InstitutionListItem | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const deleteInstitution = useDeleteInstitution();
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.length) return;
+
+    const results = await Promise.allSettled(
+      selectedIds.map((id) => deleteInstitutionApi(id)),
+    );
+
+    const hasError = results.some((result) => result.status === 'rejected');
+    if (hasError) {
+      const firstError = results.find(
+        (result): result is PromiseRejectedResult => result.status === 'rejected',
+      );
+      toast.error(
+        getApiErrorMessage(
+          firstError?.reason,
+          'Unable to delete selected institutions.',
+        ),
+      );
+    } else {
+      toast.success(
+        `Deleted ${selectedIds.length} selected institution${
+          selectedIds.length === 1 ? '' : 's'
+        } successfully.`,
+      );
+    }
+
+    setSelectedIds([]);
+    setBulkDeleteOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['institutions'] });
+  };
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -96,14 +135,24 @@ export function InstitutionsTable() {
               className="h-10 pl-9"
             />
           </div>
-          <DataTableSortSelect
-            value={sort}
-            options={INSTITUTION_SORT_OPTIONS}
-            onValueChange={(value) => {
-              setSort(value);
-              setPage(1);
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <DataTableSortSelect
+              value={sort}
+              options={INSTITUTION_SORT_OPTIONS}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            />
+            {selectedIds.length > 0 ? (
+              <Button
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+              >
+                Delete all selected
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
@@ -236,6 +285,20 @@ export function InstitutionsTable() {
         open={Boolean(deleteTarget)}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
+        }}
+      />
+
+      <DeleteDialog
+        isOpen={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title="Delete selected institutions"
+        description={`Are you sure you want to delete ${selectedIds.length} selected institutions? This action cannot be undone.`}
+        confirmText={`Delete ${selectedIds.length}`}
+        onConfirm={async () => {
+          for (const id of selectedIds) {
+            await deleteInstitution.mutateAsync(id);
+          }
+          setSelectedIds([]);
         }}
       />
     </>

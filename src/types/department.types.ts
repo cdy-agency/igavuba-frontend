@@ -19,6 +19,8 @@ export interface UpdateDepartmentPayload {
 }
 
 export interface ListDepartmentsQuery {
+  page?: number;
+  limit?: number;
   searchq?: string;
   institutionId?: string;
 }

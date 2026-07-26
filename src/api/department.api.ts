@@ -1,4 +1,5 @@
 import { apiClient } from './api-client';
+import type { PaginatedResponse } from '@/types/pagination';
 import type {
   CreateDepartmentPayload,
   Department,
@@ -7,17 +8,26 @@ import type {
   UpdateDepartmentPayload,
 } from '@/types/department.types';
 
-export async function listDepartments(params?: ListDepartmentsQuery): Promise<Department[]> {
-  const response = await apiClient.get<DepartmentMutationResponse<Department[]>>(
+export async function listDepartments(
+  params?: ListDepartmentsQuery,
+): Promise<PaginatedResponse<Department>> {
+  const response = await apiClient.get<PaginatedResponse<Department>>(
     '/departments',
     { params },
   );
-  return response.data.data;
+  return response.data;
 }
 
 export async function getDepartment(departmentId: string) {
   const response = await apiClient.get<DepartmentMutationResponse<Department>>(
     `/departments/${departmentId}`,
+  );
+  return response.data.data;
+}
+
+export async function getDepartmentBySlug(slug: string) {
+  const response = await apiClient.get<DepartmentMutationResponse<Department>>(
+    `/departments/slug/${slug}`,
   );
   return response.data.data;
 }

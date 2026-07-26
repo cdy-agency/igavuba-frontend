@@ -8,6 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { BookLock, Clock, BarChart2, ArrowLeft } from 'lucide-react';
 import { getCatalogCourseBySlug } from '@/api/catalog.api';
 import { useCourseEnrollmentStatus } from '@/hooks/use-enrollment';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { UserRole, UserStatus } from '@/types/enum';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +23,36 @@ const CheckEnrollMent = ({ children }: { children: React.ReactNode }) => {
     isError: enrollmentError,
     refetch: refetchEnrollmentStatus,
   } = useCourseEnrollmentStatus(slug ?? '', Boolean(slug));
+
+  const { user } = useAuth();
+
+  // Block internal learners whose accounts have been deactivated (INACTIVE).
+  if (
+    user &&
+    user.role === UserRole.LEARNER &&
+    user.status === UserStatus.INACTIVE &&
+    user.institutionId
+  ) {
+    const PAYMENT_SUPPORT_EMAIL = 'info@cdyagency.com';
+
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background px-4">
+        <div className="w-full max-w-md rounded-2xl border bg-card shadow-sm p-6 text-center">
+          <h2 className="text-xl font-semibold">Account deactivated</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Your account has been deactivated. You can still sign in, but course access is
+            restricted. Please contact support to reactivate your account.
+          </p>
+          <div className="mt-4 text-sm">
+            <p>Contact support:</p>
+            <a className="text-primary" href={`mailto:${PAYMENT_SUPPORT_EMAIL}`}>
+              {PAYMENT_SUPPORT_EMAIL}
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ['catalog-course', slug],

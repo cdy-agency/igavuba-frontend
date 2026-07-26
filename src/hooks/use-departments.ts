@@ -5,9 +5,11 @@ import {
   createDepartment,
   deleteDepartment,
   getDepartment,
+  getDepartmentBySlug,
   listDepartments,
   updateDepartment,
 } from '@/api/department.api';
+import type { PaginatedResponse } from '@/types/pagination';
 import type {
   CreateDepartmentPayload,
   Department,
@@ -22,8 +24,11 @@ export const departmentQueryKeys = {
   detail: (id: string) => ['departments', 'detail', id] as const,
 };
 
-export function useDepartmentsList(params?: ListDepartmentsQuery, enabled = true) {
-  return useQuery<Department[]>({
+export function useDepartmentsList(
+  params?: ListDepartmentsQuery,
+  enabled = true,
+) {
+  return useQuery<PaginatedResponse<Department>>({
     queryKey: departmentQueryKeys.list(params),
     queryFn: () => listDepartments(params),
     enabled,
@@ -35,6 +40,14 @@ export function useDepartmentDetail(departmentId: string, enabled = true) {
     queryKey: departmentQueryKeys.detail(departmentId),
     queryFn: () => getDepartment(departmentId),
     enabled: Boolean(departmentId) && enabled,
+  });
+}
+
+export function useDepartmentDetailBySlug(slug: string, enabled = true) {
+  return useQuery<Department>({
+    queryKey: departmentQueryKeys.detail(slug),
+    queryFn: () => getDepartmentBySlug(slug),
+    enabled: Boolean(slug) && enabled,
   });
 }
 

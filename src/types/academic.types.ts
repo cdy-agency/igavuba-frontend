@@ -37,16 +37,30 @@ export interface CourseAcademicPolicy {
   courseId: string;
   courseTitle: string;
   courseSlug: string;
+  // legacy flags (kept for compatibility) - may be neutralized by backend
   requireFinalExam: boolean;
   requireAssignments: boolean;
   requireAllRequiredAssessments: boolean;
+  // new course-wide configuration
+  requireCourseCompletion?: boolean;
+  certificateGenerationStrategy?: 'AUTOMATIC' | 'MANUAL_APPROVAL';
+  defaultPassingScore?: number;
+  defaultMaxAttempts?: number;
+  defaultBlockProgressUntilPassed?: boolean;
   assessments: CourseAcademicPolicyAssessment[];
 }
 
 export interface UpdateCourseAcademicPolicyPayload {
+  // Backwards-compatible legacy flags (not recommended for configuration)
   requireFinalExam?: boolean;
   requireAssignments?: boolean;
   requireAllRequiredAssessments?: boolean;
+  // New course-level configuration
+  requireCourseCompletion?: boolean;
+  certificateGenerationStrategy?: 'AUTOMATIC' | 'MANUAL_APPROVAL';
+  defaultPassingScore?: number;
+  defaultMaxAttempts?: number;
+  defaultBlockProgressUntilPassed?: boolean;
 }
 
 export interface AssessmentSummaryItem {

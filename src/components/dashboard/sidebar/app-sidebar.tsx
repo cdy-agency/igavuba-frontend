@@ -20,20 +20,20 @@ import type { NavigationItem } from '@/types/dashboard';
 import { PUBLIC_ROUTES } from '@/lib/routes';
 import Image from 'next/image';
 
-const utilityLinks: NavigationItem[] = [
-  {
-    title: 'Help',
-    href: PUBLIC_ROUTES.CONTACT,
-    icon: HelpCircle,
-    roles: [],
-  },
-  {
-    title: 'Feedback',
-    href: PUBLIC_ROUTES.CONTACT,
-    icon: MessageSquare,
-    roles: [],
-  },
-];
+// const utilityLinks: NavigationItem[] = [
+//   {
+//     title: 'Help',
+//     href: PUBLIC_ROUTES.CONTACT,
+//     icon: HelpCircle,
+//     roles: [],
+//   },
+//   {
+//     title: 'Feedback',
+//     href: PUBLIC_ROUTES.CONTACT,
+//     icon: MessageSquare,
+//     roles: [],
+//   },
+// ];
 
 function getLogoInitials(name?: string | null): string {
   if (!name) return 'EL';
@@ -50,7 +50,7 @@ export function AppSidebar() {
   const { state, toggleSidebar, isMobile } = useSidebar();
   const navItems = getPrimaryNavigationForRole(role);
   const footerNav = getFooterNavigationForRole(role);
-  const bottomItems = [...utilityLinks, ...footerNav];
+  const bottomItems = [...footerNav];
   const collapsed = state === 'collapsed' && !isMobile;
   const logoInitials = getLogoInitials(institution?.name);
 

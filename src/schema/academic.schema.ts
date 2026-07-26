@@ -9,9 +9,16 @@ export const assessmentAcademicRulesSchema = z.object({
 });
 
 export const courseAcademicPolicySchema = z.object({
-  requireFinalExam: z.boolean(),
-  requireAssignments: z.boolean(),
-  requireAllRequiredAssessments: z.boolean(),
+  // New course-wide configuration
+  requireCourseCompletion: z.boolean().optional(),
+  certificateGenerationStrategy: z.enum(['AUTOMATIC', 'MANUAL_APPROVAL']).optional(),
+  defaultPassingScore: z.coerce.number().min(0).max(100).optional(),
+  defaultMaxAttempts: z.coerce.number().int().min(1).optional(),
+  defaultBlockProgressUntilPassed: z.boolean().optional(),
+  // legacy flags (may be present but backend will treat assessments as source-of-truth)
+  requireFinalExam: z.boolean().optional(),
+  requireAssignments: z.boolean().optional(),
+  requireAllRequiredAssessments: z.boolean().optional(),
 });
 
 export const grantAttemptSchema = z.object({

@@ -1,17 +1,35 @@
 'use client';
 
 import Link from 'next/link';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ArrowLeft, BookOpen, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { useStudent } from '@/hooks/use-students';
+import { removeLearnerFromCourse } from '@/api/enrollment.api';
+import { toast } from '@/lib/toast';
 import type { StudentCourseEnrollment } from '@/types/student.types';
+import { UserRole } from '@/types/enum';
 import { getUserStatusClassName, getUserStatusLabel } from '@/lib/status-utils';
 
 export function StudentProfilePage({ studentId }: { studentId: string }) {
+  const { role } = useDashboard();
+  const queryClient = useQueryClient();
   const { data: student, isPending, isError } = useStudent(studentId);
+
+  const removeEnrollment = useMutation({
+    mutationFn: (courseIdOrSlug: string) => removeLearnerFromCourse(courseIdOrSlug, studentId),
+    onSuccess: () => {
+      toast.success('Course assignment removed successfully.');
+      queryClient.invalidateQueries({ queryKey: ['students', 'detail', studentId] });
+    },
+    onError: () => {
+      toast.error('Unable to remove course assignment.');
+    },
+  });
 
   if (isPending) {
     return (
@@ -96,11 +114,25 @@ export function StudentProfilePage({ studentId }: { studentId: string }) {
                       Enrolled {format(new Date(entry.enrolledAt), 'MMM d, yyyy')}
                     </p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right space-y-2">
                     <p className="font-semibold">{Math.round(entry.progress)}%</p>
-                    <Button asChild variant="link" className="h-auto p-0 text-xs">
-                      <Link href={`/learn/${entry.course.slug}`}>Open</Link>
-                    </Button>
+                    <div className="flex flex-col items-end gap-2">
+                      <Button asChild variant="link" className="h-auto p-0 text-xs">
+                        <Link href={`/learn/${entry.course.slug}`}>Open</Link>
+                      </Button>
+                      {role === UserRole.INSTITUTION_ADMIN ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          disabled={removeEnrollment.isLoading}
+                          onClick={() => removeEnrollment.mutate(entry.course.slug)}
+                        >
+                          {removeEnrollment.isLoading ? 'Removing…' : 'Remove assignment'}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </li>
               ))}

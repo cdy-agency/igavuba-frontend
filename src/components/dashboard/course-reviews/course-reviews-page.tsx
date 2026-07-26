@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Eye,
   FilePenLine,
-  Loader2,
   Search,
 } from 'lucide-react';
 import { RoleGuard } from '@/guards/role-guard';
@@ -37,6 +36,7 @@ import {
   DashboardActionGroup,
   DashboardActionIconButton,
 } from '@/components/dashboard/dashboard-action-icon-button';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { cn } from '@/lib/utils';
 
 const REVIEW_ROLES = [UserRole.INSTITUTION_ADMIN, UserRole.CONTENT_REVIEWER];
@@ -142,7 +142,9 @@ export function CourseReviewsPage() {
 
   const isPending = tab === 'initial' ? initialPending : revisionPending;
   const data = tab === 'initial' ? initialData : revisionData;
-  const rows = data?.data ?? [];
+  const initialRows = initialData?.data ?? [];
+  const revisionRows = revisionData?.data ?? [];
+  const rows = tab === 'initial' ? initialRows : revisionRows;
 
   const handleTabChange = (nextTab: QueueTab) => {
     setTab(nextTab);
@@ -219,9 +221,12 @@ export function CourseReviewsPage() {
 
         <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
           {isPending ? (
-            <div className="flex min-h-[280px] items-center justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
+            <DashboardTableLoadingSkeleton
+              columnCount={6}
+              rowCount={6}
+              showPagination={false}
+              showToolbar={false}
+            />
           ) : rows.length === 0 ? (
             <div className="px-6 py-16 text-center text-sm text-muted-foreground">
               {tab === 'initial'
@@ -243,7 +248,7 @@ export function CourseReviewsPage() {
                 </thead>
                 <tbody>
                   {tab === 'initial'
-                    ? rows.map((course: CourseReviewQueueItem, index: number) => (
+                    ? initialRows.map((course: CourseReviewQueueItem, index: number) => (
                         <tr
                           key={course.id}
                           className={cn(
@@ -297,7 +302,7 @@ export function CourseReviewsPage() {
                           </td>
                         </tr>
                       ))
-                    : rows.map((course: CourseRevisionQueueItem, index: number) => (
+                    : revisionRows.map((course: CourseRevisionQueueItem, index: number) => (
                         <tr
                           key={course.id}
                           className={cn(

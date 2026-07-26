@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { CalendarDays, Search, ShieldCheck, UserCircle2 } from 'lucide-react';
 import { RoleGuard } from '@/guards/role-guard';
 import { UserRole } from '@/types/enum';
@@ -63,38 +64,39 @@ function statusTone(status: AuditLogEntry['status']) {
 }
 
 export function AuditLogsPage() {
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AuditLogEntry['status'] | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<AuditLogEntry['category'] | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const loadData = useMemo(
-    () => async () => {
-      setIsLoading(true);
-      try {
-        const auditLogs = await getAuditLogs({
-          page,
-          limit: PAGE_SIZE,
-          search: query || undefined,
-          status: statusFilter === 'ALL' ? undefined : statusFilter,
-          category: categoryFilter === 'ALL' ? undefined : categoryFilter,
-        });
+  const { data, isLoading, isFetching, refetch } = useQuery({
+    queryKey: [
+      'audit-logs',
+      {
+        page,
+        search: query || undefined,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        category: categoryFilter === 'ALL' ? undefined : categoryFilter,
+      },
+    ],
+    queryFn: () =>
+      getAuditLogs({
+        page,
+        limit: PAGE_SIZE,
+        search: query || undefined,
+        status: statusFilter === 'ALL' ? undefined : statusFilter,
+        category: categoryFilter === 'ALL' ? undefined : categoryFilter,
+      }),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+  });
 
-        setLogs(auditLogs.data);
-        setTotalPages(auditLogs.pagination.totalPages || 1);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [page, query, statusFilter, categoryFilter],
-  );
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
+  const logs: AuditLogEntry[] = data?.data ?? [];
+  const totalPages = data?.pagination?.totalPages || 1;
+  const isTableLoading = isLoading || (isFetching && logs.length === 0);
 
   return (
     <RoleGuard allowedRoles={[UserRole.SUPER_ADMIN]}>
@@ -125,7 +127,7 @@ export function AuditLogsPage() {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline" size="sm" onClick={() => void loadData()}>
+              <Button variant="outline" size="sm" onClick={() => void refetch()}>
                 Refresh
               </Button>
             </div>
@@ -190,7 +192,7 @@ export function AuditLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
+                  {isTableLoading ? (
                     Array.from({ length: 6 }).map((_, index) => (
                       <TableRow key={index} className="animate-pulse">
                         <TableCell colSpan={5} className="h-14" />
