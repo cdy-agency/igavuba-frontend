@@ -1,5 +1,6 @@
 import type { CourseLifecycleStatus } from './course-status';
 import type { CourseLanguageCode } from './course-language';
+import type { UpdateCourseAcademicPolicyPayload } from './academic.types';
 
 export enum CourseAccessType {
   INTERNAL_ONLY = 'INTERNAL_ONLY',
@@ -12,6 +13,16 @@ export enum CourseLevel {
   BEGINNER = 'BEGINNER',
   INTERMEDIATE = 'INTERMEDIATE',
   ADVANCED = 'ADVANCED',
+}
+
+export interface CourseUserSummary {
+  id: string;
+  name: string | null;
+  email: string;
+}
+
+export interface CourseOwnerSummary extends CourseUserSummary {
+  role: string;
 }
 
 export interface CourseInstitution {
@@ -51,6 +62,12 @@ export interface CourseTool {
   name: string;
 }
 
+export interface CourseCategorySummary {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -63,19 +80,55 @@ export interface Course {
   language: string | null;
   estimatedHours: number | null;
   accessType: CourseAccessType;
+  /** Live DB access type before draft metadata merge (published courses with revisions). */
+  liveAccessType?: CourseAccessType;
   publicPrice: number | null;
   status: CourseLifecycleStatus;
+  hasUnpublishedChanges?: boolean;
+  revisionStatus?: import('./course-revision').CourseRevisionStatus | null;
+  publishedAt?: string | null;
   institutionId: string;
   departmentId: string | null;
   lecturerId: string | null;
   createdById: string;
+  ownerId: string;
+  ownerAssignedAt: string | null;
+  ownerAssignedById: string | null;
+  lastOwnershipTransferAt: string | null;
+  updatedById: string | null;
   createdAt: string;
   updatedAt: string;
   institution: CourseInstitution;
   department: CourseDepartment | null;
   lecturer: CourseLecturer | null;
+  owner: CourseOwnerSummary;
+  createdBy: CourseUserSummary;
+  updatedBy: CourseUserSummary | null;
+  ownerAssignedBy: CourseUserSummary | null;
+  approvedById?: string | null;
+  approvedAt?: string | null;
+  submittedForReviewAt?: string | null;
+  submittedById?: string | null;
   skills: CourseSkill[];
   tools: CourseTool[];
+  categories?: Array<{ category: CourseCategorySummary }>;
+  certificateTemplateId?: string | null;
+  certificateTemplate?: {
+    id: string;
+    title: string;
+  } | null;
+  institutionSettings?: {
+    requireCourseApproval: boolean;
+  };
+  requireFinalExam?: boolean;
+  requireAssignments?: boolean;
+  requireAllRequiredAssessments?: boolean;
+  // New course-level configuration
+  requireCourseCompletion?: boolean;
+  certificateGenerationStrategy?: 'AUTOMATIC' | 'MANUAL_APPROVAL';
+  defaultPassingScore?: number;
+  defaultMaxAttempts?: number;
+  defaultBlockProgressUntilPassed?: boolean;
 }
 
 export interface CourseListQueryParams {
@@ -83,6 +136,8 @@ export interface CourseListQueryParams {
   limit?: number;
   search?: string;
   status?: CourseLifecycleStatus;
+  level?: CourseLevel;
+  departmentId?: string;
 }
 
 export interface CreateCoursePayload {
@@ -98,12 +153,39 @@ export interface CreateCoursePayload {
   publicPrice?: number;
   departmentId?: string;
   lecturerId?: string;
+  categoryIds?: string[];
 }
 
-export type UpdateCoursePayload = Partial<CreateCoursePayload>;
+export type UpdateCoursePayload = Omit<Partial<CreateCoursePayload>, 'departmentId'> &
+  UpdateCourseAcademicPolicyPayload & {
+    departmentId?: string | null;
+  };
 
-export interface CourseMutationResponse {
+export interface CourseOwnerDetails {
+  id: string;
+  ownerId: string;
+  ownerAssignedAt: string | null;
+  lastOwnershipTransferAt: string | null;
+  owner: CourseOwnerSummary;
+  ownerAssignedBy: CourseUserSummary | null;
+  createdBy: CourseUserSummary;
+  updatedBy: CourseUserSummary | null;
+}
+
+export interface EligibleCourseOwner {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  lecturerProfileId: string | null;
+}
+
+export interface AssignCourseOwnerPayload {
+  ownerId: string;
+}
+
+export interface CourseMutationResponse<T = Course> {
   success: boolean;
   message: string;
-  data: Course;
+  data: T;
 }

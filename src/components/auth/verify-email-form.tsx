@@ -12,7 +12,7 @@ import {
 } from '@/hooks/use-auth-mutations';
 import { getApiErrorMessage } from '@/lib/auth';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { GUEST_ROUTES } from '@/lib/routes';
+import { GUEST_ROUTES, PROTECTED_ROUTES } from '@/lib/routes';
 import { toast } from '@/lib/toast';
 import type { VerifyEmailFormData } from '@/types';
 import { verifyEmailSchema } from '@/types';
@@ -20,7 +20,7 @@ import { verifyEmailSchema } from '@/types';
 export function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { pendingVerification, setPendingVerification } = useAuth();
+  const { pendingVerification, setPendingVerification, setSession } = useAuth();
   const verifyMutation = useVerifyEmailMutation();
   const resendMutation = useResendVerificationMutation();
 
@@ -45,9 +45,14 @@ export function VerifyEmailForm() {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const response = await verifyMutation.mutateAsync(values);
+      setSession({
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        user: response.user,
+      });
       setPendingVerification(null);
-      toast.success(response.message, 'You can now sign in');
-      router.push(GUEST_ROUTES.LOGIN);
+      toast.success(response.message, 'You are now signed in');
+      router.push(PROTECTED_ROUTES.DASHBOARD);
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Verification failed'));
     }

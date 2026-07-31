@@ -33,12 +33,42 @@ export interface ResetPasswordDto {
   newPassword: string;
 }
 
+export interface UpdateProfileDto {
+  name?: string;
+  phoneNumber?: string;
+  profileImage?: string;
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface AuthInstitution {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  phoneNumber?: string | null;
   status: string;
   role?: string;
+  institutionId?: string | null;
+  profileImage?: string | null;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  institution?: AuthInstitution | null;
+}
+
+export interface MeResponse {
+  success: boolean;
+  message: string;
+  user: AuthUser;
 }
 
 export interface AuthSuccessResponse {
@@ -56,7 +86,11 @@ export interface SignupResponse extends AuthSuccessResponse {
   userId: string;
 }
 
-export interface VerifyEmailResponse extends AuthSuccessResponse {}
+export interface VerifyEmailResponse extends AuthSuccessResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}
 
 export interface ResendVerificationResponse extends AuthSuccessResponse {}
 
@@ -67,6 +101,8 @@ export interface VerifyResetOtpResponse extends AuthSuccessResponse {
 }
 
 export interface ResetPasswordResponse extends AuthSuccessResponse {}
+
+export interface ChangePasswordResponse extends AuthSuccessResponse {}
 
 export interface RefreshTokenResponse {
   accessToken: string;

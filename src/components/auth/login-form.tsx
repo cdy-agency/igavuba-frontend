@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { ArrowRight, Eye, EyeOff, Mail } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +52,15 @@ export function LoginForm() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-panel-foreground mb-2">Login into account</h1>
       </div>
+
+      {searchParams.get('reset') === 'success' ? (
+        <div className="mb-6 flex gap-3 rounded-lg border border-primary-muted bg-primary-subtle p-4 text-sm text-primary">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+          <p className="text-primary">
+            Your password has been successfully reset. Please log in with your new credentials.
+          </p>
+        </div>
+      ) : null}
 
       <form onSubmit={onSubmit} className="space-y-6">
         <div className="space-y-2">

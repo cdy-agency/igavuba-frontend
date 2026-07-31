@@ -15,19 +15,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     <DashboardProvider>
       <SidebarProvider
         defaultOpen
-        className="dashboard-shell min-h-svh"
+        className="dashboard-shell min-h-svh w-full"
         style={
           {
-            '--sidebar-width': '17.5rem',
-            '--sidebar-width-icon': '4.5rem',
+            '--sidebar-width': '7rem',
+            '--sidebar-width-icon': '3.75rem',
           } as CSSProperties
         }
       >
         <AppSidebar />
-        <SidebarInset className="dashboard-main-bg flex min-h-svh flex-col bg-background">
+        <SidebarInset className="dashboard-main-bg flex min-h-svh min-w-0 w-full flex-1 flex-col bg-background transition-[margin,width] duration-200 ease-linear">
           <DashboardTopbar />
-          <div className="flex flex-1 flex-col">
-            <div className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-6 md:px-8 md:py-8">
+          <div className="custom-scrollbar custom-scrollbar-light flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+            <div className="mx-auto w-full max-w-full flex-1 px-4 py-6 md:px-6 md:py-8 lg:px-8 xl:max-w-[1600px]">
               {children}
             </div>
           </div>

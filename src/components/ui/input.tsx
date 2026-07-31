@@ -5,7 +5,18 @@ export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, onWheel, ...props }, ref) => {
+    const handleWheel: React.WheelEventHandler<HTMLInputElement> = (event) => {
+      if (type === 'number') {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      if (onWheel) {
+        onWheel(event);
+      }
+    };
+
     return (
       <input
         type={type}
@@ -14,6 +25,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className
         )}
         ref={ref}
+        onWheel={handleWheel}
+        onWheelCapture={handleWheel}
         {...props}
       />
     );

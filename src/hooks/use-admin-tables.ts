@@ -1,9 +1,24 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { listInstitutions, updateInstitutionActive } from '@/api/institution.api';
+import {
+  deleteInstitution,
+  getInstitution,
+  inviteInstitutionAdmin,
+  listInstitutions,
+  removeInstitutionAdmin,
+  updateInstitution,
+  updateInstitutionActive,
+} from '@/api/institution.api';
 import { listUsers, updateUserActive } from '@/api/user.api';
-import type { ListQueryParams } from '@/types/admin';
+import type {
+  InstitutionAdminSummary,
+  InstitutionListItem,
+  ListQueryParams,
+  UpdateInstitutionPayload,
+  InstitutionDetail,
+  InviteInstitutionAdminPayload,
+} from '@/types/admin';
 import { UserRole } from '@/types/enum';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
@@ -21,6 +36,7 @@ function toQueryRecord(params: ListQueryParams): Record<string, string | number>
 
 export const adminQueryKeys = {
   institutions: (params: ListQueryParams) => ['institutions', params] as const,
+  institutionDetail: (id: string) => ['institutions', 'detail', id] as const,
   users: (params: ListQueryParams) => ['users', params] as const,
   institutionAdmins: (params: ListQueryParams) =>
     ['users', { ...params, role: UserRole.INSTITUTION_ADMIN }] as const,
@@ -35,6 +51,14 @@ export function useInstitutionsList(params: ListQueryParams) {
     queryKey: adminQueryKeys.institutions(params),
     queryFn: () => listInstitutions(toQueryRecord(params)),
     ...listQueryOptions,
+  });
+}
+
+export function useInstitutionDetail(id: string, enabled = true) {
+  return useQuery<InstitutionDetail>({
+    queryKey: adminQueryKeys.institutionDetail(id),
+    queryFn: () => getInstitution(id),
+    enabled: Boolean(id) && enabled,
   });
 }
 
@@ -67,6 +91,77 @@ export function useUpdateInstitutionActive() {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Failed to update institution'));
+    },
+  });
+}
+
+export function useUpdateInstitution(institutionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdateInstitutionPayload) =>
+      updateInstitution(institutionId, payload),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Institution updated successfully.');
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.institutionDetail(institutionId),
+      });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to update institution'));
+    },
+  });
+}
+
+export function useDeleteInstitution() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteInstitution(id),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Institution deleted successfully.');
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to delete institution'));
+    },
+  });
+}
+
+export function useInviteInstitutionAdmin(institutionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: InviteInstitutionAdminPayload) =>
+      inviteInstitutionAdmin(institutionId, payload),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Institution admin invited successfully.');
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.institutionDetail(institutionId),
+      });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to invite admin'));
+    },
+  });
+}
+
+export function useRemoveInstitutionAdmin(institutionId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (adminId: string) => removeInstitutionAdmin(institutionId, adminId),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Institution admin removed successfully.');
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+      queryClient.invalidateQueries({
+        queryKey: adminQueryKeys.institutionDetail(institutionId),
+      });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Failed to remove admin'));
     },
   });
 }

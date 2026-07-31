@@ -10,8 +10,11 @@ const notoSans = Noto_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'E-Learning Platform',
+  title: 'Igavuba - E-Learning Platform',
   description: 'A modern platform for online learning',
+  icons: {
+    icon: '/favicon.ico',
+  }
 };
 
 export default function RootLayout({

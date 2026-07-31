@@ -55,21 +55,13 @@ export function LandingFooter() {
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 py-10">
             {/* Left Section - Branding */}
             <div className="">
-              {/* <div className="flex justify-center lg:justify-start space-y-8 flex-col">
-                <div className="relative h-16 w-16">
-                  <Image
-                    src="/oazislogo.png"
-                    alt="OAZIS Health Logo"
-                    fill
-                    className="object-contain"
-                  />
-                </div>
-              </div> */}
               <div className="flex items-center space-x-3">
-                <div className="h-8 w-8 rounded-lg bg-[var(--coursera-blue)] flex items-center justify-center">
-                  <GraduationCap className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="text-xl font-bold text-panel-foreground">IGA-VUBA</span>
+                <Image
+                  src="/igavuba-logo.png"
+                  alt="Logo"
+                  width={100}
+                  height={100}
+                />
               </div>
               <p className="text-sm text-panel-subtle mt-8 max-w-xs lg:mx-0">
                 Connecting learners with world-class education from leading

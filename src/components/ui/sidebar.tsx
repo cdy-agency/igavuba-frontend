@@ -3,7 +3,8 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
-import { PanelLeft, ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+import Image from 'next/image'
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
@@ -22,9 +23,38 @@ import {
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "85vw"
+const SIDEBAR_WIDTH_MOBILE = "70vw"
 const SIDEBAR_WIDTH_ICON = "6rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
+
+/** Skip sidebar shortcuts while the user is typing in a field or rich-text editor. */
+function shouldIgnoreSidebarShortcut(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (
+    target.isContentEditable ||
+    target.closest('[contenteditable="true"]') !== null
+  ) {
+    return true
+  }
+
+  const tag = target.tagName
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+    return true
+  }
+
+  if (
+    target.closest(
+      '.tiptap-editor-wrapper, .ProseMirror, [role="textbox"]',
+    ) !== null
+  ) {
+    return true
+  }
+
+  return false
+}
 
 type SidebarContext = {
   state: "expanded" | "collapsed"
@@ -103,6 +133,10 @@ const SidebarProvider = React.forwardRef<
           event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
           (event.metaKey || event.ctrlKey)
         ) {
+          if (shouldIgnoreSidebarShortcut(event.target)) {
+            return
+          }
+
           event.preventDefault()
           toggleSidebar()
         }
@@ -222,7 +256,7 @@ const Sidebar = React.forwardRef<
           <SheetContent
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            className="w-[--sidebar-width] max-w-[22rem] rounded-tr-3xl rounded-br-3xl bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             style={
               {
                 "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -287,7 +321,8 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, isMobile, openMobile, open } = useSidebar()
+  const isOpen = isMobile ? openMobile : open
 
   return (
     <Button
@@ -295,14 +330,20 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-7 w-7", className)}
+      className={cn("h-7 w-7 p-0", className)}
       onClick={(event) => {
         onClick?.(event)
         toggleSidebar()
       }}
       {...props}
     >
-      <PanelLeft />
+      <Image
+        src={isOpen ? '/close.png' : '/menu.png'}
+        alt={isOpen ? 'Close menu' : 'Open menu'}
+        width={20}
+        height={20}
+        className="h-5 w-5"
+      />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

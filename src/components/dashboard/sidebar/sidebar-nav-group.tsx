@@ -23,33 +23,27 @@ export function SidebarNavGroup({ group }: SidebarNavGroupProps) {
   const collapsed = state === 'collapsed';
   const [open, setOpen] = useState(true);
 
+  const isItemActive = (href: string) =>
+    pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+
   if (collapsed) {
     return (
       <nav className="px-2">
         <ul className="flex flex-col gap-0.5">
-          {group.items.map((item) => {
-            const isActive =
-              pathname === item.href ||
-              (item.href !== '/dashboard' && pathname.startsWith(item.href));
-
-            return (
-              <SidebarNavLink
-                key={item.href}
-                href={item.href}
-                title={item.title}
-                icon={item.icon}
-                isActive={isActive}
-                badge={item.badge}
-              />
-            );
-          })}
+          {group.items.map((item) => (
+            <SidebarNavLink
+              key={item.href}
+              href={item.href}
+              title={item.title}
+              icon={item.icon}
+              isActive={isItemActive(item.href)}
+              badge={item.badge}
+            />
+          ))}
         </ul>
       </nav>
     );
   }
-
-  const isItemActive = (href: string) =>
-    pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
 
   const content = (
     <ul className="flex flex-col gap-0.5">
@@ -69,9 +63,14 @@ export function SidebarNavGroup({ group }: SidebarNavGroupProps) {
   if (group.collapsible) {
     return (
       <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="flex w-full items-center justify-between px-6 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground">
-          {group.label}
-          <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+        <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 transition-colors hover:text-muted-foreground">
+          <span>{group.label}</span>
+          <ChevronDown
+            className={cn(
+              'h-3 w-3 transition-transform duration-200',
+              open && 'rotate-180',
+            )}
+          />
         </CollapsibleTrigger>
         <CollapsibleContent>{content}</CollapsibleContent>
       </Collapsible>
@@ -80,7 +79,7 @@ export function SidebarNavGroup({ group }: SidebarNavGroupProps) {
 
   return (
     <div>
-      <p className="px-6 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
         {group.label}
       </p>
       {content}

@@ -40,6 +40,7 @@ export function ActivateAccountForm() {
   const [isVerifying, setIsVerifying] = useState(true);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [institutionName, setInstitutionName] = useState('');
+  const [isPrimaryAdmin, setIsPrimaryAdmin] = useState(true);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -75,7 +76,11 @@ export function ActivateAccountForm() {
       try {
         const result = await verifyInvitationToken(token);
         step1Form.setValue('email', result.email);
+        if (result.name?.trim()) {
+          step1Form.setValue('name', result.name.trim());
+        }
         setInstitutionName(result.institutionName);
+        setIsPrimaryAdmin(result.isPrimaryAdmin);
         setVerifyError(null);
       } catch (error) {
         setVerifyError(getApiErrorMessage(error, 'Invalid or expired invitation link'));
@@ -87,19 +92,24 @@ export function ActivateAccountForm() {
     void verify();
   }, [token, step1Form]);
 
-  const onStep1Submit = step1Form.handleSubmit(() => {
-    setStep(2);
-  });
-
-  const onStep2Submit = step2Form.handleSubmit(async (step2Values) => {
-    if (!token) {
-      return;
-    }
+  const activateAccount = async (
+    step1Values: ActivationAccountStep1FormData,
+    step2Values: ActivationAccountStep2FormData = {
+      website: '',
+      description: '',
+      contactPhone: '',
+    },
+  ) => {
+    if (!token) return;
 
     setIsSubmitting(true);
     try {
-      const step1Values = step1Form.getValues();
-      const response = await completeInvitation(token, step1Values, step2Values, logoFile);
+      const response = await completeInvitation(
+        token,
+        step1Values,
+        step2Values,
+        isPrimaryAdmin ? logoFile : null,
+      );
       setSession(response);
       toast.success(response.message, 'Welcome to your dashboard');
       router.replace(PROTECTED_ROUTES.DASHBOARD);
@@ -108,6 +118,18 @@ export function ActivateAccountForm() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const onStep1Submit = step1Form.handleSubmit(async (values) => {
+    if (!isPrimaryAdmin) {
+      await activateAccount(values);
+      return;
+    }
+    setStep(2);
+  });
+
+  const onStep2Submit = step2Form.handleSubmit(async (step2Values) => {
+    await activateAccount(step1Form.getValues(), step2Values);
   });
 
   if (isVerifying) {
@@ -144,14 +166,20 @@ export function ActivateAccountForm() {
             'Complete your institution administrator setup'
           )}
         </p>
-        <div className="mt-4 flex justify-center gap-2">
-          <span
-            className={`h-2 w-12 rounded-full ${step === 1 ? 'bg-primary' : 'bg-muted'}`}
-          />
-          <span
-            className={`h-2 w-12 rounded-full ${step === 2 ? 'bg-primary' : 'bg-muted'}`}
-          />
-        </div>
+        {isPrimaryAdmin ? (
+          <div className="mt-4 flex justify-center gap-2">
+            <span
+              className={`h-2 w-12 rounded-full ${step === 1 ? 'bg-primary' : 'bg-muted'}`}
+            />
+            <span
+              className={`h-2 w-12 rounded-full ${step === 2 ? 'bg-primary' : 'bg-muted'}`}
+            />
+          </div>
+        ) : (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Set your password to join as an institution administrator.
+          </p>
+        )}
       </div>
 
       {step === 1 ? (
@@ -165,7 +193,8 @@ export function ActivateAccountForm() {
               <Input
                 id="email"
                 readOnly
-                className="h-11 bg-muted pr-10"
+                disabled
+                className="h-11 bg-muted/50 pr-10"
                 {...step1Form.register('email')}
               />
               <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -242,9 +271,17 @@ export function ActivateAccountForm() {
             )}
           </div>
 
-          <Button type="submit" className="h-11 w-full">
-            Continue
-            <ArrowRight className="ml-2 h-4 w-4" />
+          <Button type="submit" className="h-11 w-full" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : isPrimaryAdmin ? (
+              <>
+                Continue
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </>
+            ) : (
+              'Activate account'
+            )}
           </Button>
         </form>
       ) : (

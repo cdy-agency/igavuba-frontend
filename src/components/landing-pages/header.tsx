@@ -43,10 +43,11 @@ export default function LandingHeader() {
     <header className="border-b border-border bg-background sticky top-0 z-50">
       <div className="container flex py-5 items-center justify-between px-4 md:px-8 lg:px-32">
         {/* Logo */}
-        <div className="flex items-center space-x-3">
-          <GraduationCap className="h-8 w-8 text-secondary" />
-          <span className="text-xl font-bold text-foreground">IGA-VUBA</span>
+        <Link href="/" className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
+          <Image src="/igavuba-logo.png" alt="Logo" width={100} height={100} />
         </div>
+        </Link>
 
         {/* Navbar Links */}
         <nav className="hidden lg:flex items-center space-x-8">
@@ -91,7 +92,9 @@ export default function LandingHeader() {
                   <span className="text-sm font-semibold text-foreground">
                     {user.name}
                   </span>
-                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
                 </div>
               </DropdownMenuTrigger>
 

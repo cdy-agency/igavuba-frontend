@@ -1,187 +1,88 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
-import { useCategories } from "@/lib/hooks/landing/use-landing-data";
-import { Category } from "@/lib/api";
+import { useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import {
+  CategoryCourseColumn,
+  CategoryCourseColumnSkeleton,
+} from '@/components/landing-pages/category-course-column';
+import { getCatalogCourses } from '@/api/catalog.api';
+import { catalogQueryKeys } from '@/hooks/use-catalog';
+import { useCategoriesList } from '@/hooks/use-categories';
+import type { Category } from '@/types/category';
+
+const MAX_COLUMNS = 3;
+const COURSES_PER_CATEGORY = 3;
 
 export default function LandingCategories() {
-  const { categories, loading } = useCategories();
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { data: categories = [] as Category[], isPending: categoriesLoading } =
+    useCategoriesList();
 
-  const checkScrollButtons = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  const featuredCategories = useMemo((): Category[] =>
+    categories
+      .filter((category: Category) => category.publishedCourseCount > 0)
+      .slice(0, MAX_COLUMNS),
+  [categories]);
 
-    setCanScrollLeft(container.scrollLeft > 0);
-    setCanScrollRight(
-      container.scrollLeft < container.scrollWidth - container.clientWidth - 10
-    );
-  };
+  const courseQueries = useQueries({
+    queries: featuredCategories.map((category) => ({
+      queryKey: catalogQueryKeys.list({
+        category: category.slug,
+        limit: COURSES_PER_CATEGORY,
+        page: 1,
+      }),
+      queryFn: async () => {
+        const response = await getCatalogCourses({
+          category: category.slug,
+          limit: COURSES_PER_CATEGORY,
+          page: 1,
+        });
+        return response.data;
+      },
+      enabled: Boolean(category.slug),
+    })),
+  });
 
-  useEffect(() => {
-    checkScrollButtons();
-    window.addEventListener("resize", checkScrollButtons);
-    return () => window.removeEventListener("resize", checkScrollButtons);
-  }, [categories]);
+  const columns = featuredCategories.map((category, index) => ({
+    category,
+    courses: courseQueries[index]?.data ?? [],
+    isLoading: courseQueries[index]?.isPending ?? true,
+  }));
 
-  const scroll = (direction: "left" | "right") => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    const scrollAmount = 400;
-    const newScrollLeft =
-      direction === "left"
-        ? container.scrollLeft - scrollAmount
-        : container.scrollLeft + scrollAmount;
-
-    container.scrollTo({
-      left: newScrollLeft,
-      behavior: "smooth",
-    });
-
-    setTimeout(checkScrollButtons, 300);
-  };
+  const isLoading =
+    categoriesLoading || (featuredCategories.length > 0 && courseQueries.some((query) => query.isPending));
 
   return (
-    <section className="py-16 lg:py-24 bg-surface">
-      <div className="container mx-auto px-4 max-w-7xl">
-        {/* Header */}
-        <div className="mb-12 lg:mb-16 flex flex-col text-center items-center">
-          <h2 className="text-2xl lg:text-4xl font-bold text-foreground mb-3 leading-tight">
+    <section className="bg-surface py-16 lg:py-24">
+      <div className="container mx-auto max-w-7xl px-4">
+        <div className="mb-10 text-center lg:mb-12">
+          <h2 className="text-2xl font-bold leading-tight text-foreground lg:text-[2rem]">
             Discover Our Courses By Categories.
           </h2>
         </div>
 
-        {/* Cards Container with Navigation */}
-        <div className="relative">
-          {/* Left Arrow */}
-          {canScrollLeft && (
-            <button
-              onClick={() => scroll("left")}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-12 h-12 bg-background rounded-full shadow-lg flex items-center justify-center hover:bg-surface transition-colors"
-              aria-label="Scroll left"
-            >
-              <ChevronLeft className="w-6 h-6 text-foreground" />
-            </button>
-          )}
-
-          {/* Right Arrow */}
-          {canScrollRight && (
-            <button
-              onClick={() => scroll("right")}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-12 h-12 bg-background rounded-full shadow-lg flex items-center justify-center hover:bg-surface transition-colors"
-              aria-label="Scroll right"
-            >
-              <ChevronRight className="w-6 h-6 text-foreground" />
-            </button>
-          )}
-
-          {/* Scrollable Cards */}
-          <div
-            ref={scrollContainerRef}
-            onScroll={checkScrollButtons}
-            className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth pb-4"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {loading ? (
-              // Loading skeleton
-              Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex-shrink-0 w-[340px] h-[420px] bg-background animate-pulse"
-                />
-              ))
-            ) : categories.length === 0 ? (
-              <div className="w-full text-center py-12 text-muted-foreground">
-                No categories available
-              </div>
-            ) : (
-              categories.map((category, index) => (
-                <Link
-                  key={category._id || `category-${index}`}
-                  href={`/course?category=${category._id}`}
-                  className="flex-shrink-0 w-[340px] group"
-                >
-                  <div className="bg-secondary p-6 h-full flex flex-col transition-transform hover:-translate-y-2">
-                    {/* Header */}
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="text-foreground rounded-full text-sm font-medium inline-block">
-                        All Levels
-                      </span>
-
-                      {/* Course Count Badge */}
-                      {category.courseCount > 0 && (
-                        <span className="bg-primary text-panel-foreground px-2 py-1 rounded text-sm font-semibold inline-block">
-                          {category.courseCount} {category.courseCount === 1 ? "course" : "courses"}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-foreground mb-2">
-                      {category.name}
-                    </h3>
-
-                    {/* Description/Info */}
-                    <p className="text-foreground-muted text-sm mb-6">
-                      {category.description ||
-                        `${category.courseCount} ${category.courseCount === 1 ? "course" : "courses"} available.`}
-                    </p>
-
-                    {/* Image Placeholder */}
-                    <div className="mt-auto bg-background overflow-hidden shadow-md">
-                      {category.thumbnail ? (
-                        <div className="relative w-full aspect-[4/3]">
-                          <Image
-                            src={category.thumbnail}
-                            alt={category.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-full aspect-[4/3] bg-gradient-to-br from-primary-muted to-primary-subtle flex items-center justify-center">
-                          <span className="text-6xl font-bold text-foreground-subtle">
-                            {category.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))
-            )}
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: MAX_COLUMNS }).map((_, index) => (
+              <CategoryCourseColumnSkeleton key={index} />
+            ))}
           </div>
-        </div>
+        ) : featuredCategories.length === 0 ? (
+          <div className="bg-[#eef4fb] px-6 py-14 text-center text-muted-foreground">
+            No categories with published courses yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {columns.map(({ category, courses }) => (
+              <CategoryCourseColumn
+                key={category.id}
+                category={category}
+                courses={courses}
+              />
+            ))}
+          </div>
+        )}
       </div>
-
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        
-        @keyframes scroll-vertical {
-          0% {
-            transform: translateY(0);
-          }
-          100% {
-            transform: translateY(-50%);
-          }
-        }
-
-        .animate-scroll-vertical {
-          animation: scroll-vertical 20s linear infinite;
-        }
-
-        .animate-scroll-vertical:hover {
-          animation-play-state: paused;
-        }
-      `}</style>
     </section>
   );
 }

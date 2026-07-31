@@ -94,15 +94,14 @@ export function CourseSkillsInput({
             const isRemoving = removingKey === key;
 
             return (
-              <Badge
+              <div
                 key={key}
-                variant="secondary"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-normal"
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm"
               >
-                <span>{item.name}</span>
+                <span className="max-w-[11rem] truncate">{item.name}</span>
                 <button
                   type="button"
-                  className="rounded-sm text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-primary transition hover:bg-slate-100 disabled:opacity-50"
                   onClick={() => void onRemove(item, index)}
                   disabled={isDisabled || isRemoving}
                   aria-label={`Remove ${item.name}`}
@@ -113,7 +112,7 @@ export function CourseSkillsInput({
                     <X className="h-3.5 w-3.5" />
                   )}
                 </button>
-              </Badge>
+              </div>
             );
           })}
         </div>

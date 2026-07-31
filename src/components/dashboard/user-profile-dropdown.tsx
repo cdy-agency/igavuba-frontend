@@ -5,7 +5,7 @@ import { ChevronDown, LogOut, Settings, UserRound } from 'lucide-react';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { getRoleLabel } from '@/lib/role-utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,7 @@ function getInitials(name?: string, email?: string) {
 }
 
 export function UserProfileDropdown() {
-  const { user, role } = useDashboard();
+  const { user, role, institution } = useDashboard();
   const { logout } = useAuth();
 
   return (
@@ -44,6 +44,9 @@ export function UserProfileDropdown() {
           )}
         >
           <Avatar className="h-8 w-8 ring-2 ring-primary-muted">
+            {user?.profileImage ? (
+              <AvatarImage src={user.profileImage} alt={user.name || user.email || 'User'} />
+            ) : null}
             <AvatarFallback className="bg-gradient-to-br from-primary-subtle to-primary-muted text-sm font-semibold text-primary">
               {getInitials(user?.name, user?.email)}
             </AvatarFallback>
@@ -64,6 +67,9 @@ export function UserProfileDropdown() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-semibold leading-none">{user?.name ?? 'User'}</p>
             <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+            {institution ? (
+              <p className="text-xs leading-none text-muted-foreground">{institution.name}</p>
+            ) : null}
             {role ? (
               <span className="mt-2 inline-flex w-fit rounded-md bg-primary-subtle px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
                 {getRoleLabel(role)}

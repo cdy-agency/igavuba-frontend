@@ -10,7 +10,9 @@ export interface InstitutionAdminSummary {
 export interface InstitutionListItem {
   id: string;
   name: string;
+  abbreviation: string | null;
   slug: string;
+  logo: string | null;
   website: string | null;
   active: boolean;
   institutionStatus: InstitutionStatus;
@@ -19,6 +21,30 @@ export interface InstitutionListItem {
   _count: {
     users: number;
   };
+}
+
+export interface InstitutionDetail extends InstitutionListItem {
+  description: string | null;
+  contactPhone: string | null;
+  updatedAt: string;
+  _count: {
+    users: number;
+    courses: number;
+  };
+}
+
+export interface InviteInstitutionAdminPayload {
+  name?: string;
+  email: string;
+}
+
+export interface UpdateInstitutionPayload {
+  name?: string;
+  abbreviation?: string;
+  logo?: string;
+  website?: string;
+  contactPhone?: string;
+  description?: string;
 }
 
 export interface UserListItem {

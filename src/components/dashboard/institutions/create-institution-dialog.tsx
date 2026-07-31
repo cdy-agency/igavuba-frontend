@@ -15,10 +15,10 @@ export function CreateInstitutionDialog() {
       onOpenChange={setOpen}
       title="Create institution"
       description="An invitation email will be sent to the institution admin to complete onboarding."
-      trigger={
+        trigger={
         <Button className="h-10 gap-2">
           <Plus className="h-4 w-4" />
-          Create institution
+          Create Institution
         </Button>
       }
     >

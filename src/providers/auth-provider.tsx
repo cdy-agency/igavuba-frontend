@@ -8,18 +8,21 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api/auth.api';
+import { currentUserQueryKey } from '@/hooks/use-current-user';
 import {
   clearPendingVerification,
   clearStoredAuthState,
+  getAccessToken,
   getPendingVerification,
+  getRefreshToken,
   getStoredAuthState,
+  isAccessTokenExpired,
   persistAuthState,
   storePendingVerification,
-  updateStoredTokens,
 } from '@/lib/auth';
+import { refreshSessionTokens } from '@/lib/session-token';
 import { GUEST_ROUTES } from '@/lib/routes';
 import { toast } from '@/lib/toast';
 import type { AuthUser, LoginResponse, PendingVerificationState, User } from '@/types';
@@ -39,6 +42,7 @@ interface AuthContextType {
     user: AuthUser;
   }) => void;
   refreshSession: () => Promise<boolean>;
+  fetchCurrentUser: () => Promise<AuthUser | null>;
   setPendingVerification: (state: PendingVerificationState | null) => void;
   openAuthModal: () => void;
   closeAuthModal: () => void;
@@ -53,11 +57,14 @@ function mapUser(user: AuthUser): User {
     name: user.name,
     status: user.status,
     role: user.role,
+    institutionId: user.institutionId,
+    profileImage: user.profileImage,
+    emailVerified: user.emailVerified,
+    institution: user.institution ?? null,
   };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -65,13 +72,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [pendingVerification, setPendingVerificationState] =
     useState<PendingVerificationState | null>(null);
 
+  const applyUserProfile = useCallback(
+    (profile: AuthUser) => {
+      const mapped = mapUser(profile);
+      setUser(mapped);
+      queryClient.setQueryData(currentUserQueryKey, {
+        success: true,
+        message: 'Current user retrieved successfully',
+        user: profile,
+      });
+
+      const storedState = getStoredAuthState();
+      if (storedState) {
+        persistAuthState({
+          ...storedState,
+          user: profile,
+        });
+      }
+
+      return mapped;
+    },
+    [queryClient],
+  );
+
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await authApi.getMe();
+      applyUserProfile(response.user);
+      return response.user;
+    } catch {
+      return null;
+    }
+  }, [applyUserProfile]);
+
   const setSession = useCallback(
     (payload: { accessToken: string; refreshToken: string; user: AuthUser }) => {
       persistAuthState(payload);
-      setUser(mapUser(payload.user));
-      queryClient.setQueryData(['auth-user'], mapUser(payload.user));
+      applyUserProfile(payload.user);
     },
-    [queryClient],
+    [applyUserProfile],
   );
 
   const setPendingVerification = useCallback((state: PendingVerificationState | null) => {
@@ -87,30 +126,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshSession = useCallback(async () => {
     const storedState = getStoredAuthState();
-    if (!storedState?.refreshToken) {
+    if (!storedState || !getRefreshToken()) {
       clearStoredAuthState();
       setUser(null);
       return false;
     }
 
     try {
-      const response = await authApi.refresh(storedState.refreshToken);
-      const refreshedUser = response.user ?? storedState.user;
-      persistAuthState({
-        accessToken: response.accessToken,
-        refreshToken: response.refreshToken ?? storedState.refreshToken,
-        user: refreshedUser,
-      });
-      setUser(mapUser(refreshedUser));
+      const currentToken = getAccessToken();
+      if (currentToken && !isAccessTokenExpired(currentToken)) {
+        const profile = (await fetchCurrentUser()) ?? storedState.user;
+        applyUserProfile(profile);
+        return true;
+      }
+
+      await refreshSessionTokens();
+      const profile = (await fetchCurrentUser()) ?? storedState.user;
+      applyUserProfile(profile);
       return true;
     } catch {
       clearStoredAuthState();
       setUser(null);
       return false;
     }
-  }, []);
+  }, [applyUserProfile, fetchCurrentUser]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const initializeAuth = async () => {
       const verificationState = getPendingVerification();
       if (verificationState) {
@@ -124,35 +167,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUser(mapUser(storedState.user));
-      const refreshed = await refreshSession();
-      if (!refreshed) {
-        clearStoredAuthState();
-      }
 
-      setIsLoading(false);
+      try {
+        const refreshed = await Promise.race([
+          refreshSession(),
+          new Promise<boolean>((resolve) => {
+            window.setTimeout(() => resolve(false), 10_000);
+          }),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!refreshed) {
+          clearStoredAuthState();
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
     };
 
     void initializeAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, [refreshSession]);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      const token = getAccessToken();
+      if (!token || isAccessTokenExpired(token)) {
+        void refreshSession();
+      }
+    }, 60 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [user, refreshSession]);
 
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await authApi.login({ email, password });
-      setSession(response);
+      persistAuthState({
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        user: response.user,
+      });
+
+      const profile = (await fetchCurrentUser()) ?? response.user;
+      applyUserProfile(profile);
       setPendingVerification(null);
       toast.success(response.message, 'You are now signed in');
       return response;
     },
-    [setPendingVerification, setSession],
+    [applyUserProfile, fetchCurrentUser, setPendingVerification],
   );
 
   const logout = useCallback(async () => {
     clearStoredAuthState();
     setUser(null);
+    queryClient.removeQueries({ queryKey: currentUserQueryKey });
     queryClient.clear();
     toast.success('Logged out successfully');
-    router.replace(GUEST_ROUTES.LOGIN);
-  }, [queryClient, router]);
+    window.location.assign(GUEST_ROUTES.LOGIN);
+  }, [queryClient]);
 
   const openAuthModal = useCallback(() => setShowAuthModal(true), []);
   const closeAuthModal = useCallback(() => setShowAuthModal(false), []);
@@ -169,12 +255,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       setSession,
       refreshSession,
+      fetchCurrentUser,
       setPendingVerification,
       openAuthModal,
       closeAuthModal,
     }),
     [
       closeAuthModal,
+      fetchCurrentUser,
       isLoading,
       login,
       logout,
