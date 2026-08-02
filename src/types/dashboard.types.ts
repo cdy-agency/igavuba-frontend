@@ -5,6 +5,8 @@ export type DashboardChartType = 'line' | 'bar' | 'pie';
 export interface DashboardMeta {
   badge: string;
   title: string;
+  institution: string;
+  institutions: { id: string; name: string }[];
   description: string;
 }
 
