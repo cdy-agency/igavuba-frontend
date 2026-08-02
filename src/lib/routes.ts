@@ -22,6 +22,7 @@ export const PUBLIC_AUTH_ROUTES = {
 
 export const PROTECTED_ROUTES = {
   DASHBOARD: '/dashboard',
+  WISHLIST: '/wishlist',
   STUDENT: '/student',
   BUILDER: '/builder',
   LEARN: '/learn',

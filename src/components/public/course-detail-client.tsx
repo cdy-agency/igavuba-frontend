@@ -17,6 +17,7 @@ import {
   CourseDetailToolsSection,
 } from '@/components/public/course-detail/course-detail-sections';
 import { CourseDetailSidebar } from '@/components/public/course-detail/course-detail-sidebar';
+import { CourseDetailReviewsSection } from '@/components/reviews/CourseDetailReviewsSection';
 import { useCatalogCourseDetail, useRelatedCatalogCourses } from '@/hooks/use-catalog';
 
 interface CourseDetailClientProps {
@@ -81,6 +82,11 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
             <CourseDetailDescriptionSection course={course} />
             <CourseDetailLearnSection course={course} />
             <CourseDetailToolsSection course={course} />
+            <CourseDetailReviewsSection
+              courseId={course.id}
+              courseSlug={course.slug}
+              courseTitle={course.title}
+            />
             <CourseDetailInstructorSection course={course} />
             <CourseDetailInstitutionSection course={course} />
           </main>

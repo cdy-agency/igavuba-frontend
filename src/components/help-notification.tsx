@@ -74,7 +74,7 @@ export const HelpNotification: React.FC<HelpNotificationProps> = ({ className })
           onClick={resetDismissal}
           variant="outline"
           size="sm"
-          className="bg-background/90 backdrop-blur-sm border-primary-muted text-primary-hover hover:bg-primary-subtle shadow-lg"
+          className="bg-white border-primary-muted text-primary-hover hover:bg-primary-subtle shadow-lg"
         >
           <HelpCircle className="h-4 w-4 mr-2" />
           Need Help?
@@ -87,7 +87,7 @@ export const HelpNotification: React.FC<HelpNotificationProps> = ({ className })
     <>
       {/* Main Notification */}
       <div className={`fixed bottom-4 left-4 z-50 animate-in slide-in-from-left-2 duration-300 ${className}`}>
-        <div className="bg-background/95 backdrop-blur-md rounded-xl shadow-2xl border border-border/50 p-5 max-w-sm w-full">
+        <div className="bg-white rounded-xl shadow-2xl border border-border/50 p-5 max-w-sm w-full">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-primary-muted to-primary-muted rounded-full flex items-center justify-center">

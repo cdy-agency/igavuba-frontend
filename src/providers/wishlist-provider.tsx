@@ -2,17 +2,22 @@
 
 import React, {
   createContext,
-  useContext,
-  useState,
   useCallback,
-  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
 } from 'react';
 import { useAuth } from './auth-provider';
 import { toast } from '@/lib/toast';
-
-interface WishlistItem {
-  courseId: string;
-}
+import {
+  addToWishlist,
+  getWishlist,
+  removeFromWishlist,
+} from '@/api/wishlist.api';
+import type { WishlistItem } from '@/types/wishlist.types';
+import { UserRole } from '@/types/enum';
 
 interface WishlistContextType {
   wishlistItems: WishlistItem[];
@@ -30,18 +35,31 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const wishlistCount = wishlistItems.length;
+  const isLearner = user?.role === UserRole.LEARNER;
 
   const refreshWishlist = useCallback(async () => {
-    if (!user) {
+    if (!user || !isLearner) {
       setWishlistItems([]);
+      return;
     }
-  }, [user]);
+
+    try {
+      setIsLoading(true);
+      const response = await getWishlist({ page: 1, limit: 100 });
+      setWishlistItems(response.data);
+    } catch (error) {
+      console.error('Failed to load wishlist:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, isLearner]);
+
+  useEffect(() => {
+    void refreshWishlist();
+  }, [refreshWishlist]);
 
   const isWishlisted = useCallback(
-    (courseId: string) => {
-      return wishlistItems.some((item) => item.courseId === courseId);
-    },
+    (courseId: string) => wishlistItems.some((item) => item.courseId === courseId),
     [wishlistItems],
   );
 
@@ -52,36 +70,52 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (!isLearner) {
+        toast.error('Only learners can use the wishlist');
+        return;
+      }
+
       const currentlyWishlisted = isWishlisted(courseId);
+      const previous = wishlistItems;
 
       try {
-        setIsLoading(true);
-
         if (currentlyWishlisted) {
           setWishlistItems((prev) => prev.filter((item) => item.courseId !== courseId));
-          toast.success('Removed from wishlist');
+          await removeFromWishlist(courseId);
         } else {
-          setWishlistItems((prev) => [...prev, { courseId }]);
-          toast.success('Added to wishlist');
+          setWishlistItems((prev) => [
+            ...prev,
+            {
+              id: `temp-${courseId}`,
+              learnerId: 'temp',
+              courseId,
+              createdAt: new Date().toISOString(),
+              course: null,
+            },
+          ]);
+          await addToWishlist(courseId);
+          await refreshWishlist();
         }
       } catch (error) {
+        setWishlistItems(previous);
         console.error('Failed to toggle wishlist:', error);
         toast.error('Failed to update wishlist');
-      } finally {
-        setIsLoading(false);
       }
     },
-    [user, isWishlisted, refreshWishlist],
+    [user, isLearner, isWishlisted, wishlistItems, refreshWishlist],
   );
 
-  const value: WishlistContextType = {
-    wishlistItems,
-    wishlistCount,
-    isWishlisted,
-    toggleWishlist,
-    isLoading,
-    refreshWishlist,
-  };
+  const value = useMemo<WishlistContextType>(
+    () => ({
+      wishlistItems,
+      wishlistCount: wishlistItems.length,
+      isWishlisted,
+      toggleWishlist,
+      isLoading,
+      refreshWishlist,
+    }),
+    [wishlistItems, isWishlisted, toggleWishlist, isLoading, refreshWishlist],
+  );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
 }

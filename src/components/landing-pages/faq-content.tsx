@@ -9,9 +9,9 @@ import {
 
 const faqs = [
   {
-    question: "What is IGA-VUBA Health e-learning platform?",
+    question: "What is Igakare Health e-learning platform?",
     answer:
-      "IGA-VUBA Health is a comprehensive e-learning platform designed for healthcare professionals, students, and institutions. We offer CPD-certified courses, digital health training, and specialized healthcare education modules that can be accessed remotely from anywhere.",
+      "Igakare Health is a comprehensive e-learning platform designed for healthcare professionals, students, and institutions. We offer CPD-certified courses, digital health training, and specialized healthcare education modules that can be accessed remotely from anywhere.",
   },
   {
     question: "Are the courses certified and recognized?",

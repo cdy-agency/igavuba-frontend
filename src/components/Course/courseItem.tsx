@@ -13,6 +13,7 @@ import {
   getDifficultyColor,
   getPrimaryCategoryName,
 } from '@/lib/catalog-utils';
+import { WishlistButton } from '@/components/wishlist/WishlistButton';
 
 interface CourseListItemProps {
   course: CatalogCourseCard;
@@ -46,6 +47,18 @@ export function CourseListItem({ course, categoryName }: CourseListItemProps) {
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-500" />
             )}
+            <div
+              className="absolute right-2 top-2 z-10"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
+              <WishlistButton
+                courseId={course.id}
+                className="bg-white/90 shadow-sm hover:bg-white"
+              />
+            </div>
           </div>
 
           <div className="p-5">

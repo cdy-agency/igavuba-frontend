@@ -1,70 +1,57 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/api/api-client';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  deleteNotification,
+  getNotifications,
+  getUnreadNotificationCount,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+} from '@/api/notification.api';
+import { useAuth } from '@/lib/hooks/use-auth';
+import type { AppNotification } from '@/types/notification.types';
 
-export interface AppNotification {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  message: string;
-  actionUrl: string | null;
-  courseId: string | null;
-  readAt: string | null;
-  createdAt: string;
-}
+export type { AppNotification };
 
 export const notificationQueryKeys = {
   all: ['notifications'] as const,
   list: (unreadOnly?: boolean) => ['notifications', 'list', unreadOnly ?? false] as const,
+  infinite: ['notifications', 'infinite'] as const,
   unreadCount: ['notifications', 'unread-count'] as const,
 };
 
-export async function getNotifications(limit = 20, unreadOnly = false) {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: { data: AppNotification[]; unreadCount: number };
-  }>('/notifications', {
-    params: { limit, unread: unreadOnly ? 'true' : undefined },
-  });
-  return response.data.data;
-}
-
-export async function getUnreadNotificationCount() {
-  const response = await apiClient.get<{
-    success: boolean;
-    data: { unreadCount: number };
-  }>('/notifications/unread-count');
-  return response.data.data.unreadCount;
-}
-
-export async function markNotificationAsRead(id: string) {
-  const response = await apiClient.patch<{ success: boolean; message: string }>(
-    `/notifications/${id}/read`,
-  );
-  return response.data;
-}
-
-export async function markAllNotificationsAsRead() {
-  const response = await apiClient.patch<{ success: boolean; message: string }>(
-    '/notifications/read-all',
-  );
-  return response.data;
-}
-
 export function useNotifications(limit = 20) {
+  const { user } = useAuth();
+
   return useQuery({
     queryKey: notificationQueryKeys.list(false),
-    queryFn: () => getNotifications(limit),
+    queryFn: () => getNotifications({ page: 1, limit }),
+    enabled: Boolean(user),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useInfiniteNotifications(limit = 15) {
+  const { user } = useAuth();
+
+  return useInfiniteQuery({
+    queryKey: notificationQueryKeys.infinite,
+    queryFn: ({ pageParam }) => getNotifications({ page: pageParam, limit }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.hasNextPage ? lastPage.pagination.page + 1 : undefined,
+    enabled: Boolean(user),
     refetchInterval: 60_000,
   });
 }
 
 export function useUnreadNotificationCount() {
+  const { user } = useAuth();
+
   return useQuery({
     queryKey: notificationQueryKeys.unreadCount,
     queryFn: getUnreadNotificationCount,
+    enabled: Boolean(user),
     refetchInterval: 30_000,
   });
 }
@@ -85,6 +72,17 @@ export function useMarkAllNotificationsAsRead() {
 
   return useMutation({
     mutationFn: markAllNotificationsAsRead,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.all });
+    },
+  });
+}
+
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteNotification,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationQueryKeys.all });
     },
