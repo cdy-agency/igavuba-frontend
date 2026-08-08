@@ -37,6 +37,8 @@ export function useQuizDetail(quizId: string, enabled = true) {
     queryFn: () => getQuiz(quizId),
     enabled: Boolean(quizId) && enabled,
     select: (response) => response.data,
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 }
 
