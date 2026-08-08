@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import { useCourseBuilder } from '@/components/course-builder/course-builder-context';
@@ -18,12 +18,14 @@ import { QuizManagedQuestionBuilder } from '@/components/quiz/quiz-managed-quest
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Button } from '@/components/ui/button';
 import { useAutoSave } from '@/hooks/use-autosave';
 import { useUpdateQuiz, useQuizDetail } from '@/hooks/use-quiz';
 import type { ModuleContentItem } from '@/types/content';
 import type { AssessmentSettings } from '@/types/quiz';
 import { defaultQuizSettings } from '@/lib/quiz-utils';
 import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
+import { getApiErrorMessage } from '@/lib/auth';
 
 interface QuizLessonEditorProps {
   item: ModuleContentItem;
@@ -39,7 +41,13 @@ export function QuizLessonEditor({
   readOnly = false,
 }: QuizLessonEditorProps) {
   const quizId = item.content.assessment?.quiz?.id ?? null;
-  const { data: quiz, isPending } = useQuizDetail(quizId ?? '', Boolean(quizId));
+  const {
+    data: quiz,
+    isPending,
+    isError,
+    error,
+    refetch,
+  } = useQuizDetail(quizId ?? '', Boolean(quizId));
   const { setBuilderSaveState } = useCourseBuilder();
 
   const [title, setTitle] = useState(item.content.title);
@@ -121,18 +129,29 @@ export function QuizLessonEditor({
     onStatusChange: (status, message) => {
       setBuilderSaveState({
         status,
-        message: message || (status === 'saving' ? 'Saving...' : status === 'offline' ? 'Offline draft' : 'Pending changes'),
+        message:
+          message ||
+          (status === 'saving'
+            ? 'Saving...'
+            : status === 'offline'
+              ? 'Offline draft'
+              : 'Pending changes'),
         isSaving: status === 'saving',
       });
     },
   });
 
+  // Keep a stable flush ref so unmount cleanup does not re-run every render.
+  // Depending on `autoSave` caused an infinite remount/fetch loop in production.
+  const flushRef = useRef(autoSave.flush);
+  flushRef.current = autoSave.flush;
+
   useEffect(() => {
     return () => {
-      autoSave.flush();
+      void flushRef.current();
       setBuilderSaveState(null);
     };
-  }, [autoSave, setBuilderSaveState]);
+  }, [setBuilderSaveState]);
 
   const handleAcademicRulesChange = (patch: Partial<AssessmentAcademicRulesFormValues>) => {
     setAcademicRules((current) => ({ ...current, ...patch }));
@@ -154,21 +173,43 @@ export function QuizLessonEditor({
     );
   }
 
+  if (isError && !quiz) {
+    return (
+      <div className="flex h-full min-h-[24rem] flex-col items-center justify-center gap-3 px-6 text-center">
+        <p className="text-sm font-medium text-foreground">Unable to load this quiz</p>
+        <p className="max-w-md text-sm text-muted-foreground">
+          {getApiErrorMessage(error, 'The quiz request failed. Try again.')}
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <BuilderLessonShell
       readOnly={readOnly}
       title={title}
       onTitleChange={setTitle}
-      onTitleBlur={readOnly ? undefined : () => {
-        void autoSave.flush();
-      }}
+      onTitleBlur={
+        readOnly
+          ? undefined
+          : () => {
+              void autoSave.flush();
+            }
+      }
       description={description}
       onDescriptionChange={(value) => {
         setDescription(value);
       }}
-      onDescriptionBlur={readOnly ? undefined : () => {
-        void autoSave.flush();
-      }}
+      onDescriptionBlur={
+        readOnly
+          ? undefined
+          : () => {
+              void autoSave.flush();
+            }
+      }
       onDelete={readOnly ? undefined : onDelete}
       icon={<CheckCircle2 className="h-4.5 w-4.5 text-orange-600" strokeWidth={2} />}
       settings={

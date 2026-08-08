@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export type SaveStatus = 'idle' | 'saving' | 'pending' | 'offline' | 'saved';
 
@@ -150,7 +150,7 @@ export function useAutoSave<T>(config: {
     }
   };
 
-  const flushPendingSave = async () => {
+  const flushPendingSave = useCallback(async () => {
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
@@ -166,7 +166,7 @@ export function useAutoSave<T>(config: {
     }
 
     await performSave(latestValueRef.current);
-  };
+  }, [hasPendingSave, isOffline]);
 
   useEffect(() => {
     latestValueRef.current = value;
@@ -204,7 +204,7 @@ export function useAutoSave<T>(config: {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [hasPendingSave]);
+  }, [hasPendingSave, flushPendingSave]);
 
   useEffect(() => {
     if (!isBrowser()) return;
@@ -252,14 +252,25 @@ export function useAutoSave<T>(config: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isOffline, debounceMs, storageKey]);
 
-  return {
-    status,
-    isSaving,
-    hasPendingSave,
-    lastSavedAt,
-    error,
-    isOffline,
-    flush: flushPendingSave,
-    clearDraft: removeLocalDraft,
-  };
+  return useMemo(
+    () => ({
+      status,
+      isSaving,
+      hasPendingSave,
+      lastSavedAt,
+      error,
+      isOffline,
+      flush: flushPendingSave,
+      clearDraft: removeLocalDraft,
+    }),
+    [
+      status,
+      isSaving,
+      hasPendingSave,
+      lastSavedAt,
+      error,
+      isOffline,
+      flushPendingSave,
+    ],
+  );
 }
