@@ -66,7 +66,7 @@ export function AppSidebar() {
       <SidebarHeader className="dashboard-rail-header shrink-0 p-0">
         <div className="flex items-center justify-between gap-3 px-4 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="dashboard-rail-logo" title={institution?.name ?? 'Dashboard'}>
+            <Link href="/" className="dashboard-rail-logo" title={institution?.name ?? 'Dashboard'}>
               {institution?.logo ? (
                 <Image
                   src={institution.logo}

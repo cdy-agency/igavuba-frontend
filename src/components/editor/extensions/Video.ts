@@ -1,3 +1,4 @@
+import { getVideoEmbedUrl, isEmbeddableVideoUrl } from '@/lib/video-utils';
 import { Node, mergeAttributes, type CommandProps } from '@tiptap/core';
 import type { NodeViewRendererProps } from '@tiptap/core';
 
@@ -16,23 +17,20 @@ declare module '@tiptap/core' {
   }
 }
 
-/**
- * Detects if a URL is an external video platform (YouTube/Vimeo) and returns
- * the corresponding embed URL. Returns null for direct video file URLs.
- */
-function getEmbedUrl(url: string): string | null {
-  for (const pattern of [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
-    /youtube\.com\/shorts\/([^&\n?#]+)/,
-  ]) {
-    const m = url.match(pattern);
-    if (m?.[1]) return `https://www.youtube.com/embed/${m[1]}`;
-  }
-  for (const pattern of [/vimeo\.com\/(\d+)/, /player\.vimeo\.com\/video\/(\d+)/]) {
-    const m = url.match(pattern);
-    if (m?.[1]) return `https://player.vimeo.com/video/${m[1]}`;
-  }
-  return null;
+function parseVideoSrc(element: HTMLElement): string | null {
+  const dataSrc = element.getAttribute('data-src');
+  if (dataSrc) return dataSrc;
+
+  const iframe = element.querySelector('iframe');
+  const original =
+    iframe?.getAttribute('data-original-src') || iframe?.getAttribute('src');
+  if (original) return original;
+
+  const video = element.querySelector('video');
+  const videoSrc = video?.getAttribute('src');
+  if (videoSrc) return videoSrc;
+
+  return element.getAttribute('src');
 }
 
 export const Video = Node.create({
@@ -43,8 +41,17 @@ export const Video = Node.create({
 
   addAttributes() {
     return {
-      src: { default: null },
-      title: { default: 'Video' },
+      src: {
+        default: null,
+        parseHTML: (element: HTMLElement) => parseVideoSrc(element),
+      },
+      title: {
+        default: 'Video',
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute('data-title') ||
+          element.querySelector('video')?.getAttribute('title') ||
+          'Video',
+      },
       width: { default: null },
       height: { default: null },
     };
@@ -56,22 +63,29 @@ export const Video = Node.create({
 
   renderHTML({ HTMLAttributes }) {
     const attrs = HTMLAttributes as VideoAttributes & Record<string, unknown>;
-    const src = (attrs.src as string) ?? '';
-    const embedUrl = getEmbedUrl(src);
+    const src = ((attrs.src as string) ?? '').trim();
+    const title = (attrs.title as string) || 'Video';
+    const wrapperAttrs = {
+      class: 'video-wrapper',
+      'data-type': 'video',
+      'data-src': src,
+      'data-title': title,
+    };
 
-    if (embedUrl) {
+    if (src && isEmbeddableVideoUrl(src)) {
       return [
         'div',
-        { class: 'video-wrapper', 'data-type': 'video' },
+        wrapperAttrs,
         [
           'iframe',
           {
-            src: embedUrl,
+            src: getVideoEmbedUrl(src),
             'data-original-src': src,
+            title,
             frameborder: '0',
             allowfullscreen: 'true',
             allow:
-              'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+              'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
             style: 'width: 100%; aspect-ratio: 16/9; border-radius: 0.5rem;',
           },
         ],
@@ -80,15 +94,19 @@ export const Video = Node.create({
 
     return [
       'div',
-      { class: 'video-wrapper', 'data-type': 'video' },
+      wrapperAttrs,
       [
         'video',
-        mergeAttributes(attrs, {
-          controls: true,
-          style: attrs.width
-            ? `width: ${attrs.width}; height: auto;`
-            : 'width: 100%; height: auto;',
-        }),
+        mergeAttributes(
+          {
+            src,
+            title,
+            controls: true,
+            style: attrs.width
+              ? `width: ${attrs.width}; height: auto;`
+              : 'width: 100%; height: auto;',
+          },
+        ),
       ],
     ];
   },
@@ -114,25 +132,28 @@ export const Video = Node.create({
   addNodeView() {
     return ({ node, editor, getPos }: NodeViewRendererProps) => {
       const attrs = node.attrs as VideoAttributes;
-      const src = attrs.src ?? '';
-      const embedUrl = getEmbedUrl(src);
+      const src = (attrs.src ?? '').trim();
+      const useEmbed = Boolean(src && isEmbeddableVideoUrl(src));
+      const embedUrl = useEmbed ? getVideoEmbedUrl(src) : null;
 
       const container = document.createElement('div');
       container.className = 'video-node';
+      container.setAttribute('data-type', 'video');
+      if (src) container.setAttribute('data-src', src);
       container.style.position = 'relative';
       container.style.marginBottom = '1rem';
 
       let mediaEl: HTMLVideoElement | HTMLIFrameElement;
 
       if (embedUrl) {
-        // YouTube / Vimeo → render as iframe
         const iframe = document.createElement('iframe');
         iframe.src = embedUrl;
+        iframe.title = attrs.title ?? 'Video';
         iframe.setAttribute('frameborder', '0');
         iframe.setAttribute('allowfullscreen', 'true');
         iframe.setAttribute(
           'allow',
-          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
         );
         iframe.style.width = '100%';
         iframe.style.aspectRatio = '16/9';
@@ -140,14 +161,15 @@ export const Video = Node.create({
         iframe.style.border = '1px solid var(--border)';
         mediaEl = iframe;
       } else {
-        // Direct video file → render as <video>
         const video = document.createElement('video');
         video.src = src;
         video.controls = true;
+        video.playsInline = true;
         video.style.width = '100%';
         video.style.height = 'auto';
         video.style.borderRadius = '0.5rem';
         video.style.border = '1px solid var(--border)';
+        video.style.backgroundColor = '#000';
         video.style.cursor = 'pointer';
         video.title = attrs.title ?? 'Video';
         mediaEl = video;
@@ -159,6 +181,7 @@ export const Video = Node.create({
         const deleteBtn = document.createElement('button');
 
         deleteBtn.innerHTML = '×';
+        deleteBtn.type = 'button';
         deleteBtn.style.position = 'absolute';
         deleteBtn.style.top = '0.5rem';
         deleteBtn.style.right = '0.5rem';
@@ -205,16 +228,19 @@ export const Video = Node.create({
           if (newNode.type.name !== 'video') return false;
 
           const newAttrs = newNode.attrs as VideoAttributes;
-          const newSrc = newAttrs.src ?? '';
-          const newEmbedUrl = getEmbedUrl(newSrc);
+          const newSrc = (newAttrs.src ?? '').trim();
+          const newUseEmbed = Boolean(newSrc && isEmbeddableVideoUrl(newSrc));
+          const newEmbedUrl = newUseEmbed ? getVideoEmbedUrl(newSrc) : null;
 
           if (mediaEl instanceof HTMLIFrameElement && newEmbedUrl) {
             mediaEl.src = newEmbedUrl;
+            mediaEl.title = newAttrs.title ?? 'Video';
+            container.setAttribute('data-src', newSrc);
           } else if (mediaEl instanceof HTMLVideoElement && !newEmbedUrl) {
             mediaEl.src = newSrc;
             mediaEl.title = newAttrs.title ?? 'Video';
+            container.setAttribute('data-src', newSrc);
           } else {
-            // Type changed (e.g. from direct to YouTube) — force full re-render
             return false;
           }
 

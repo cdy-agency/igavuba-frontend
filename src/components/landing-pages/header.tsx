@@ -2,9 +2,17 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { GraduationCap, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Image from "next/image";
+import React, { useState } from 'react';
+import { Heart, User, Settings, LogOut, Search } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useWishlistContext } from '@/providers/wishlist-provider';
+
+const SearchModal = dynamic(() => import('@/components/search/search-modal'), { ssr: false });
 
 // shadcn dropdown
 import {
@@ -13,25 +21,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
+
 
 export default function LandingHeader() {
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+  const { wishlistCount } = useWishlistContext();
 
-  // Role-based dashboard route
-  const getDashboardRoute = () => {
-    switch (user?.role) {
-      case "student":
-        return "/student";
-      case "instructor":
-        return "/instructor";
-      case "institution":
-        return "/institution";
-      case "admin":
-        return "/admin";
-      default:
-        return "/dashboard";
-    }
-  };
+  const getDashboardRoute = () => '/dashboard';
+  const wishlistHref = '/wishlist';
 
   const navItems = [
     { href: "/", label: "HOME" },
@@ -45,82 +45,125 @@ export default function LandingHeader() {
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
           <div className="flex items-center space-x-3">
-          <Image src="/igavuba-logo.png" alt="Logo" width={100} height={100} />
+          <Image src="/igavuba-logo.png" alt="Logo" width={120} height={100} />
         </div>
         </Link>
 
         {/* Navbar Links */}
         <nav className="hidden lg:flex items-center space-x-8">
-          {navItems.map((item, index) => (
-            <Link
-              key={index}
-              href={item.href}
-              className="relative text-sm font-medium text-foreground-muted hover:text-secondary transition-colors group"
-            >
-              {item.label}
-              <span className="absolute left-0 -bottom-1 h-0.5 w-0 bg-gradient-to-r from-secondary to-accent transition-all duration-300 group-hover:w-full"></span>
-            </Link>
-          ))}
+          {navItems.map((item, index) => {
+            const isActive = pathname === item.href || (item.href !== '/' && pathname?.startsWith(item.href));
+            return (
+              <Link
+                key={index}
+                href={item.href}
+                className={`relative text-sm font-medium transition-colors group ${isActive ? 'text-foreground' : 'text-foreground-muted hover:text-secondary'}`}
+              >
+                {item.label}
+                <span className={`absolute left-0 -bottom-1 h-0.5 transition-all duration-300 ${isActive ? 'w-full bg-primary' : 'w-0 group-hover:w-full group-hover:bg-primary bg-transparent'}`}></span>
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Logged-in Dropdown OR Sign-in Buttons */}
+        {/* Icons and Sign-in / Profile */}
         <div className="hidden lg:flex items-center space-x-3">
-          {!user ? (
-            <>
-              <Button
-                variant="ghost"
-                className="text-foreground-muted hover:text-[var(--coursera-blue)] font-medium transition-colors"
-              >
-                <Link href="/login">Sign In</Link>
-              </Button>
-              <Button className="text-panel-foreground font-semibold px-5 py-2 rounded-lg shadow-sm transition-transform duration-200 hover:scale-105 brand-btn-primary">
-                <Link href="/register">Get Started</Link>
-              </Button>
-            </>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center space-x-3 cursor-pointer">
-                <Image
-                  src={"/user-286.png"}
-                  alt="Profile"
-                  width={36}
-                  height={36}
-                  className="rounded-full object-cover"
-                />
+          <div className="flex items-center gap-3">
+            <Link
+              href={wishlistHref}
+              aria-label="Wishlist"
+              className="relative p-2 rounded-md hover:bg-muted transition-colors"
+            >
+              <Heart className="h-5 w-5 text-foreground-muted" />
+              {wishlistCount > 0 ? (
+                <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </Badge>
+              ) : null}
+            </Link>
 
-                <div className="flex flex-col leading-tight text-left">
-                  <span className="text-sm font-semibold text-foreground">
-                    {user.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
-                </div>
-              </DropdownMenuTrigger>
+            <button aria-label="Search" onClick={() => setIsOpen(true)} className="p-2 rounded-md hover:bg-muted transition-colors">
+              <Search className="h-5 w-5 text-foreground-muted" />
+            </button>
 
-              <DropdownMenuContent className="w-40">
-                <DropdownMenuItem>
-                  <Link href={getDashboardRoute()} className="w-full block">
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
+            {user ? (
+              <>
+                <NotificationBell />
 
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    void logout();
-                  }}
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="flex items-center space-x-3 cursor-pointer">
+                    <div className="w-9 h-9 rounded-full bg-primary-subtle flex items-center justify-center text-sm font-semibold text-primary">{user.name ? user.name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase() : 'U'}</div>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent className="w-56">
+                    <div className="px-4 py-3 border-b border-border">
+                      <div className="text-sm font-semibold">{user.name}</div>
+                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                    </div>
+
+                    <DropdownMenuItem>
+                      <Link href={getDashboardRoute()} className="w-full block">
+                        <div className="flex items-center gap-2"><User className="h-4 w-4" /> Dashboard</div>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem>
+                      <Link href="/profile" className="w-full block">
+                        <div className="flex items-center gap-2"><User className="h-4 w-4" /> Profile</div>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem>
+                      <Link href="/settings" className="w-full block">
+                        <div className="flex items-center gap-2"><Settings className="h-4 w-4" /> Settings</div>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={(event) => {
+                        event.preventDefault();
+                        void logout();
+                      }}
+                    >
+                      <div className="flex items-center gap-2"><LogOut className="h-4 w-4" /> Log out</div>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  className="text-foreground-muted hover:text-[var(--coursera-blue)] font-medium transition-colors"
                 >
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+                  <Link href="/login">Sign In</Link>
+                </Button>
+                <Button className="text-panel-foreground font-semibold px-5 py-2 rounded-lg shadow-sm transition-transform duration-200 hover:scale-105 brand-btn-primary">
+                  <Link href="/register">Get Started</Link>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Mobile Menu */}
         <div className="flex items-center space-x-3 lg:hidden">
+          <Link href={wishlistHref} aria-label="Wishlist" className="relative p-2 rounded-md hover:bg-muted transition-colors">
+            <Heart className="h-5 w-5 text-foreground-muted" />
+            {wishlistCount > 0 ? (
+              <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px]">
+                {wishlistCount > 9 ? '9+' : wishlistCount}
+              </Badge>
+            ) : null}
+          </Link>
+
+          <button aria-label="Search" onClick={() => setIsOpen(true)} className="p-2 rounded-md hover:bg-muted transition-colors">
+            <Search className="h-5 w-5 text-foreground-muted" />
+          </button>
+
+          {user ? <NotificationBell /> : null}
+
           {!user ? (
             <Button
               variant="ghost"
@@ -168,6 +211,7 @@ export default function LandingHeader() {
           </Button>
         </div>
       </div>
+      {isOpen && <SearchModal open={isOpen} onClose={() => setIsOpen(false)} />}
     </header>
   );
 }

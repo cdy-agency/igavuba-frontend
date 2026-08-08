@@ -59,7 +59,7 @@ export function LandingFooter() {
                 <Image
                   src="/igavuba-logo.png"
                   alt="Logo"
-                  width={100}
+                  width={120}
                   height={100}
                 />
               </div>
@@ -142,7 +142,7 @@ export function LandingFooter() {
           <div className="pt-6 pb-8 border-t border-panel-border">
             <div className="flex flex-col items-center gap-2 text-center py-4">
               <p className="text-xs text-panel-muted">
-                © {new Date().getFullYear()} IGA-VUBA. All rights reserved.
+                © {new Date().getFullYear()} IGAKARE. All rights reserved.
               </p>
               <p className="text-xs text-panel-muted">
                 Powered by{" "}

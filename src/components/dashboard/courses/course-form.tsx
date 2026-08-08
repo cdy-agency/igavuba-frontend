@@ -9,7 +9,6 @@ import {
   AlignLeft,
   BookOpen,
   Clock,
-  DollarSign,
   FileText,
   Globe,
   GraduationCap,
@@ -56,7 +55,9 @@ import {
   requiresPublicPrice,
 } from '@/lib/course-utils';
 import { CourseCatalogVisibilityNotice } from '@/components/dashboard/courses/course-catalog-visibility-notice';
+import { CoursePricingFields } from '@/components/dashboard/courses/course-pricing-fields';
 import { CourseLifecycleStatus } from '@/types/course-status';
+import { DiscountType } from '@/lib/course-pricing';
 import { getCourseLifecycleLabel } from '@/lib/status-utils';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
@@ -91,6 +92,12 @@ const defaultValues: CourseFormValues = {
   estimatedHours: undefined,
   accessType: CourseAccessType.INTERNAL_ONLY,
   publicPrice: undefined,
+  originalPrice: undefined,
+  discountEnabled: false,
+  discountType: undefined,
+  discountValue: undefined,
+  discountStartAt: undefined,
+  discountEndAt: undefined,
   departmentId: undefined,
   lecturerId: undefined,
   categoryIds: [],
@@ -108,6 +115,12 @@ function mapCourseToFormValues(course: Course): CourseFormValues {
     estimatedHours: course.estimatedHours ?? undefined,
     accessType: course.accessType,
     publicPrice: course.publicPrice ?? undefined,
+    originalPrice: course.originalPrice ?? course.publicPrice ?? undefined,
+    discountEnabled: course.discountEnabled ?? false,
+    discountType: (course.discountType as DiscountType | null) ?? undefined,
+    discountValue: course.discountValue ?? undefined,
+    discountStartAt: course.discountStartAt ?? undefined,
+    discountEndAt: course.discountEndAt ?? undefined,
     departmentId: course.departmentId ?? undefined,
     lecturerId: course.lecturerId ?? undefined,
     categoryIds: course.categories?.map((entry) => entry.category.id) ?? [],
@@ -575,6 +588,12 @@ export function CourseForm({ mode, course, readOnly = false, onSuccess, onCancel
                     field.onChange(next);
                     if (next === CourseAccessType.PUBLIC_FREE) {
                       form.setValue('publicPrice', undefined);
+                      form.setValue('originalPrice', undefined);
+                      form.setValue('discountEnabled', false);
+                      form.setValue('discountType', undefined);
+                      form.setValue('discountValue', undefined);
+                      form.setValue('discountStartAt', undefined);
+                      form.setValue('discountEndAt', undefined);
                     }
                   }}
                   disabled={isSubmitting}
@@ -603,22 +622,18 @@ export function CourseForm({ mode, course, readOnly = false, onSuccess, onCancel
           </CourseFormField>
 
           {showPublicPrice ? (
-            <CourseFormField
-              icon={DollarSign}
-              label="Public Price"
-              error={form.formState.errors.publicPrice?.message}
-            >
-              <Input
-                id="course-public-price"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="49.99"
-                disabled={isSubmitting}
-                className={courseFormInputClass}
-                {...form.register('publicPrice')}
-              />
-            </CourseFormField>
+            <CoursePricingFields
+              control={form.control}
+              setValue={form.setValue}
+              disabled={isSubmitting}
+              errors={{
+                originalPrice: form.formState.errors.originalPrice,
+                discountType: form.formState.errors.discountType,
+                discountValue: form.formState.errors.discountValue,
+                discountStartAt: form.formState.errors.discountStartAt,
+                discountEndAt: form.formState.errors.discountEndAt,
+              }}
+            />
           ) : null}
           </div>
         </aside>

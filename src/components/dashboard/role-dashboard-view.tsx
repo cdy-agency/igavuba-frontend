@@ -26,10 +26,16 @@ import type {
 import { getChartColor } from '@/lib/dashboard-chart-theme';
 import { oazisDisplayFontClass } from '@/lib/oazis-dashboard-fonts';
 import { cn } from '@/lib/utils';
+import { dateRangeToIsoStrings } from '@/components/ui/date-range-picker';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
-  DateRangePicker,
-  dateRangeToIsoStrings,
-} from '@/components/ui/date-range-picker';
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import type { DateRange } from 'react-day-picker';
 import {
   Area,
@@ -651,7 +657,10 @@ export function RoleDashboardView({ data }: RoleDashboardViewProps) {
     [data.charts],
   );
   const growthCharts = useMemo(
-    () => sortGrowthCharts(chartsWithData.filter(isGrowthTimeSeriesChart)),
+    () =>
+      sortGrowthCharts(chartsWithData.filter(isGrowthTimeSeriesChart)).filter(
+        (c) => c.label !== 'Learning Progress by Course',
+      ),
     [chartsWithData],
   );
   const pieCharts = useMemo(
@@ -702,67 +711,110 @@ export function RoleDashboardView({ data }: RoleDashboardViewProps) {
   return (
     <div className="-m-4 bg-[#eef3f6] p-4 text-[#0c2a3a] sm:-m-6 sm:p-6 lg:-m-8 lg:p-7">
       <div className="mx-auto max-w-[1320px]">
-        <div className="sticky top-0 z-20 -mx-4 mb-5 border-b border-[#e6edf1] bg-[#eef3f6]/85 px-4 py-3 shadow-[0_6px_20px_rgba(12,42,58,.05)] backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-7 lg:px-7">
+        <div className="sticky top-0 z-20 -mx-4 mb-5 border-b border-[#e6edf1] bg-[#eef3f6]/85 px-4 py-3 shadow-sm backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-7 lg:px-7">
           <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="grid h-[46px] w-[46px] place-items-center rounded-[14px] bg-gradient-to-br from-[#1DA1F2] to-[#5cb8f7] text-xl font-extrabold text-white shadow-[0_8px_20px_rgba(29,161,242,.4)]">
-                {data.meta.title.charAt(0) || 'D'}
-              </div>
-              <div>
-                <h1 className="text-xl font-extrabold tracking-normal text-[#0c2a3a]">{data.meta.title}</h1>
-                <p className="text-[12.5px] font-semibold text-[#8aa0ad]">{data.meta.badge || 'Impact & Reach Dashboard'}</p>
-              </div>
-            </div>
+            <div className="flex flex-1 items-start gap-6">
+              <div className="flex flex-col">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-auto min-h-[36px] justify-start gap-2 rounded-[11px] border-[#e6edf1] bg-white px-3 py-1.5 text-left font-semibold text-[#475a66]">
+                        {dateRange?.from ? new Date(dateRange.from).toLocaleDateString() : 'Start date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateRange?.from}
+                        onSelect={(d: Date | undefined) => {
+                          setDateRange((prev) => ({ from: d ?? undefined, to: prev?.to }));
+                        }}
+                        numberOfMonths={1}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <DateRangePicker
-                value={dateRange}
-                onChange={setDateRange}
-                label="Date range"
-                placeholder="All dates"
-                numberOfMonths={2}
-              />
-              <select
-                value={focusAreaKey}
-                onChange={(event) => setFocusAreaKey(event.target.value)}
-                className="rounded-[11px] border border-[#e6edf1] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#475a66] shadow-sm outline-none"
-              >
-                <option value="all">All categories</option>
-                {pieCharts.map((chart) => (
-                  <option key={chart.key} value={chart.key}>
-                    {chart.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={selectedMetric}
-                onChange={(event) => setSelectedMetric(event.target.value)}
-                className="rounded-[11px] border border-[#e6edf1] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#475a66] shadow-sm outline-none"
-              >
-                {growthCharts.length ? (
-                  growthCharts.map((chart) => (
-                    <option key={chart.key} value={chart.key}>
-                      {chart.label}
-                    </option>
-                  ))
-                ) : (
-                  <option>No charts</option>
-                )}
-              </select>
-              <button
-                type="button"
-                onClick={() => downloadReport(data)}
-                className="inline-flex items-center gap-2 rounded-[11px] bg-[#0c2a3a] px-4 py-2.5 text-[12.5px] font-semibold text-white shadow-sm"
-              >
-                <Download className="h-3.5 w-3.5" />
-                Download report
-              </button>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-auto min-h-[36px] justify-start gap-2 rounded-[11px] border-[#e6edf1] bg-white px-3 py-1.5 text-left font-semibold text-[#475a66]">
+                        {dateRange?.to ? new Date(dateRange.to).toLocaleDateString() : 'End date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateRange?.to}
+                        onSelect={(d: Date | undefined) => {
+                          setDateRange((prev) => ({ from: prev?.from, to: d ?? undefined }));
+                        }}
+                        numberOfMonths={1}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="rounded-[11px] border border-[#e6edf1] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#475a66] shadow-sm">
+                      {pieCharts.find((c) => c.key === focusAreaKey)?.label ?? 'All categories'}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => setFocusAreaKey('all')}>All categories</DropdownMenuItem>
+                      {pieCharts.map((chart) => (
+                        <DropdownMenuItem key={chart.key} onSelect={() => setFocusAreaKey(chart.key)}>
+                          {chart.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="rounded-[11px] border border-[#e6edf1] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#475a66] shadow-sm">
+                      {data.meta?.institution ? data.meta.institution : 'All institutions'}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => {}}>All institutions</DropdownMenuItem>
+                      {(data.meta?.institutions ?? []).map((inst: any) => (
+                        <DropdownMenuItem key={inst.id} onSelect={() => {}}>{inst.name}</DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="rounded-[11px] border border-[#e6edf1] bg-white px-3 py-2 text-[12.5px] font-semibold text-[#475a66] shadow-sm">
+                      {growthCharts.find((c) => c.key === selectedMetric)?.label ?? (growthCharts[0]?.label ?? 'Select metric')}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      {growthCharts.length ? (
+                        growthCharts.map((chart) => (
+                          <DropdownMenuItem key={chart.key} onSelect={() => setSelectedMetric(chart.key)}>
+                            {chart.label}
+                          </DropdownMenuItem>
+                        ))
+                      ) : (
+                        <DropdownMenuItem>No charts</DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+
+              <div className="ml-auto flex shrink-0 items-center">
+                <button
+                  type="button"
+                  onClick={() => downloadReport(data)}
+                  className="inline-flex items-center gap-2 rounded-[11px] bg-primary px-4 py-2.5 text-[12.5px] font-semibold text-white shadow-sm"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download report
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <section className="relative mb-5 overflow-hidden rounded-[26px] bg-gradient-to-r from-[#0a4f7a] via-[#1DA1F2] to-[#5cb8f7] p-7 text-white shadow-[0_20px_50px_rgba(13,141,219,.32)]">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.2),transparent_70%)]" />
+        <section className="relative mb-5 overflow-hidden rounded-[26px] bg-gradient-to-r from-[#0a4f7a] via-[#1DA1F2] to-[#5cb8f7] p-7 text-white shadow-none">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.12),transparent_70%)]" />
           <div className="relative z-10">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/85">
               {data.meta.badge || 'Platform-wide impact'}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRef } from 'react';
 import {
@@ -9,13 +10,18 @@ import {
   Download,
   ExternalLink,
   Loader2,
-  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CertificateProgressContent } from '@/components/academic/certificate-progress-card';
 import { IssuedCertificatePreview } from '@/components/certificate/issued-certificate-preview';
+import { ReviewModal } from '@/components/reviews/ReviewModal';
+import { RatingStars } from '@/components/reviews/RatingStars';
 import { useCourseCertificateEligibility } from '@/hooks/use-academic';
 import { useCourseCertificate, useIssueCourseCertificate } from '@/hooks/use-certificates';
+import {
+  useCreateOrUpdateReview,
+  useReviewEligibility,
+} from '@/hooks/use-reviews';
 import { downloadCertificateByCode } from '@/lib/certificate-download';
 import { getApiErrorMessage } from '@/lib/auth';
 import type { IssuedCertificate } from '@/api/certificates.api';
@@ -255,6 +261,11 @@ export function CourseCompletionPage({
   userName = 'Student',
 }: CourseCompletionPageProps) {
   const courseIdOrSlug = courseSlug || courseId;
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const { data: eligibility } = useReviewEligibility(courseIdOrSlug, true);
+  const saveReview = useCreateOrUpdateReview(courseIdOrSlug);
+  const myReview = eligibility?.myReview ?? null;
+  const canReview = Boolean(eligibility?.canReview);
 
   return (
     <div className="h-full overflow-y-auto dark:bg-gray-900">
@@ -270,14 +281,45 @@ export function CourseCompletionPage({
           You have completed <span className="font-semibold">{courseTitle}</span>.
         </p>
 
-        <div className="mb-6 space-y-4 rounded-lg border border-gray-200 bg-white p-6 text-left dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-yellow-500" />
-            <h2 className="text-lg font-semibold dark:text-white">Rate this course</h2>
+        <div className="mb-6 space-y-4 border border-[#d1d2e0] bg-white p-6 text-left dark:border-gray-700 dark:bg-gray-800">
+          <div className="space-y-1">
+            <h2 className="text-xl font-bold text-[#1c1d1f] dark:text-white">
+              How would you rate this course?
+            </h2>
+            <p className="text-sm text-[#6a6f73] dark:text-muted-foreground">
+              Your rating helps other learners find the right course.
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Course ratings will be available in a future update.
-          </p>
+          {canReview ? (
+            <>
+              {myReview ? (
+                <div className="space-y-2 border border-[#d1d2e0] bg-[#f7f9fa] p-4 dark:border-gray-600 dark:bg-gray-900/40">
+                  <RatingStars value={myReview.rating} size="md" />
+                  <p className="text-[15px] font-bold text-[#1c1d1f] dark:text-white">
+                    {myReview.title}
+                  </p>
+                  <p className="line-clamp-2 text-sm leading-6 text-[#2d2f31] dark:text-muted-foreground">
+                    {myReview.comment}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex justify-center py-2">
+                  <RatingStars value={0} size="xl" interactive onChange={() => setReviewOpen(true)} />
+                </div>
+              )}
+              <Button
+                type="button"
+                className="h-11 w-full rounded-none bg-[#a435f0] font-bold text-white hover:bg-[#8710d8] sm:w-auto"
+                onClick={() => setReviewOpen(true)}
+              >
+                {myReview ? 'Edit your review' : 'Leave a rating'}
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-[#6a6f73]">
+              Finish all completion requirements to unlock course reviews.
+            </p>
+          )}
         </div>
 
         <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 text-left dark:border-gray-700 dark:bg-gray-800">
@@ -288,6 +330,17 @@ export function CourseCompletionPage({
           <CertificateClaimSection courseIdOrSlug={courseIdOrSlug} courseTitle={courseTitle} />
         </div>
       </div>
+
+      <ReviewModal
+        open={reviewOpen}
+        onOpenChange={setReviewOpen}
+        courseTitle={courseTitle}
+        initialReview={myReview}
+        submitting={saveReview.isPending}
+        onSubmit={async (values) => {
+          await saveReview.mutateAsync(values);
+        }}
+      />
     </div>
   );
 }

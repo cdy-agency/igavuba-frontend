@@ -9,6 +9,8 @@ import {
   formatPublishedDate,
   getPrimaryCategoryName,
 } from '@/lib/catalog-utils';
+import { RatingStars } from '@/components/reviews/RatingStars';
+import { useCourseReviewSummary } from '@/hooks/use-reviews';
 
 interface CourseDetailHeroProps {
   course: CatalogCourseDetail;
@@ -17,6 +19,8 @@ interface CourseDetailHeroProps {
 export function CourseDetailHero({ course }: CourseDetailHeroProps) {
   const primaryCategory = course.categories[0];
   const instructorName = course.instructor.name ?? 'Instructor';
+  const { data: summary } = useCourseReviewSummary(course.slug);
+  const hasReviews = Boolean(summary && summary.totalReviews > 0);
 
   return (
     <section className="bg-[#0c1f42] text-white">
@@ -55,6 +59,22 @@ export function CourseDetailHero({ course }: CourseDetailHeroProps) {
 
             {course.subtitle ? (
               <p className="max-w-3xl text-base text-white/80 sm:text-lg">{course.subtitle}</p>
+            ) : null}
+
+            {hasReviews && summary ? (
+              <a
+                href="#reviews"
+                className="inline-flex flex-wrap items-center gap-2 text-sm transition-opacity hover:opacity-90"
+              >
+                <span className="text-base font-bold tabular-nums text-[#f3ca8c]">
+                  {summary.averageRating.toFixed(1)}
+                </span>
+                <RatingStars value={summary.averageRating} size="sm" />
+                <span className="font-medium text-[#c0c4fc] underline underline-offset-2">
+                  ({summary.totalReviews.toLocaleString()} rating
+                  {summary.totalReviews === 1 ? '' : 's'})
+                </span>
+              </a>
             ) : null}
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-white/80">

@@ -7,6 +7,7 @@ import {
   CreditCard,
   FileCheck,
   GraduationCap,
+  Heart,
   LayoutDashboard,
   Layers,
   School,
@@ -17,6 +18,7 @@ import {
   UserCog,
   Users,
   Video,
+  Star,
 } from 'lucide-react';
 import { UserRole } from '@/types/enum';
 import type { NavigationGroup, NavigationItem, NavigationSection } from '@/types/dashboard';
@@ -29,11 +31,13 @@ export const DASHBOARD_HOME = '/dashboard';
 export const CANONICAL_NAV_ORDER = [
   DASHBOARD_HOME,
   '/dashboard/my-learning',
+  '/dashboard/wishlist',
   '/dashboard/achievements',
   '/dashboard/institutions',
   '/dashboard/departments',
   '/dashboard/courses',
   '/dashboard/course-reviews',
+  '/dashboard/reviews',
   '/dashboard/assessments',
   '/dashboard/grades',
   '/dashboard/enrollments',
@@ -98,6 +102,13 @@ export const navigationConfig: NavigationItem[] = [
       UserRole.INSTITUTION_ADMIN,
       UserRole.CONTENT_REVIEWER,
     ],
+    section: 'main',
+  },
+  {
+    title: 'Learner Reviews',
+    href: '/dashboard/reviews',
+    icon: Star,
+    roles: [UserRole.LECTURER, UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
     section: 'main',
   },
   {
@@ -179,6 +190,13 @@ export const navigationConfig: NavigationItem[] = [
     title: 'My Learning',
     href: '/dashboard/my-learning',
     icon: GraduationCap,
+    roles: [UserRole.LEARNER],
+    section: 'main',
+  },
+  {
+    title: 'My Wishlist',
+    href: '/dashboard/wishlist',
+    icon: Heart,
     roles: [UserRole.LEARNER],
     section: 'main',
   },
@@ -363,6 +381,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     title: 'Reviews',
     description: 'Review submitted courses for quality assurance.',
   },
+  '/dashboard/reviews': {
+    title: 'Learner Reviews',
+    description: 'Ratings, feedback analytics, and review moderation.',
+  },
   '/dashboard/assessments': {
     title: 'Assessments',
     description: 'Manage quizzes, exams, and assignments across your courses.',
@@ -406,6 +428,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   '/dashboard/my-learning': {
     title: 'My Learning',
     description: 'Your enrolled courses and learning progress.',
+  },
+  '/dashboard/wishlist': {
+    title: 'My Wishlist',
+    description: 'Courses you saved for later.',
   },
   '/dashboard/achievements': {
     title: 'Achievements',

@@ -1,5 +1,6 @@
 import { CourseAccessType } from '@/types/course';
 import type { CatalogCategorySummary, CatalogCourseCard } from '@/types/catalog';
+import { getCourseSaleState } from '@/lib/course-pricing';
 
 export function getPrimaryCategoryName(
   course: Pick<CatalogCourseCard, 'categories'> | { categories?: CatalogCategorySummary[] },
@@ -12,7 +13,17 @@ export function formatCatalogLevel(level: CatalogCourseCard['level']): string {
   return level.charAt(0) + level.slice(1).toLowerCase();
 }
 
-export function formatCatalogPrice(course: Pick<CatalogCourseCard, 'accessType' | 'publicPrice'>) {
+export function formatCatalogPrice(
+  course: Pick<
+    CatalogCourseCard,
+    'accessType' | 'publicPrice' | 'originalPrice' | 'discountEnabled' | 'isOnSale' | 'discountLabel'
+  > & {
+    discountType?: CatalogCourseCard['discountType'];
+    discountValue?: number | null;
+    discountStartAt?: string | null;
+    discountEndAt?: string | null;
+  },
+) {
   if (
     course.accessType === CourseAccessType.PUBLIC_FREE ||
     !course.publicPrice ||
@@ -22,6 +33,50 @@ export function formatCatalogPrice(course: Pick<CatalogCourseCard, 'accessType' 
   }
 
   return `${course.publicPrice.toLocaleString()} RWF`;
+}
+
+export function getCatalogPriceDisplay(
+  course: Pick<
+    CatalogCourseCard,
+    | 'accessType'
+    | 'publicPrice'
+    | 'originalPrice'
+    | 'discountEnabled'
+    | 'discountType'
+    | 'discountValue'
+    | 'discountStartAt'
+    | 'discountEndAt'
+    | 'isOnSale'
+    | 'amountSaved'
+    | 'discountLabel'
+  >,
+) {
+  if (
+    course.accessType === CourseAccessType.PUBLIC_FREE ||
+    !course.publicPrice ||
+    course.publicPrice <= 0
+  ) {
+    return {
+      isFree: true as const,
+      isOnSale: false,
+      currentLabel: 'Free',
+      originalLabel: null as string | null,
+      discountLabel: null as string | null,
+    };
+  }
+
+  const sale = getCourseSaleState(course);
+
+  return {
+    isFree: false as const,
+    isOnSale: sale.isOnSale,
+    currentLabel: `${(sale.sellingPrice ?? course.publicPrice).toLocaleString()} RWF`,
+    originalLabel:
+      sale.isOnSale && sale.originalPrice != null
+        ? `${sale.originalPrice.toLocaleString()} RWF`
+        : null,
+    discountLabel: sale.discountLabel,
+  };
 }
 
 export function formatCatalogDuration(hours: number | null | undefined): string {

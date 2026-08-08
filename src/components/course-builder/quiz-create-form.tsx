@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import {
@@ -34,17 +34,23 @@ interface QuizCreateFormProps {
 
 export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateFormProps) {
   const draftStorageKey = `course-builder-quiz-create-${moduleId}`;
-  const initialDraftState = {
-    title: '',
-    description: '',
-    passingScore: 70,
-    maxAttempts: 1,
-    timeLimitMinutes: '',
-    settings: defaultQuizSettings(),
-    isVisible: true,
-    questions: createInitialDraftQuestions(),
-  };
-  const { draft, setDraft, clearDraft, hydrated } = useLocalDraft(draftStorageKey, initialDraftState);
+  const initialDraftState = useMemo(
+    () => ({
+      title: '',
+      description: '',
+      passingScore: 70,
+      maxAttempts: 1,
+      timeLimitMinutes: '',
+      settings: defaultQuizSettings(),
+      isVisible: true,
+      questions: createInitialDraftQuestions(),
+    }),
+    [],
+  );
+  const { draft, setDraft, clearDraft, hydrated } = useLocalDraft(
+    draftStorageKey,
+    initialDraftState,
+  );
 
   const [title, setTitle] = useState(initialDraftState.title);
   const [description, setDescription] = useState(initialDraftState.description);
@@ -56,12 +62,14 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
   const [questions, setQuestions] = useState<DraftQuestionValues[]>(initialDraftState.questions);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPersistingQuestions, setIsPersistingQuestions] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
 
   const createQuiz = useCreateQuizContent(moduleId);
   const isSubmitting = createQuiz.isPending || isPersistingQuestions;
 
+  // Restore local form state from localStorage once, then stop reading `draft`.
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || draftReady) return;
     setTitle(draft.title);
     setDescription(draft.description);
     setPassingScore(draft.passingScore);
@@ -70,10 +78,12 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
     setSettings(draft.settings);
     setIsVisible(draft.isVisible);
     setQuestions(draft.questions);
-  }, [hydrated, draft]);
+    setDraftReady(true);
+  }, [hydrated, draft, draftReady]);
 
+  // Persist form changes after the one-time restore (avoids draft ↔ state loops).
   useEffect(() => {
-    if (!hydrated) return;
+    if (!draftReady) return;
 
     setDraft({
       title,
@@ -85,7 +95,18 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
       isVisible,
       questions,
     });
-  }, [hydrated, title, description, passingScore, maxAttempts, timeLimitMinutes, settings, isVisible, questions, setDraft]);
+  }, [
+    draftReady,
+    title,
+    description,
+    passingScore,
+    maxAttempts,
+    timeLimitMinutes,
+    settings,
+    isVisible,
+    questions,
+    setDraft,
+  ]);
 
   const validateForm = () => {
     const infoResult = quizInfoSchema.safeParse({ title, description });
