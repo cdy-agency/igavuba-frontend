@@ -68,8 +68,12 @@ export function useUpdateQuiz(quizId: string, options?: { silent?: boolean }) {
       if (!silent) {
         toast.success(response.message || 'Quiz updated successfully');
       }
-      queryClient.invalidateQueries({ queryKey: quizQueryKeys.detail(quizId) });
-      queryClient.invalidateQueries({ queryKey: quizListQueryKeys.all });
+      // Avoid refetch loops in the builder: silent autosave patches the cache
+      // instead of invalidating (invalidation re-hydrates form state and re-saves).
+      queryClient.setQueryData(quizQueryKeys.detail(quizId), response);
+      if (!silent) {
+        queryClient.invalidateQueries({ queryKey: quizListQueryKeys.all });
+      }
     },
     onError: (error) => {
       if (!silent) {

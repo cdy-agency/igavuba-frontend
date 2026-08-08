@@ -20,6 +20,14 @@ function parseLocalDraft<T>(rawValue: string | null, fallback: T): T {
   }
 }
 
+function stableSerialize(value: unknown): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return '';
+  }
+}
+
 export function useLocalDraft<T>(storageKey: string, initialState: T) {
   const [draft, setDraft] = useState<T>(initialState);
   const [hydrated, setHydrated] = useState(false);
@@ -70,6 +78,7 @@ export function useAutoSave<T>(config: {
   saveFn: (value: T) => Promise<void>;
   debounceMs?: number;
   restoreOnMount?: boolean;
+  enabled?: boolean;
   onStatusChange?: (status: SaveStatus, message?: string | null) => void;
 }) {
   const {
@@ -79,6 +88,7 @@ export function useAutoSave<T>(config: {
     saveFn,
     debounceMs = 600,
     restoreOnMount = false,
+    enabled = true,
     onStatusChange,
   } = config;
 
@@ -92,63 +102,88 @@ export function useAutoSave<T>(config: {
   });
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastSavedValueRef = useRef<T>(value);
+  const lastSavedSerializedRef = useRef<string>(stableSerialize(value));
   const latestValueRef = useRef<T>(value);
+  const latestSerializedRef = useRef<string>(stableSerialize(value));
   const hasRestoredRef = useRef(false);
   const unmountedRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  const saveFnRef = useRef(saveFn);
+  const onStatusChangeRef = useRef(onStatusChange);
+  const statusRef = useRef<SaveStatus>(status);
 
-  const reportStatus = (nextStatus: SaveStatus, message: string | null = null) => {
-    setStatus(nextStatus);
-    onStatusChange?.(nextStatus, message);
-  };
+  onChangeRef.current = onChange;
+  saveFnRef.current = saveFn;
+  onStatusChangeRef.current = onStatusChange;
+  statusRef.current = status;
 
-  const persistLocalDraft = (nextValue: T) => {
-    if (!isBrowser()) return;
-    try {
-      window.localStorage.setItem(storageKey, JSON.stringify(nextValue));
-    } catch {
-      // ignore
+  const valueSerialized = stableSerialize(value);
+  latestValueRef.current = value;
+  latestSerializedRef.current = valueSerialized;
+
+  const reportStatus = useCallback((nextStatus: SaveStatus, message: string | null = null) => {
+    setStatus((current) => (current === nextStatus ? current : nextStatus));
+    // Always notify only when status actually changes — prevents context update storms.
+    if (statusRef.current === nextStatus) {
+      return;
     }
-  };
+    statusRef.current = nextStatus;
+    onStatusChangeRef.current?.(nextStatus, message);
+  }, []);
 
-  const removeLocalDraft = () => {
+  const persistLocalDraft = useCallback(
+    (nextValue: T) => {
+      if (!isBrowser()) return;
+      try {
+        window.localStorage.setItem(storageKey, JSON.stringify(nextValue));
+      } catch {
+        // ignore
+      }
+    },
+    [storageKey],
+  );
+
+  const removeLocalDraft = useCallback(() => {
     if (!isBrowser()) return;
     try {
       window.localStorage.removeItem(storageKey);
     } catch {
       // ignore
     }
-  };
+  }, [storageKey]);
 
-  const performSave = async (valueToSave: T) => {
-    setError(null);
-    setIsSaving(true);
-    reportStatus('saving', null);
+  const performSave = useCallback(
+    async (valueToSave: T) => {
+      setError(null);
+      setIsSaving(true);
+      reportStatus('saving', null);
 
-    try {
-      await saveFn(valueToSave);
-      if (unmountedRef.current) return;
+      try {
+        await saveFnRef.current(valueToSave);
+        if (unmountedRef.current) return;
 
-      lastSavedValueRef.current = valueToSave;
-      setHasPendingSave(false);
-      setLastSavedAt(new Date().toISOString());
-      removeLocalDraft();
-      reportStatus('saved', 'Saved');
-    } catch (saveError) {
-      if (unmountedRef.current) return;
+        lastSavedSerializedRef.current = stableSerialize(valueToSave);
+        setHasPendingSave(false);
+        setLastSavedAt(new Date().toISOString());
+        removeLocalDraft();
+        reportStatus('saved', 'Saved');
+      } catch (saveError) {
+        if (unmountedRef.current) return;
 
-      const offline = isBrowser() ? !window.navigator.onLine : false;
-      setIsOffline(offline);
-      setHasPendingSave(true);
-      setError(saveError instanceof Error ? saveError.message : String(saveError));
-      reportStatus(offline ? 'offline' : 'pending', offline ? 'Offline draft' : 'Save pending');
-      persistLocalDraft(valueToSave);
-    } finally {
-      if (!unmountedRef.current) {
-        setIsSaving(false);
+        const offline = isBrowser() ? !window.navigator.onLine : false;
+        setIsOffline(offline);
+        setHasPendingSave(true);
+        setError(saveError instanceof Error ? saveError.message : String(saveError));
+        reportStatus(offline ? 'offline' : 'pending', offline ? 'Offline draft' : 'Save pending');
+        persistLocalDraft(valueToSave);
+      } finally {
+        if (!unmountedRef.current) {
+          setIsSaving(false);
+        }
       }
-    }
-  };
+    },
+    [persistLocalDraft, removeLocalDraft, reportStatus],
+  );
 
   const flushPendingSave = useCallback(async () => {
     if (saveTimerRef.current) {
@@ -161,16 +196,13 @@ export function useAutoSave<T>(config: {
       return;
     }
 
-    if (!hasPendingSave) {
+    if (latestSerializedRef.current === lastSavedSerializedRef.current) {
+      setHasPendingSave(false);
       return;
     }
 
     await performSave(latestValueRef.current);
-  }, [hasPendingSave, isOffline]);
-
-  useEffect(() => {
-    latestValueRef.current = value;
-  }, [value]);
+  }, [isOffline, performSave, reportStatus]);
 
   useEffect(() => {
     return () => {
@@ -186,9 +218,11 @@ export function useAutoSave<T>(config: {
 
     const handleOnline = () => {
       setIsOffline(false);
-      reportStatus(hasPendingSave ? 'pending' : 'saved', hasPendingSave ? 'Pending changes' : 'Saved');
-      if (hasPendingSave) {
+      if (latestSerializedRef.current !== lastSavedSerializedRef.current) {
+        reportStatus('pending', 'Pending changes');
         void flushPendingSave();
+      } else {
+        reportStatus('saved', 'Saved');
       }
     };
 
@@ -204,32 +238,45 @@ export function useAutoSave<T>(config: {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [hasPendingSave, flushPendingSave]);
+  }, [flushPendingSave, reportStatus]);
 
   useEffect(() => {
     if (!isBrowser()) return;
+    if (!restoreOnMount || hasRestoredRef.current) return;
 
-    if (restoreOnMount && !hasRestoredRef.current) {
-      hasRestoredRef.current = true;
-      const rawValue = window.localStorage.getItem(storageKey);
-      if (!rawValue) {
-        return;
-      }
-
-      const restored = parseLocalDraft<T>(rawValue, value);
-      if (JSON.stringify(restored) !== JSON.stringify(value)) {
-        onChange(restored);
-        setHasPendingSave(true);
-        reportStatus(isOffline ? 'offline' : 'pending', isOffline ? 'Offline draft' : 'Pending changes');
-      }
+    hasRestoredRef.current = true;
+    const rawValue = window.localStorage.getItem(storageKey);
+    if (!rawValue) {
+      lastSavedSerializedRef.current = latestSerializedRef.current;
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey, restoreOnMount]);
+
+    const restored = parseLocalDraft<T>(rawValue, latestValueRef.current);
+    const restoredSerialized = stableSerialize(restored);
+    if (restoredSerialized !== latestSerializedRef.current) {
+      onChangeRef.current(restored);
+      setHasPendingSave(true);
+      reportStatus(isOffline ? 'offline' : 'pending', isOffline ? 'Offline draft' : 'Pending changes');
+    } else {
+      lastSavedSerializedRef.current = restoredSerialized;
+    }
+  }, [storageKey, restoreOnMount, isOffline, reportStatus]);
+
+  // When autosave is first enabled, treat the current value as already saved.
+  const wasEnabledRef = useRef(enabled);
+  useEffect(() => {
+    if (enabled && !wasEnabledRef.current) {
+      lastSavedSerializedRef.current = latestSerializedRef.current;
+      setHasPendingSave(false);
+    }
+    wasEnabledRef.current = enabled;
+  }, [enabled]);
 
   useEffect(() => {
-    if (!hasRestoredRef.current && restoreOnMount) return;
+    if (!enabled) return;
+    if (restoreOnMount && !hasRestoredRef.current) return;
 
-    if (JSON.stringify(value) === JSON.stringify(lastSavedValueRef.current)) {
+    if (valueSerialized === lastSavedSerializedRef.current) {
       return;
     }
 
@@ -249,8 +296,18 @@ export function useAutoSave<T>(config: {
       saveTimerRef.current = null;
       void performSave(latestValueRef.current);
     }, debounceMs);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, isOffline, debounceMs, storageKey]);
+  }, [
+    enabled,
+    valueSerialized,
+    value,
+    isOffline,
+    debounceMs,
+    storageKey,
+    restoreOnMount,
+    persistLocalDraft,
+    performSave,
+    reportStatus,
+  ]);
 
   return useMemo(
     () => ({
@@ -262,6 +319,12 @@ export function useAutoSave<T>(config: {
       isOffline,
       flush: flushPendingSave,
       clearDraft: removeLocalDraft,
+      /** Mark current value as clean (e.g. after hydrating from server). */
+      markSaved: (nextValue?: T) => {
+        const serialized = stableSerialize(nextValue ?? latestValueRef.current);
+        lastSavedSerializedRef.current = serialized;
+        setHasPendingSave(false);
+      },
     }),
     [
       status,
@@ -271,6 +334,7 @@ export function useAutoSave<T>(config: {
       error,
       isOffline,
       flushPendingSave,
+      removeLocalDraft,
     ],
   );
 }
