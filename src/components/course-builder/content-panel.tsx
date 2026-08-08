@@ -599,6 +599,8 @@ function DocumentLessonEditor({
   );
 }
 
+const EMPTY_MODULE_CONTENTS: ModuleContentItem[] = [];
+
 function ExamContentRedirect({
   item,
   courseSlug,
@@ -642,12 +644,17 @@ export function ContentPanel({
     cancelCreatingLesson,
   } = useCourseBuilder();
 
+  const contentsDataRef = useRef<ModuleContentItem[] | undefined>(undefined);
   const authReady = useAuthReady();
   const { data: contentsData, isPending } = useModuleContents(
     moduleId ?? '',
     authReady && Boolean(moduleId),
   );
-  const contents: ModuleContentItem[] = contentsData ?? [];
+  const contents: ModuleContentItem[] =
+    contentsData ?? contentsDataRef.current ?? EMPTY_MODULE_CONTENTS;
+  if (contentsData) {
+    contentsDataRef.current = contentsData;
+  }
   const detachMutation = useDetachContent(moduleId ?? '');
   const [contentToDetach, setContentToDetach] = useState<ModuleContentItem | null>(null);
 

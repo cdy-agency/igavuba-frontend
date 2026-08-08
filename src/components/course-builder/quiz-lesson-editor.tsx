@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import { useCourseBuilder } from '@/components/course-builder/course-builder-context';
@@ -34,6 +34,15 @@ interface QuizLessonEditorProps {
   readOnly?: boolean;
 }
 
+type QuizFormValue = {
+  title: string;
+  description: string;
+  timeLimitMinutes: string;
+  isVisible: boolean;
+  settings: AssessmentSettings;
+  academicRules: AssessmentAcademicRulesFormValues;
+};
+
 export function QuizLessonEditor({
   item,
   moduleId,
@@ -60,58 +69,98 @@ export function QuizLessonEditor({
   );
 
   const updateQuizMutation = useUpdateQuiz(quizId ?? '', { silent: true });
+  const hydratedQuizIdRef = useRef<string | null>(null);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(false);
 
-  useEffect(() => {
-    if (!quiz) return;
-    setTitle(quiz.assessment.title);
-    setDescription(quiz.assessment.description ?? '');
-    setTimeLimitMinutes(quiz.timeLimitMinutes ? String(quiz.timeLimitMinutes) : '');
-    setIsVisible(quiz.assessment.content.isPublished);
-    setSettings(quiz.assessment.settings ?? defaultQuizSettings());
-    setAcademicRules(
-      defaultAssessmentAcademicRules({
-        required: quiz.required ?? true,
-        countsTowardCertificate: quiz.countsTowardCertificate ?? true,
-        blockProgressUntilPassed: quiz.blockProgressUntilPassed ?? false,
-        passingScore: quiz.passingScore,
-        maxAttempts: quiz.maxAttempts,
-      }),
-    );
-  }, [quiz]);
-
-  const saveFormValue = async (next: {
-    title: string;
-    description: string;
-    timeLimitMinutes: string;
-    isVisible: boolean;
-    settings: AssessmentSettings;
-    academicRules: AssessmentAcademicRulesFormValues;
-  }) => {
-    if (readOnly || !quizId) return;
-    await updateQuizMutation.mutateAsync({
-      title: next.title.trim(),
-      description: next.description.trim() || undefined,
-      timeLimitMinutes: next.timeLimitMinutes ? Number(next.timeLimitMinutes) : null,
-      isPublished: next.isVisible,
-      settings: next.settings,
-      required: next.academicRules.required,
-      countsTowardCertificate: next.academicRules.countsTowardCertificate,
-      blockProgressUntilPassed: next.academicRules.blockProgressUntilPassed,
-      passingScore: next.academicRules.passingScore,
-      maxAttempts: next.academicRules.maxAttempts,
-    });
-  };
-
-  const autoSave = useAutoSave({
-    storageKey: `course-builder-quiz-${quizId}`,
-    value: {
+  const formValue = useMemo<QuizFormValue>(
+    () => ({
       title,
       description,
       timeLimitMinutes,
       isVisible,
       settings,
       academicRules,
+    }),
+    [title, description, timeLimitMinutes, isVisible, settings, academicRules],
+  );
+
+  const applyQuizToForm = useCallback((nextQuiz: NonNullable<typeof quiz>) => {
+    const nextValue: QuizFormValue = {
+      title: nextQuiz.assessment.title,
+      description: nextQuiz.assessment.description ?? '',
+      timeLimitMinutes: nextQuiz.timeLimitMinutes ? String(nextQuiz.timeLimitMinutes) : '',
+      isVisible: nextQuiz.assessment.content.isPublished,
+      settings: nextQuiz.assessment.settings ?? defaultQuizSettings(),
+      academicRules: defaultAssessmentAcademicRules({
+        required: nextQuiz.required ?? true,
+        countsTowardCertificate: nextQuiz.countsTowardCertificate ?? true,
+        blockProgressUntilPassed: nextQuiz.blockProgressUntilPassed ?? false,
+        passingScore: nextQuiz.passingScore,
+        maxAttempts: nextQuiz.maxAttempts,
+      }),
+    };
+
+    setTitle(nextValue.title);
+    setDescription(nextValue.description);
+    setTimeLimitMinutes(nextValue.timeLimitMinutes);
+    setIsVisible(nextValue.isVisible);
+    setSettings(nextValue.settings);
+    setAcademicRules(nextValue.academicRules);
+    return nextValue;
+  }, []);
+
+  // Hydrate from server once per quiz id — re-applying on every cache update caused save loops.
+  useEffect(() => {
+    if (!quiz) return;
+    if (hydratedQuizIdRef.current === quiz.id) return;
+    hydratedQuizIdRef.current = quiz.id;
+    applyQuizToForm(quiz);
+    setAutosaveEnabled(true);
+  }, [quiz, applyQuizToForm]);
+
+  const handleStatusChange = useCallback(
+    (
+      status: 'idle' | 'saving' | 'pending' | 'offline' | 'saved',
+      message?: string | null,
+    ) => {
+      const nextMessage =
+        message ||
+        (status === 'saving'
+          ? 'Saving...'
+          : status === 'offline'
+            ? 'Offline draft'
+            : 'Pending changes');
+      setBuilderSaveState({
+        status,
+        message: nextMessage,
+        isSaving: status === 'saving',
+      });
     },
+    [setBuilderSaveState],
+  );
+
+  const saveFormValue = useCallback(
+    async (next: QuizFormValue) => {
+      if (readOnly || !quizId) return;
+      await updateQuizMutation.mutateAsync({
+        title: next.title.trim(),
+        description: next.description.trim() || undefined,
+        timeLimitMinutes: next.timeLimitMinutes ? Number(next.timeLimitMinutes) : null,
+        isPublished: next.isVisible,
+        settings: next.settings,
+        required: next.academicRules.required,
+        countsTowardCertificate: next.academicRules.countsTowardCertificate,
+        blockProgressUntilPassed: next.academicRules.blockProgressUntilPassed,
+        passingScore: next.academicRules.passingScore,
+        maxAttempts: next.academicRules.maxAttempts,
+      });
+    },
+    [quizId, readOnly, updateQuizMutation],
+  );
+
+  const autoSave = useAutoSave({
+    storageKey: `course-builder-quiz-${quizId}`,
+    value: formValue,
     onChange: (next) => {
       setTitle(next.title);
       setDescription(next.description);
@@ -120,29 +169,13 @@ export function QuizLessonEditor({
       setSettings(next.settings);
       setAcademicRules(next.academicRules);
     },
-    saveFn: async (next) => {
-      if (!quizId) return;
-      await saveFormValue(next);
-    },
+    saveFn: saveFormValue,
     debounceMs: 700,
-    restoreOnMount: Boolean(quizId),
-    onStatusChange: (status, message) => {
-      setBuilderSaveState({
-        status,
-        message:
-          message ||
-          (status === 'saving'
-            ? 'Saving...'
-            : status === 'offline'
-              ? 'Offline draft'
-              : 'Pending changes'),
-        isSaving: status === 'saving',
-      });
-    },
+    restoreOnMount: false,
+    enabled: autosaveEnabled && !readOnly && Boolean(quizId),
+    onStatusChange: handleStatusChange,
   });
 
-  // Keep a stable flush ref so unmount cleanup does not re-run every render.
-  // Depending on `autoSave` caused an infinite remount/fetch loop in production.
   const flushRef = useRef(autoSave.flush);
   flushRef.current = autoSave.flush;
 
@@ -307,8 +340,7 @@ export function QuizLessonEditor({
                         disabled={readOnly}
                         onCheckedChange={(checked) => {
                           if (readOnly) return;
-                          const nextSettings = { ...settings, [key]: checked };
-                          setSettings(nextSettings);
+                          setSettings((current) => ({ ...current, [key]: checked }));
                         }}
                       />
                     </div>
