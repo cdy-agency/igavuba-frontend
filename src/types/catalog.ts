@@ -26,6 +26,16 @@ export interface CatalogCourseCard {
   publishedAt: string;
   estimatedHours: number | null;
   publicPrice: number | null;
+  originalPrice?: number | null;
+  discountEnabled?: boolean;
+  discountType?: import('@/lib/course-pricing').DiscountType | null;
+  discountValue?: number | null;
+  discountStartAt?: string | null;
+  discountEndAt?: string | null;
+  isOnSale?: boolean;
+  amountSaved?: number | null;
+  discountPercentOff?: number | null;
+  discountLabel?: string | null;
   institution: CatalogInstitution;
   categories: CatalogCategorySummary[];
   modulesCount: number;
@@ -45,8 +55,19 @@ export interface CatalogCourseDetail {
   accessType: CourseAccessType;
   estimatedHours: number | null;
   publicPrice: number | null;
+  originalPrice?: number | null;
+  discountEnabled?: boolean;
+  discountType?: import('@/lib/course-pricing').DiscountType | null;
+  discountValue?: number | null;
+  discountStartAt?: string | null;
+  discountEndAt?: string | null;
+  isOnSale?: boolean;
+  amountSaved?: number | null;
+  discountPercentOff?: number | null;
+  discountLabel?: string | null;
   publishedAt: string;
   categories: CatalogCategorySummary[];
+  enrollmentCount: number;
   skills: string[];
   tools: string[];
   institution: {

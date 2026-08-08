@@ -6,9 +6,9 @@ import type { CatalogCourseCard } from '@/types/catalog';
 import {
   formatCatalogDuration,
   formatCatalogLevel,
-  formatCatalogPrice,
   getPrimaryCategoryName,
 } from '@/lib/catalog-utils';
+import { CoursePriceDisplay } from '@/components/shared/course-price-display';
 
 interface CourseDetailRelatedSectionProps {
   courses: CatalogCourseCard[];
@@ -34,8 +34,6 @@ export function CourseDetailRelatedSection({ courses }: CourseDetailRelatedSecti
 }
 
 function RelatedCourseCard({ course }: { course: CatalogCourseCard }) {
-  const priceLabel = formatCatalogPrice(course);
-
   return (
     <Link
       href={`/courses/${course.slug}`}
@@ -63,7 +61,7 @@ function RelatedCourseCard({ course }: { course: CatalogCourseCard }) {
           <span>{formatCatalogLevel(course.level)}</span>
           <span>{formatCatalogDuration(course.estimatedHours)}</span>
         </div>
-        <p className="text-sm font-bold text-foreground">{priceLabel}</p>
+        <CoursePriceDisplay course={course} size="md" />
         <p className="text-xs text-muted-foreground">{getPrimaryCategoryName(course)}</p>
       </div>
     </Link>

@@ -9,10 +9,10 @@ import type { CatalogCourseCard } from '@/types/catalog';
 import {
   formatCatalogDuration,
   formatCatalogLevel,
-  formatCatalogPrice,
   getDifficultyColor,
   getPrimaryCategoryName,
 } from '@/lib/catalog-utils';
+import { CoursePriceDisplay } from '@/components/shared/course-price-display';
 import { WishlistButton } from '@/components/wishlist/WishlistButton';
 
 interface CourseListItemProps {
@@ -24,8 +24,10 @@ export function CourseListItem({ course, categoryName }: CourseListItemProps) {
   const [isHovered, setIsHovered] = useState(false);
   const formattedDuration = formatCatalogDuration(course.estimatedHours);
   const formattedLevel = formatCatalogLevel(course.level);
-  const priceLabel = formatCatalogPrice(course);
-  const isFree = priceLabel === 'Free';
+  const isFree =
+    course.accessType === 'PUBLIC_FREE' ||
+    !course.publicPrice ||
+    course.publicPrice <= 0;
 
   return (
     <div
@@ -90,7 +92,7 @@ export function CourseListItem({ course, categoryName }: CourseListItemProps) {
               {isFree ? (
                 <span className="font-bold text-green-600">Free</span>
               ) : (
-                <span className="font-bold text-gray-900">{priceLabel}</span>
+                <CoursePriceDisplay course={course} size="md" />
               )}
             </div>
 
@@ -157,7 +159,7 @@ export function CourseListItem({ course, categoryName }: CourseListItemProps) {
 
             <div className="flex items-center gap-2 text-xs text-gray-700">
               <Lock className="h-3.5 w-3.5 shrink-0" />
-              <span>{priceLabel}</span>
+              <CoursePriceDisplay course={course} size="sm" />
             </div>
           </div>
 

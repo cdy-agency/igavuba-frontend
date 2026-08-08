@@ -30,16 +30,16 @@ export function RatingDistribution({
               className={cn(
                 'text-sm font-medium',
                 clickable
-                  ? 'text-[#5624d0] underline decoration-[#5624d0]/30 underline-offset-2 group-hover:decoration-[#5624d0]'
+                  ? 'text-primary underline decoration-primary/30 underline-offset-2 group-hover:decoration-primary'
                   : 'text-foreground',
                 isActive && 'font-bold',
               )}
             >
               {star} {star === 1 ? 'star' : 'stars'}
             </span>
-            <div className="h-2 overflow-hidden rounded-[1px] bg-[#e5e5ef]">
+            <div className="h-2 overflow-hidden rounded-[1px] bg-border">
               <div
-                className="h-full bg-[#6a6f73] transition-all duration-300"
+                className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${percent}%` }}
               />
             </div>

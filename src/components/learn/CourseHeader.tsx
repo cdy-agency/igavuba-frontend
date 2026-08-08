@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { ChevronLeft, Sun, Moon, Menu, X, MessagesSquare, Star } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { CourseDiscussionSheet } from './CourseDiscussionSheet';
-import { RatingModal } from './Ratingmodal';
+import { ReviewModal } from '@/components/reviews/ReviewModal';
+import { useCreateOrUpdateReview, useReviewEligibility } from '@/hooks/use-reviews';
 
 interface CourseHeaderProps {
   courseTitle: string;
@@ -27,7 +28,16 @@ export default function CourseHeader({
 }: CourseHeaderProps) {
   const { theme, setTheme } = useTheme();
   const [discussionSheetOpen, setDiscussionSheetOpen] = useState(false);
-  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+
+  const courseKey = courseId || courseSlug || '';
+  const { data: eligibility, isPending: eligibilityLoading } = useReviewEligibility(
+    courseKey,
+    Boolean(courseKey),
+  );
+  const saveReview = useCreateOrUpdateReview(courseKey);
+  const myReview = eligibility?.myReview ?? null;
+  const canReview = Boolean(eligibility?.canReview);
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
@@ -139,9 +149,9 @@ export default function CourseHeader({
 
         {/* Actions - Desktop */}
         <div className="hidden sm:flex items-center gap-2">
-          {courseId && (
+          {canReview && (
             <button
-              onClick={() => setRatingModalOpen(true)}
+              onClick={() => setReviewModalOpen(true)}
               className={`p-2 rounded-lg transition-colors ${
                 isDark
                   ? 'text-gray-300 hover:bg-gray-800 hover:text-yellow-400'
@@ -184,10 +194,10 @@ export default function CourseHeader({
 
         {/* Actions - Mobile: next to theme */}
         <div className="flex sm:hidden items-center gap-1">
-          {courseId && (
+          {canReview && (
             <button
               type="button"
-              onClick={() => setRatingModalOpen(true)}
+              onClick={() => setReviewModalOpen(true)}
               className={`p-1.5 rounded-lg transition-colors ${
                 isDark ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
               }`}
@@ -219,13 +229,17 @@ export default function CourseHeader({
         />
       </div>
 
-      {/* Rating Modal */}
-      {courseId && (
-        <RatingModal
-          courseId={courseId}
+      {canReview && (
+        <ReviewModal
+          open={reviewModalOpen}
+          onOpenChange={setReviewModalOpen}
           courseTitle={courseTitle}
-          isOpen={ratingModalOpen}
-          onClose={() => setRatingModalOpen(false)}
+          initialReview={myReview}
+          submitting={saveReview.isPending}
+          onSubmit={async (values) => {
+            await saveReview.mutateAsync(values);
+            setReviewModalOpen(false);
+          }}
         />
       )}
     </>

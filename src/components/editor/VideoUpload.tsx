@@ -143,7 +143,7 @@ export const VideoUpload = ({ onAddVideo, onUploadError }: VideoUploadProps) => 
                 <Label className="text-xs text-muted-foreground">Video URL</Label>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Enter video URL (mp4, webm, etc.)"
+                    placeholder="YouTube, Vimeo, or MP4/WebM URL"
                     value={videoUrl}
                     onChange={(e) => {
                       e.stopPropagation();

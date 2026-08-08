@@ -17,6 +17,7 @@ import {
   formatCatalogLevel,
   formatCatalogPrice,
 } from '@/lib/catalog-utils';
+import { CoursePriceDisplay } from '@/components/shared/course-price-display';
 import { CourseAccessType } from '@/types/course';
 import { getAccessToken, getRefreshToken } from '@/lib/auth';
 import { useAuth } from '@/lib/hooks/use-auth';
@@ -52,9 +53,11 @@ export function CourseDetailSidebar({ course }: CourseDetailSidebarProps) {
 
         <div className="space-y-4 p-5">
           <div>
-            <p className="text-3xl font-bold tracking-tight text-foreground">{priceLabel}</p>
+            <CoursePriceDisplay course={course} size="lg" />
             {!isFree ? (
-              <p className="mt-1 text-sm text-muted-foreground">One-time payment</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {course.isOnSale ? 'Current price · One-time payment' : 'One-time payment'}
+              </p>
             ) : null}
           </div>
 

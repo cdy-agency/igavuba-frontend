@@ -83,6 +83,16 @@ export interface Course {
   /** Live DB access type before draft metadata merge (published courses with revisions). */
   liveAccessType?: CourseAccessType;
   publicPrice: number | null;
+  originalPrice?: number | null;
+  discountEnabled?: boolean;
+  discountType?: import('@/lib/course-pricing').DiscountType | null;
+  discountValue?: number | null;
+  discountStartAt?: string | null;
+  discountEndAt?: string | null;
+  isOnSale?: boolean;
+  amountSaved?: number | null;
+  discountPercentOff?: number | null;
+  discountLabel?: string | null;
   status: CourseLifecycleStatus;
   hasUnpublishedChanges?: boolean;
   revisionStatus?: import('./course-revision').CourseRevisionStatus | null;
@@ -151,6 +161,12 @@ export interface CreateCoursePayload {
   estimatedHours?: number;
   accessType: CourseAccessType;
   publicPrice?: number;
+  originalPrice?: number;
+  discountEnabled?: boolean;
+  discountType?: import('@/lib/course-pricing').DiscountType;
+  discountValue?: number;
+  discountStartAt?: string;
+  discountEndAt?: string;
   departmentId?: string;
   lecturerId?: string;
   categoryIds?: string[];

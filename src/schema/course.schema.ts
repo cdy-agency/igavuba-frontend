@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { CourseAccessType, CourseLevel } from '@/types/course';
 import { COURSE_LANGUAGE_CODES } from '@/types/course-language';
+import { DiscountType } from '@/lib/course-pricing';
 
 const optionalUrl = z
   .string()
@@ -57,7 +58,14 @@ function parseEstimatedHours(value: unknown) {
   return amount;
 }
 
-export const courseFormSchema = z.object({
+const optionalNumber = z.preprocess((value) => {
+  if (value === '' || value === null || value === undefined) {
+    return undefined;
+  }
+  return Number(value);
+}, z.number().min(0, 'Value cannot be negative').optional());
+
+const courseFormObjectSchema = z.object({
   title: z.string().trim().min(1, 'Title is required').max(255),
   shortDescription: optionalText,
   description: optionalText,
@@ -72,26 +80,96 @@ export const courseFormSchema = z.object({
   accessType: z.nativeEnum(CourseAccessType, {
     required_error: 'Access type is required',
   }),
-  publicPrice: z.preprocess(
-    (value) => {
-      if (value === '' || value === null || value === undefined) {
-        return undefined;
-      }
-      return Number(value);
-    },
-    z.number().min(0, 'Price cannot be negative').optional(),
-  ),
+  /** Calculated selling price — kept for API compatibility. */
+  publicPrice: optionalNumber,
+  originalPrice: optionalNumber,
+  discountEnabled: z.boolean().optional(),
+  discountType: z.nativeEnum(DiscountType).optional(),
+  discountValue: optionalNumber,
+  discountStartAt: z
+    .string()
+    .optional()
+    .transform((value) => (!value ? undefined : value)),
+  discountEndAt: z
+    .string()
+    .optional()
+    .transform((value) => (!value ? undefined : value)),
   departmentId: optionalText,
   lecturerId: optionalText,
   categoryIds: z.array(z.string().trim().min(1)).optional(),
 });
 
+function refineCoursePricing(
+  values: z.infer<typeof courseFormObjectSchema>,
+  ctx: z.RefinementCtx,
+) {
+  const needsPrice =
+    values.accessType === CourseAccessType.PUBLIC_PAID ||
+    values.accessType === CourseAccessType.HYBRID;
+
+  if (!needsPrice) return;
+
+  if (values.originalPrice == null && values.publicPrice == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Regular price is required for paid courses',
+      path: ['originalPrice'],
+    });
+  }
+
+  if (!values.discountEnabled) return;
+
+  if (!values.discountType) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Select a discount type',
+      path: ['discountType'],
+    });
+  }
+
+  if (values.discountValue == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Enter a discount value',
+      path: ['discountValue'],
+    });
+  } else if (
+    values.discountType === DiscountType.PERCENTAGE &&
+    values.discountValue > 100
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Percentage discount cannot exceed 100',
+      path: ['discountValue'],
+    });
+  } else if (
+    values.discountType === DiscountType.FIXED_AMOUNT &&
+    values.originalPrice != null &&
+    values.discountValue > values.originalPrice
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Fixed discount cannot exceed the regular price',
+      path: ['discountValue'],
+    });
+  }
+}
+
+export const courseFormSchema = courseFormObjectSchema.superRefine(refineCoursePricing);
+
 export type CourseFormValues = z.infer<typeof courseFormSchema>;
 
 export const createCourseSchema = courseFormSchema;
 
-export const updateCourseSchema = courseFormSchema.partial().extend({
-  title: z.string().trim().min(1, 'Title is required').max(255).optional(),
-});
+export const updateCourseSchema = courseFormObjectSchema
+  .partial()
+  .extend({
+    title: z.string().trim().min(1, 'Title is required').max(255).optional(),
+  })
+  .superRefine((values, ctx) => {
+    // Only enforce pricing rules when access type is present in the patch.
+    if (!values.accessType) return;
+    refineCoursePricing(values as z.infer<typeof courseFormObjectSchema>, ctx);
+  });
 
 export type UpdateCourseFormValues = z.infer<typeof updateCourseSchema>;

@@ -3,36 +3,27 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, MessageSquareQuote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ReviewSummary } from '@/components/reviews/ReviewSummary';
 import { ReviewFilters } from '@/components/reviews/ReviewFilters';
 import { ReviewCard } from '@/components/reviews/ReviewCard';
-import { ReviewModal } from '@/components/reviews/ReviewModal';
-import {
-  useCreateOrUpdateReview,
-  useDeleteReview,
-  useInfiniteCourseReviews,
-  useReviewEligibility,
-  useCourseReviewSummary,
-} from '@/hooks/use-reviews';
-import { useAuth } from '@/lib/hooks/use-auth';
+import { RatingStars } from '@/components/reviews/RatingStars';
+import { useInfiniteCourseReviews, useCourseReviewSummary } from '@/hooks/use-reviews';
 import type { ReviewSort } from '@/types/review.types';
-import { UserRole } from '@/types/enum';
 
 export function CourseDetailReviewsSection({
   courseId,
   courseSlug,
   courseTitle,
+  courseEnrollmentCount,
 }: {
   courseId: string;
   courseSlug: string;
   courseTitle: string;
+  courseEnrollmentCount: number;
 }) {
-  const { user, isAuthenticated } = useAuth();
   const [sort, setSort] = useState<ReviewSort>('newest');
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [ratingFilter, setRatingFilter] = useState<number | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -58,16 +49,8 @@ export function CourseDetailReviewsSection({
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteCourseReviews(courseSlug, listParams);
-  const { data: eligibility } = useReviewEligibility(
-    courseSlug,
-    isAuthenticated && user?.role === UserRole.LEARNER,
-  );
-  const saveReview = useCreateOrUpdateReview(courseSlug);
-  const deleteReview = useDeleteReview();
 
   const reviews = pages?.pages.flatMap((page) => page.data) ?? [];
-  const myReview = eligibility?.myReview ?? null;
-  const canWrite = Boolean(eligibility?.canReview);
   const totalShown = pages?.pages[0]?.pagination.total ?? reviews.length;
 
   useEffect(() => {
@@ -83,53 +66,61 @@ export function CourseDetailReviewsSection({
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
-    <section id="reviews" className="scroll-mt-24 space-y-8 border-t border-[#d1d2e0] pt-10">
+    <section id="reviews" className="scroll-mt-24 space-y-8 border-t border-border pt-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <h2 className="text-[1.75rem] font-bold leading-tight tracking-tight text-[#1c1d1f]">
+          <h2 className="text-[1.75rem] font-bold leading-tight tracking-tight text-foreground">
             Student feedback
           </h2>
           {ratingFilter ? (
             <button
               type="button"
-              className="text-sm font-medium text-[#5624d0] underline-offset-2 hover:underline"
+              className="text-sm font-medium text-primary underline-offset-2 hover:underline"
               onClick={() => setRatingFilter(null)}
             >
               Clear {ratingFilter}-star filter
             </button>
           ) : null}
         </div>
-
-        {canWrite ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="h-11 rounded-none border-[#1c1d1f] px-5 font-bold text-[#1c1d1f] hover:bg-[#1c1d1f] hover:text-white"
-            onClick={() => setModalOpen(true)}
-          >
-            {myReview ? 'Edit your review' : 'Write a review'}
-          </Button>
-        ) : null}
       </div>
 
       {summaryLoading || !summary ? (
         <div className="flex h-40 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-[#5624d0]" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <ReviewSummary
-          summary={summary}
-          activeRating={ratingFilter}
-          onSelectRating={setRatingFilter}
-        />
+        <div className="mx-auto flex w-full max-w-[22rem] items-center justify-center rounded-full border border-border bg-card px-3 py-2 text-sm shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-full bg-muted/10 px-3 py-2 text-[1.65rem] font-semibold leading-none text-foreground">
+              {summary.totalReviews > 0 ? summary.averageRating.toFixed(1) : '—'}
+            </div>
+            <div className="flex items-center gap-2">
+              <RatingStars
+                value={summary.totalReviews > 0 ? summary.averageRating : 0}
+                size="sm"
+              />
+            </div>
+            <div className="hidden h-5 w-px bg-border md:block" />
+            <div className="min-w-0 text-[0.8rem] leading-snug text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {summary.totalReviews.toLocaleString()}
+              </span>{' '}
+              reviews ·{' '}
+              <span className="font-medium text-foreground">
+                {courseEnrollmentCount.toLocaleString()}
+              </span>{' '}
+              learners
+            </div>
+          </div>
+        </div>
       )}
 
-      <div className="space-y-5 border-t border-[#d1d2e0] pt-8">
+      <div className="space-y-5 border-t border-border pt-8">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h3 className="text-2xl font-bold text-[#1c1d1f]">
+          <h3 className="text-2xl font-bold text-foreground">
             Reviews
             {totalShown > 0 ? (
-              <span className="ml-2 text-base font-medium text-[#6a6f73]">
+              <span className="ml-2 text-base font-medium text-muted-foreground">
                 ({totalShown.toLocaleString()})
               </span>
             ) : null}
@@ -145,13 +136,13 @@ export function CourseDetailReviewsSection({
 
         {listLoading ? (
           <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-[#5624d0]" />
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
         ) : reviews.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-            <MessageSquareQuote className="mb-3 h-9 w-9 text-[#6a6f73]" />
-            <p className="text-lg font-bold text-[#1c1d1f]">No reviews yet</p>
-            <p className="mt-1 max-w-md text-sm text-[#6a6f73]">
+            <MessageSquareQuote className="mb-3 h-9 w-9 text-muted-foreground" />
+            <p className="text-lg font-bold text-foreground">No reviews yet</p>
+            <p className="mt-1 max-w-md text-sm text-muted-foreground">
               {ratingFilter || debouncedSearch
                 ? 'No reviews match your filters. Try clearing search or star filters.'
                 : 'Be the first verified learner to share your experience with this course.'}
@@ -160,22 +151,12 @@ export function CourseDetailReviewsSection({
         ) : (
           <div>
             {reviews.map((review) => (
-              <ReviewCard
-                key={review.id}
-                review={review}
-                canEdit={myReview?.id === review.id}
-                onEdit={() => setModalOpen(true)}
-                onDelete={() => {
-                  if (confirm('Delete your review?')) {
-                    void deleteReview.mutateAsync(review.id);
-                  }
-                }}
-              />
+              <ReviewCard key={review.id} review={review} />
             ))}
             <div ref={sentinelRef} className="h-4" />
             {isFetchingNextPage ? (
               <div className="flex justify-center py-4">
-                <Loader2 className="h-4 w-4 animate-spin text-[#6a6f73]" />
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
               </div>
             ) : null}
             {hasNextPage && !isFetchingNextPage ? (
@@ -183,7 +164,7 @@ export function CourseDetailReviewsSection({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-11 w-full rounded-none border-[#1c1d1f] font-bold text-[#1c1d1f] hover:bg-[#1c1d1f] hover:text-white"
+                  className="h-11 w-full rounded-none border-border font-bold text-foreground hover:bg-foreground hover:text-background"
                   onClick={() => void fetchNextPage()}
                 >
                   Show more reviews
@@ -193,17 +174,6 @@ export function CourseDetailReviewsSection({
           </div>
         )}
       </div>
-
-      <ReviewModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        courseTitle={courseTitle}
-        initialReview={myReview}
-        submitting={saveReview.isPending}
-        onSubmit={async (values) => {
-          await saveReview.mutateAsync(values);
-        }}
-      />
 
       <span className="sr-only">{courseId}</span>
     </section>

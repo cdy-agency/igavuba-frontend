@@ -25,16 +25,16 @@ export function ReviewFilters({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
       <div className="relative flex-1">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6a6f73]" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search reviews"
-          className="h-11 rounded-none border-[#1c1d1f] bg-white pl-10 shadow-none focus-visible:ring-[#1c1d1f]"
+          className="h-11 rounded-none border-border bg-card pl-10 shadow-none focus-visible:ring-ring"
         />
       </div>
       <Select value={sort} onValueChange={(value) => onSortChange(value as ReviewSort)}>
-        <SelectTrigger className="h-11 w-full rounded-none border-[#1c1d1f] sm:w-52">
+        <SelectTrigger className="h-11 w-full rounded-none border-border sm:w-52">
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>

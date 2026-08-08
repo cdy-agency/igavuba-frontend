@@ -86,6 +86,7 @@ export default function CourseDetailClient({ slug }: CourseDetailClientProps) {
               courseId={course.id}
               courseSlug={course.slug}
               courseTitle={course.title}
+              courseEnrollmentCount={course.enrollmentCount}
             />
             <CourseDetailInstructorSection course={course} />
             <CourseDetailInstitutionSection course={course} />

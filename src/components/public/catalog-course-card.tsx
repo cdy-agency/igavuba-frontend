@@ -11,10 +11,10 @@ import type { CatalogCourseCard } from '@/types/catalog';
 import {
   formatCatalogDuration,
   formatCatalogLevel,
-  formatCatalogPrice,
   getDifficultyColor,
   getPrimaryCategoryName,
 } from '@/lib/catalog-utils';
+import { CoursePriceDisplay } from '@/components/shared/course-price-display';
 import { WishlistButton } from '@/components/wishlist/WishlistButton';
 
 interface PublicCatalogCourseCardProps {
@@ -83,9 +83,7 @@ export function PublicCatalogCourseCard({
                 <Clock className="h-4 w-4" />
                 <span>{formatCatalogDuration(course.estimatedHours)}</span>
               </div>
-              <span className="text-sm font-bold text-foreground">
-                {formatCatalogPrice(course)}
-              </span>
+              <CoursePriceDisplay course={course} size="md" />
             </div>
           </CardContent>
           </Card>
@@ -137,7 +135,7 @@ export function PublicCatalogCourseCard({
 
                 <div className="flex items-center gap-2 text-[12px] text-foreground-muted">
                   <Lock className="h-3 w-3" />
-                  <span>{formatCatalogPrice(course)}</span>
+                  <CoursePriceDisplay course={course} size="sm" />
                 </div>
               </div>
 
