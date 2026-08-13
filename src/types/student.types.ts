@@ -150,6 +150,8 @@ export interface CourseStudentRow {
   progress: number;
   enrolledAt: string;
   enrollmentStatus: string;
+  enrollmentSource?: string;
+  isInternalStudent?: boolean;
   completedAt: string | null;
 }
 

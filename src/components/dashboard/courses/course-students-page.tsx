@@ -35,7 +35,7 @@ export function CourseStudentsPage({
           <h1 className="text-2xl font-semibold">Students</h1>
           <p className="text-sm text-muted-foreground">
             {courseTitle ? `${courseTitle} — ` : ''}
-            enrolled internal students
+            all enrolled students (internal and public)
           </p>
         </div>
       </div>
@@ -57,8 +57,10 @@ export function CourseStudentsPage({
                   <th className="px-4 py-3 font-medium">Student ID</th>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Type</th>
                   <th className="px-4 py-3 font-medium">Department</th>
                   <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Enrollment</th>
                   <th className="px-4 py-3 font-medium">Progress</th>
                   <th className="px-4 py-3 font-medium">Enrolled</th>
                   <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -70,11 +72,26 @@ export function CourseStudentsPage({
                     <td className="px-4 py-3 font-mono text-xs">{row.studentId ?? '—'}</td>
                     <td className="px-4 py-3">{row.name ?? '—'}</td>
                     <td className="px-4 py-3">{row.email}</td>
+                    <td className="px-4 py-3">
+                      <Badge
+                        variant="outline"
+                        className={
+                          row.isInternalStudent
+                            ? 'border-sky-200 bg-sky-50 text-[10px] uppercase text-sky-800'
+                            : 'border-amber-200 bg-amber-50 text-[10px] uppercase text-amber-800'
+                        }
+                      >
+                        {row.isInternalStudent ? 'Internal' : 'Public'}
+                      </Badge>
+                    </td>
                     <td className="px-4 py-3">{row.department?.name ?? '—'}</td>
                     <td className="px-4 py-3">
                       <Badge className={getUserStatusClassName(row.status as never)}>
                         {getUserStatusLabel(row.status as never)}
                       </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs uppercase text-muted-foreground">
+                      {row.enrollmentStatus.replaceAll('_', ' ')}
                     </td>
                     <td className="px-4 py-3">{Math.round(row.progress)}%</td>
                     <td className="px-4 py-3">

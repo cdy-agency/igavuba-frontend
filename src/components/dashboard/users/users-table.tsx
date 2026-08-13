@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -18,8 +19,13 @@ import { useUsersList, useUpdateUserActive } from '@/hooks/use-admin-tables';
 import type { UserListItem } from '@/types/admin';
 import { UserRole, UserStatus } from '@/types/enum';
 import { getUserStatusLabel, isUserActiveStatus } from '@/lib/status-utils';
-import { DEFAULT_USER_SORT, USER_SORT_OPTIONS } from '@/lib/user-table-sort';
+import {
+  DEFAULT_USER_SORT,
+  INSTITUTION_ADMIN_SORT_OPTIONS,
+  USER_SORT_OPTIONS,
+} from '@/lib/user-table-sort';
 import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
@@ -44,8 +50,36 @@ const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   [UserRole.SUPPORT_AGENT]: 'Support',
 };
 
-function canToggleUser(row: UserListItem): boolean {
-  return row.role !== UserRole.SUPER_ADMIN && row.status !== UserStatus.PENDING;
+const SUPER_ADMIN_ROLE_FILTERS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'All roles' },
+  { value: UserRole.SUPER_ADMIN, label: 'Super Admin' },
+  { value: UserRole.INSTITUTION_ADMIN, label: 'Institution Admin' },
+  { value: UserRole.LECTURER, label: 'Lecturer' },
+  { value: UserRole.LEARNER, label: 'Learner' },
+  { value: UserRole.DATA_MANAGER, label: 'Data Manager' },
+  { value: UserRole.CONTENT_REVIEWER, label: 'Content Reviewer' },
+  { value: UserRole.SUPPORT_AGENT, label: 'Support Agent' },
+];
+
+const INSTITUTION_ADMIN_ROLE_FILTERS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: 'All roles' },
+  { value: UserRole.INSTITUTION_ADMIN, label: 'Institution Admin' },
+  { value: UserRole.LECTURER, label: 'Lecturer' },
+  { value: UserRole.LEARNER, label: 'Learner' },
+  { value: UserRole.DATA_MANAGER, label: 'Data Manager' },
+  { value: UserRole.CONTENT_REVIEWER, label: 'Content Reviewer' },
+  { value: UserRole.SUPPORT_AGENT, label: 'Support Agent' },
+];
+
+function canToggleUser(row: UserListItem, viewerRole: UserRole | null): boolean {
+  if (row.role === UserRole.SUPER_ADMIN || row.status === UserStatus.PENDING) {
+    return false;
+  }
+  if (viewerRole === UserRole.SUPER_ADMIN) return true;
+  if (viewerRole === UserRole.INSTITUTION_ADMIN) {
+    return row.role !== UserRole.SUPER_ADMIN;
+  }
+  return false;
 }
 
 function RoleBadge({ role }: { role: UserRole }) {
@@ -61,13 +95,47 @@ function RoleBadge({ role }: { role: UserRole }) {
   );
 }
 
+function LearnerTypeBadge({
+  learnerType,
+}: {
+  learnerType?: 'internal' | 'public' | null;
+}) {
+  if (!learnerType) return <span className="text-muted-foreground">—</span>;
+
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'text-[10px] uppercase',
+        learnerType === 'internal'
+          ? 'border-sky-200 bg-sky-50 text-sky-800'
+          : 'border-amber-200 bg-amber-50 text-amber-800',
+      )}
+    >
+      {learnerType === 'internal' ? 'Internal' : 'Public'}
+    </Badge>
+  );
+}
+
 export function UsersTable() {
+  const { role: viewerRole } = useDashboard();
+  const isInstitutionScoped = viewerRole === UserRole.INSTITUTION_ADMIN;
+
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [searchq, setSearchq] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [learnerTypeFilter, setLearnerTypeFilter] = useState<string>('all');
   const [sort, setSort] = useState(DEFAULT_USER_SORT);
   const [pendingId, setPendingId] = useState<string | null>(null);
+
+  const roleFilterOptions = isInstitutionScoped
+    ? INSTITUTION_ADMIN_ROLE_FILTERS
+    : SUPER_ADMIN_ROLE_FILTERS;
+  const sortOptions = isInstitutionScoped
+    ? INSTITUTION_ADMIN_SORT_OPTIONS
+    : USER_SORT_OPTIONS;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -82,10 +150,15 @@ export function UsersTable() {
       page,
       limit: PAGE_SIZE,
       searchq: searchq || undefined,
+      role: roleFilter === 'all' ? undefined : (roleFilter as UserRole),
       status: statusFilter === 'all' ? undefined : (statusFilter as UserStatus),
+      learnerType:
+        learnerTypeFilter === 'all'
+          ? undefined
+          : (learnerTypeFilter as 'internal' | 'public'),
       sort,
     }),
-    [page, searchq, statusFilter, sort],
+    [page, searchq, roleFilter, statusFilter, learnerTypeFilter, sort],
   );
 
   const { data, isPending, isFetching } = useUsersList(queryParams);
@@ -103,14 +176,51 @@ export function UsersTable() {
             <Input
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search users..."
+              placeholder="Search by name or email..."
               className="h-10 pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(value) => {
-            setStatusFilter(value);
-            setPage(1);
-          }}>
+          <Select
+            value={roleFilter}
+            onValueChange={(value) => {
+              setRoleFilter(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              {roleFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={learnerTypeFilter}
+            onValueChange={(value) => {
+              setLearnerTypeFilter(value);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-[170px]">
+              <SelectValue placeholder="Learner type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All learner types</SelectItem>
+              <SelectItem value="internal">Internal learners</SelectItem>
+              <SelectItem value="public">Public learners</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -126,7 +236,7 @@ export function UsersTable() {
         </div>
         <DataTableSortSelect
           value={sort}
-          options={USER_SORT_OPTIONS}
+          options={sortOptions}
           onValueChange={(value) => {
             setSort(value);
             setPage(1);
@@ -136,7 +246,11 @@ export function UsersTable() {
 
       <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
         {isPending || isFetching ? (
-          <DashboardTableLoadingSkeleton columnCount={6} rowCount={4} showPagination={false} />
+          <DashboardTableLoadingSkeleton
+            columnCount={isInstitutionScoped ? 6 : 7}
+            rowCount={4}
+            showPagination={false}
+          />
         ) : users.length === 0 ? (
           <div className="px-6 py-16 text-center text-sm text-muted-foreground">
             No users found.
@@ -148,7 +262,10 @@ export function UsersTable() {
                 <tr>
                   <th className="px-4 py-3 font-medium">User</th>
                   <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Institution</th>
+                  <th className="px-4 py-3 font-medium">Type</th>
+                  {!isInstitutionScoped ? (
+                    <th className="px-4 py-3 font-medium">Institution</th>
+                  ) : null}
                   <th className="px-4 py-3 font-medium">Status</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
                   <th className="px-4 py-3 text-right font-medium">Active</th>
@@ -172,9 +289,14 @@ export function UsersTable() {
                     <td className="px-4 py-3">
                       <RoleBadge role={row.role} />
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {row.institution?.name ?? '—'}
+                    <td className="px-4 py-3">
+                      <LearnerTypeBadge learnerType={row.learnerType} />
                     </td>
+                    {!isInstitutionScoped ? (
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {row.institution?.name ?? '—'}
+                      </td>
+                    ) : null}
                     <td className="px-4 py-3">
                       <span
                         className={cn(
@@ -193,9 +315,8 @@ export function UsersTable() {
                     <td className="px-4 py-3">
                       <StatusSwitchCell
                         checked={isUserActiveStatus(row.status)}
-                        disabled={!canToggleUser(row)}
+                        disabled={!canToggleUser(row, viewerRole)}
                         isPending={pendingId === row.id}
-                        size="xxs"
                         onCheckedChange={(active) => {
                           setPendingId(row.id);
                           updateActive.mutate(

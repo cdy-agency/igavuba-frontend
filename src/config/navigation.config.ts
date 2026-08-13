@@ -44,13 +44,13 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/payments',
   '/certificate/builder',
   '/dashboard/lecturers',
+  '/dashboard/users',
   '/dashboard/students',
   '/dashboard/reports',
   // '/dashboard/analytics',
   '/dashboard/live-sessions',
   '/dashboard/content-approval',
   '/dashboard/support-tickets',
-  '/dashboard/users',
   '/dashboard/settings',
   '/dashboard/profile',
   '/dashboard/audit-logs',
@@ -105,7 +105,7 @@ export const navigationConfig: NavigationItem[] = [
     section: 'main',
   },
   {
-    title: 'Learner Reviews',
+    title: 'Reviews',
     href: '/dashboard/reviews',
     icon: Star,
     roles: [UserRole.LECTURER, UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
@@ -157,7 +157,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Students',
     href: '/dashboard/students',
     icon: Users,
-    roles: [UserRole.INSTITUTION_ADMIN, UserRole.LECTURER, UserRole.DATA_MANAGER],
+    roles: [UserRole.LECTURER, UserRole.DATA_MANAGER],
     section: 'main',
   },
   {
@@ -225,7 +225,7 @@ export const navigationConfig: NavigationItem[] = [
     title: 'Users',
     href: '/dashboard/users',
     icon: Users,
-    roles: [UserRole.SUPER_ADMIN, UserRole.SUPPORT_AGENT],
+    roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.SUPPORT_AGENT],
     section: 'main',
   },
   {
@@ -382,7 +382,7 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     description: 'Review submitted courses for quality assurance.',
   },
   '/dashboard/reviews': {
-    title: 'Learner Reviews',
+    title: 'Reviews',
     description: 'Ratings, feedback analytics, and review moderation.',
   },
   '/dashboard/assessments': {
@@ -447,7 +447,7 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   },
   '/dashboard/users': {
     title: 'Users',
-    description: 'View and manage platform users.',
+    description: 'Browse and filter users by role, status, and name.',
   },
   '/dashboard/settings': {
     title: 'Settings',

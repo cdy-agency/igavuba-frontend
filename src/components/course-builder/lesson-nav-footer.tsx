@@ -32,8 +32,8 @@ export function LessonNavFooter({ courseId }: LessonNavFooterProps) {
   };
 
   return (
-    <footer className="shrink-0 border-t border-border/80 bg-white px-6 py-3">
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-4">
+    <footer className="shrink-0 border-t border-border/80 bg-white px-3 py-3 sm:px-4 md:px-5">
+      <div className="mx-auto flex w-full items-center justify-between gap-4">
         <button
           type="button"
           disabled={!previous}

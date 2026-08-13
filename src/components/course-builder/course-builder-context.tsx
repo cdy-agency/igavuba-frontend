@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { ContentType } from '@/types/content';
 
 export type LessonCreateType = 'text' | 'video' | 'document' | 'quiz' | 'assignment' | 'exam';
@@ -25,7 +25,7 @@ interface CourseBuilderContextValue {
   startCreatingLesson: (type: LessonCreateType) => void;
   cancelCreatingLesson: () => void;
   builderSaveState: BuilderSaveState | null;
-  setBuilderSaveState: (state: BuilderSaveState | null) => void;
+  setBuilderSaveState: Dispatch<SetStateAction<BuilderSaveState | null>>;
 }
 
 const CourseBuilderContext = createContext<CourseBuilderContextValue | null>(null);

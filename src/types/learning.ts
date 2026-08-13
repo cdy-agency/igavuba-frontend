@@ -174,6 +174,7 @@ export interface LessonItem {
   type: string;
   completed?: boolean;
   isPaymentLocked?: boolean;
+  isFinalExam?: boolean;
 }
 
 /** Sidebar module item used by ModuleList */

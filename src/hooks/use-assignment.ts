@@ -53,9 +53,9 @@ export function useUpdateAssignment(assignmentId: string, moduleId?: string) {
     mutationFn: (payload: UpdateAssignmentPayload) =>
       updateAssignment(assignmentId, payload),
     onSuccess: (response) => {
-      queryClient.setQueryData(assignmentQueryKeys.detail(assignmentId), response.data);
+      queryClient.setQueryData(assignmentQueryKeys.detail(assignmentId), response);
       if (moduleId) {
-        queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+        void queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
       }
     },
     onError: (error) => {

@@ -14,6 +14,8 @@ import { UserRole } from '@/types/enum';
 
 import { Button } from '@/components/ui/button';
 
+import { DateTimePicker, toDatetimeLocalValue } from '@/components/ui/date-time-picker';
+
 import { Input } from '@/components/ui/input';
 
 import { Label } from '@/components/ui/label';
@@ -75,9 +77,6 @@ import {
 
 import { getApiErrorMessage } from '@/lib/auth';
 
-import { toast } from '@/lib/toast';
-
-
 
 const EXAM_MANAGER_ROLES = [
 
@@ -98,22 +97,6 @@ type BuilderView = 'builder' | 'settings';
 interface ExamBuilderPageProps {
 
   examId?: string;
-
-}
-
-
-
-function toDateTimeLocalValue(value: string | null | undefined) {
-
-  if (!value) return '';
-
-  const date = new Date(value);
-
-  const offset = date.getTimezoneOffset();
-
-  const local = new Date(date.getTime() - offset * 60_000);
-
-  return local.toISOString().slice(0, 16);
 
 }
 
@@ -221,7 +204,7 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
       .catch((error) => {
 
-        toast.error(getApiErrorMessage(error, 'Unable to load course.'));
+        setFormError(getApiErrorMessage(error, 'Unable to load course.'));
 
       })
 
@@ -253,9 +236,9 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
     );
 
-    setAvailableFrom(toDateTimeLocalValue(examDetail.availableFrom));
+    setAvailableFrom(toDatetimeLocalValue(examDetail.availableFrom));
 
-    setAvailableTo(toDateTimeLocalValue(examDetail.availableTo));
+    setAvailableTo(toDatetimeLocalValue(examDetail.availableTo));
 
     setSettings(examDetail.assessment.settings ?? defaultQuizSettings());
 
@@ -295,7 +278,7 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
       .catch((error) => {
 
-        toast.error(getApiErrorMessage(error, 'Unable to load courses.'));
+        setFormError(getApiErrorMessage(error, 'Unable to load courses.'));
 
       })
 
@@ -473,8 +456,6 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
       setFormError(error);
 
-      toast.error(error);
-
       return;
 
     }
@@ -492,8 +473,6 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
       if (isEditMode && examId) {
 
         await updateExamMutation.mutateAsync(buildExamPayload());
-
-        toast.success('Exam saved successfully');
 
         return;
 
@@ -513,8 +492,6 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
         await setCourseFinalExam(courseId, createdExam.assessment.contentId);
       }
 
-      toast.success('Exam created successfully');
-
       router.replace(
 
         `/dashboard/exams/${createdExam.id}/edit?${new URLSearchParams({
@@ -529,7 +506,7 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
     } catch (submitError) {
 
-      toast.error(getApiErrorMessage(submitError, 'Unable to save exam.'));
+      setFormError(getApiErrorMessage(submitError, 'Unable to save exam.'));
 
     } finally {
 
@@ -627,21 +604,51 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
 
 
+      {formError ? (
+
+        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+
+          {formError}
+
+        </p>
+
+      ) : null}
+
+
+
       <div className="rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
 
         <div className="space-y-4">
 
-          <Input
+          <div className="space-y-1.5">
 
-            value={title}
+            <Input
 
-            onChange={(event) => setTitle(event.target.value)}
+              value={title}
 
-            placeholder="Exam title"
+              onChange={(event) => {
 
-            className="border-none px-0 text-2xl font-bold shadow-none focus-visible:ring-0"
+                setTitle(event.target.value);
 
-          />
+                if (formError) setFormError(null);
+
+              }}
+
+              placeholder="Exam title"
+
+              className="border-none px-0 text-2xl font-bold shadow-none focus-visible:ring-0"
+
+              aria-invalid={Boolean(formError?.toLowerCase().includes('title'))}
+
+            />
+
+            {formError?.toLowerCase().includes('title') ? (
+
+              <p className="text-sm text-destructive">{formError}</p>
+
+            ) : null}
+
+          </div>
 
 
 
@@ -855,15 +862,15 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
               <Label htmlFor="exam-available-from">Available from</Label>
 
-              <Input
+              <DateTimePicker
 
                 id="exam-available-from"
 
-                type="datetime-local"
-
                 value={availableFrom}
 
-                onChange={(event) => setAvailableFrom(event.target.value)}
+                onChange={setAvailableFrom}
+
+                placeholder="Start date & time"
 
               />
 
@@ -873,15 +880,15 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
               <Label htmlFor="exam-available-to">Available to</Label>
 
-              <Input
+              <DateTimePicker
 
                 id="exam-available-to"
 
-                type="datetime-local"
-
                 value={availableTo}
 
-                onChange={(event) => setAvailableTo(event.target.value)}
+                onChange={setAvailableTo}
+
+                placeholder="End date & time"
 
               />
 
@@ -947,25 +954,17 @@ function ExamBuilderPageContent({ examId }: ExamBuilderPageProps) {
 
       {view === 'builder' ? (
 
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm sm:p-5">
+        isEditMode && examId ? (
 
-          {isEditMode && examId ? (
+          <ExamManagedQuestionBuilder examId={examId} />
 
-            <ExamManagedQuestionBuilder examId={examId} />
+        ) : (
 
-          ) : (
+          <QuizQuestionBuilder questions={questions} onChange={setQuestions} allowEssayTypes />
 
-            <QuizQuestionBuilder questions={questions} onChange={setQuestions} allowEssayTypes />
-
-          )}
-
-        </div>
+        )
 
       ) : null}
-
-
-
-      {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
 
 
 

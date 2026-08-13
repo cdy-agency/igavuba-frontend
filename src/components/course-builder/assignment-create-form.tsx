@@ -9,6 +9,7 @@ import {
   LessonSettingsGroup,
 } from '@/components/course-builder/lesson-form-ui';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -148,17 +149,18 @@ export function AssignmentCreateForm({
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label>Due date</Label>
-              <Input
-                type="datetime-local"
+              <DateTimePicker
                 value={settings.dueDate ?? ''}
-                onChange={(event) =>
-                  setSettings((current) => ({ ...current, dueDate: event.target.value }))
+                placeholder="Pick due date & time"
+                onChange={(dueDate) =>
+                  setSettings((current) => ({ ...current, dueDate }))
                 }
               />
             </div>
             <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
               <Label>Allow late submission</Label>
               <Switch
+                size="sm"
                 checked={settings.allowLateSubmission}
                 onCheckedChange={(checked) =>
                   setSettings((current) => ({ ...current, allowLateSubmission: checked }))
@@ -168,6 +170,7 @@ export function AssignmentCreateForm({
             <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
               <Label>Show feedback after grading</Label>
               <Switch
+                size="sm"
                 checked={settings.showFeedbackAfterGrading}
                 onCheckedChange={(checked) =>
                   setSettings((current) => ({ ...current, showFeedbackAfterGrading: checked }))

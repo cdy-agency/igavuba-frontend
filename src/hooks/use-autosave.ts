@@ -122,6 +122,8 @@ export function useAutoSave<T>(config: {
   latestSerializedRef.current = valueSerialized;
 
   const reportStatus = useCallback((nextStatus: SaveStatus, message: string | null = null) => {
+    if (unmountedRef.current) return;
+
     setStatus((current) => (current === nextStatus ? current : nextStatus));
     // Always notify only when status actually changes — prevents context update storms.
     if (statusRef.current === nextStatus) {
@@ -152,8 +154,17 @@ export function useAutoSave<T>(config: {
     }
   }, [storageKey]);
 
+  const saveInFlightRef = useRef(false);
+  const saveQueuedRef = useRef(false);
+
   const performSave = useCallback(
     async (valueToSave: T) => {
+      if (saveInFlightRef.current) {
+        saveQueuedRef.current = true;
+        return;
+      }
+
+      saveInFlightRef.current = true;
       setError(null);
       setIsSaving(true);
       reportStatus('saving', null);
@@ -177,8 +188,16 @@ export function useAutoSave<T>(config: {
         reportStatus(offline ? 'offline' : 'pending', offline ? 'Offline draft' : 'Save pending');
         persistLocalDraft(valueToSave);
       } finally {
+        saveInFlightRef.current = false;
         if (!unmountedRef.current) {
           setIsSaving(false);
+        }
+
+        if (!unmountedRef.current && saveQueuedRef.current) {
+          saveQueuedRef.current = false;
+          if (latestSerializedRef.current !== lastSavedSerializedRef.current) {
+            void performSave(latestValueRef.current);
+          }
         }
       }
     },
@@ -321,8 +340,13 @@ export function useAutoSave<T>(config: {
       clearDraft: removeLocalDraft,
       /** Mark current value as clean (e.g. after hydrating from server). */
       markSaved: (nextValue?: T) => {
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+        }
         const serialized = stableSerialize(nextValue ?? latestValueRef.current);
         lastSavedSerializedRef.current = serialized;
+        latestSerializedRef.current = serialized;
         setHasPendingSave(false);
       },
     }),

@@ -183,8 +183,15 @@ function SortableLessonItem({
         <Icon className="h-3.5 w-3.5" strokeWidth={2} />
       </span>
       <button type="button" className="min-w-0 flex-1 text-left" onClick={onSelect}>
-        <span className="block truncate text-[12px] font-medium leading-tight text-slate-800">
-          {item.content.title}
+        <span className="flex items-center gap-1.5">
+          <span className="block min-w-0 truncate text-[12px] font-medium leading-tight text-slate-800">
+            {item.content.title}
+          </span>
+          {!item.content.isPublished ? (
+            <span className="shrink-0 rounded bg-amber-50 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-amber-700">
+              Hidden
+            </span>
+          ) : null}
         </span>
         <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           {label}

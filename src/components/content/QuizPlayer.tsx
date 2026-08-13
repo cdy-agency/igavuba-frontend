@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   useMyQuizAttempts,
+  useQuizAttemptResult,
   useStartQuizAttempt,
   useSubmitQuizAttempt,
 } from '@/hooks/use-quiz-attempt';
@@ -272,13 +273,35 @@ export function QuizPlayer({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [submitResult, setSubmitResult] = useState<QuizSubmitResult | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
 
   const attemptsRemaining =
     submitResult?.attemptsRemaining ?? attemptHistory?.attemptsRemaining ?? quizMeta.maxAttempts;
-  const canStart = attemptsRemaining > 0;
+  const hasPassed =
+    submitResult?.passed === true ||
+    attemptHistory?.bestPassed === true ||
+    isCompleted === true;
+  const canAttempt = attemptsRemaining > 0 && !hasPassed;
   const inProgressAttempt = attemptHistory?.attempts.find(
     (attempt: QuizAttemptSummary) => attempt.inProgress,
   );
+  const canStart = Boolean(inProgressAttempt) || canAttempt;
+  const submittedAttempts = useMemo(
+    () =>
+      (attemptHistory?.attempts ?? []).filter(
+        (attempt: QuizAttemptSummary) => !attempt.inProgress && attempt.submittedAt,
+      ),
+    [attemptHistory?.attempts],
+  );
+  const bestAttemptId = useMemo(() => {
+    if (!submittedAttempts.length) return null;
+    return submittedAttempts.reduce((best, attempt) =>
+      attempt.percentage > best.percentage ? attempt : best,
+    ).id;
+  }, [submittedAttempts]);
+  const showAttemptHistory = submittedAttempts.length > 0;
+  const { data: selectedAttemptResult, isPending: isSelectedAttemptPending } =
+    useQuizAttemptResult(quizId, selectedAttemptId ?? '', courseId, Boolean(selectedAttemptId));
 
   const questions = attemptData?.questions ?? [];
   const currentQuestion = questions[currentIndex] ?? null;
@@ -325,11 +348,57 @@ export function QuizPlayer({
       setAnswers({});
       setCurrentIndex(0);
       setSubmitResult(null);
+      setSelectedAttemptId(null);
       setPhase('attempt');
     } catch {
       // toast handled in hook
     }
   };
+
+  const historicalResult = useMemo((): QuizSubmitResult | null => {
+    if (!selectedAttemptResult) return null;
+    const totalPoints =
+      selectedAttemptResult.totalPoints ??
+      selectedAttemptResult.result?.questions?.reduce(
+        (sum, question) => sum + (question.points ?? 0),
+        0,
+      ) ??
+      0;
+
+    return {
+      attemptId: selectedAttemptResult.attemptId,
+      quizId: selectedAttemptResult.quizId ?? quizId,
+      contentId: selectedAttemptResult.contentId ?? contentId,
+      courseId: selectedAttemptResult.courseId ?? courseId,
+      score: selectedAttemptResult.score ?? 0,
+      totalPoints,
+      percentage: selectedAttemptResult.percentage ?? 0,
+      passed: Boolean(selectedAttemptResult.passed),
+      timeLimitExceeded: Boolean(selectedAttemptResult.timeLimitExceeded),
+      attemptsUsed: selectedAttemptResult.attemptsUsed ?? attemptHistory?.attemptsUsed ?? 0,
+      attemptsRemaining:
+        selectedAttemptResult.attemptsRemaining ??
+        attemptHistory?.attemptsRemaining ??
+        quizMeta.maxAttempts,
+      markedComplete: Boolean(selectedAttemptResult.markedComplete),
+      usedBestScore: selectedAttemptResult.attemptId === bestAttemptId,
+      showResults: selectedAttemptResult.showResults ?? !selectedAttemptResult.message,
+      showCorrectAnswers: Boolean(selectedAttemptResult.showCorrectAnswers),
+      message: selectedAttemptResult.message,
+      result: selectedAttemptResult.result,
+    };
+  }, [
+    selectedAttemptResult,
+    quizId,
+    contentId,
+    courseId,
+    attemptHistory?.attemptsUsed,
+    attemptHistory?.attemptsRemaining,
+    quizMeta.maxAttempts,
+    bestAttemptId,
+  ]);
+
+  const displayResult = selectedAttemptId ? historicalResult : submitResult;
 
   const handleOptionToggle = (question: LearnerQuizQuestion, optionId: string, checked: boolean) => {
     setAnswers((current) => {
@@ -363,6 +432,7 @@ export function QuizPlayer({
 
     try {
       const response = await submitAttempt.mutateAsync(payload);
+      setSelectedAttemptId(null);
       setSubmitResult(response.data);
       setPhase('result');
       if (response.data.markedComplete && response.data.courseProgress !== undefined) {
@@ -408,10 +478,77 @@ export function QuizPlayer({
             <span className="font-medium">Time limit:</span>{' '}
             {quizMeta.timeLimitMinutes ? `${quizMeta.timeLimitMinutes} minutes` : 'None'}
           </p>
-          {isCompleted ? (
+          {attemptHistory?.bestPercentage != null ? (
+            <p className="text-sm font-medium text-foreground">
+              Best mark: {attemptHistory.bestScore ?? '—'} ({attemptHistory.bestPercentage}%)
+              {hasPassed ? ' · Passed' : ''}
+            </p>
+          ) : hasPassed || isCompleted ? (
             <p className="text-sm font-medium text-emerald-600">You have passed this quiz.</p>
           ) : null}
         </div>
+
+        {showAttemptHistory ? (
+          <div className="space-y-3 rounded-lg border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">Your marks</h3>
+              {attemptHistory?.bestPercentage != null ? (
+                <p className="text-xs text-muted-foreground">
+                  Highest mark used for progress: {attemptHistory.bestPercentage}%
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              {submittedAttempts.map((attempt, index) => {
+                const isBest = attempt.id === bestAttemptId;
+                return (
+                  <button
+                    key={attempt.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAttemptId(attempt.id);
+                      setPhase('result');
+                    }}
+                    className={cn(
+                      'flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors hover:bg-muted/40',
+                      isBest ? 'border-emerald-300 bg-emerald-50/60' : 'border-border',
+                    )}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        Attempt {submittedAttempts.length - index}
+                        {isBest ? ' · Best' : ''}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {attempt.submittedAt
+                          ? new Date(attempt.submittedAt).toLocaleString()
+                          : 'Submitted'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p
+                        className={cn(
+                          'text-sm font-semibold',
+                          attempt.passed ? 'text-emerald-600' : 'text-destructive',
+                        )}
+                      >
+                        {attempt.score} pts · {attempt.percentage}%
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {attempt.passed ? 'Passed' : 'Failed'}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {!canAttempt ? (
+              <p className="text-xs text-muted-foreground">
+                No attempts left. Tap an attempt above to review its marks in detail.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {instructions || attemptData?.instructions ? (
           <div className="rounded-lg border px-4 py-3 text-sm text-muted-foreground">
@@ -419,45 +556,100 @@ export function QuizPlayer({
           </div>
         ) : null}
 
-        {inProgressAttempt ? (
+        {hasPassed ? (
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+            You have already passed this quiz. No further attempts are needed.
+          </div>
+        ) : null}
+
+        {inProgressAttempt && !hasPassed ? (
           <p className="text-sm text-muted-foreground">
             You have an attempt in progress. Starting again will resume it.
           </p>
         ) : null}
 
-        <Button
-          type="button"
-          onClick={handleStart}
-          disabled={!canStart || startAttempt.isPending}
-          className="min-w-[160px]"
-        >
-          {startAttempt.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : canStart ? (
-            'Start Quiz'
-          ) : (
-            'No Attempts Left'
-          )}
-        </Button>
+        <div className="flex flex-wrap gap-3">
+          {canStart ? (
+            <Button
+              type="button"
+              onClick={handleStart}
+              disabled={startAttempt.isPending}
+              className="min-w-[160px]"
+            >
+              {startAttempt.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : inProgressAttempt ? (
+                'Resume Quiz'
+              ) : attemptHistory?.attemptsUsed ? (
+                `Try Again (${attemptsRemaining} left)`
+              ) : (
+                'Start Quiz'
+              )}
+            </Button>
+          ) : !hasPassed ? (
+            <Button type="button" disabled className="min-w-[160px]">
+              No Attempts Left
+            </Button>
+          ) : null}
+          {hasPassed || attemptHistory?.attemptsUsed ? (
+            <Button type="button" variant={hasPassed ? 'default' : 'outline'} onClick={onContinue}>
+              Continue Learning
+            </Button>
+          ) : null}
+        </div>
       </div>
     );
   }
 
   if (phase === 'result') {
+    if (selectedAttemptId && isSelectedAttemptPending) {
+      return (
+        <div className="flex min-h-[240px] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
+        {selectedAttemptId ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              Viewing attempt marks
+              {displayResult?.usedBestScore ? ' · Best score' : ''}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedAttemptId(null);
+                setPhase('intro');
+              }}
+            >
+              Back to overview
+            </Button>
+          </div>
+        ) : null}
         <QuizResultView
-          result={submitResult}
-          showCorrectAnswers={Boolean(submitResult?.showCorrectAnswers)}
+          result={displayResult}
+          showCorrectAnswers={Boolean(displayResult?.showCorrectAnswers)}
           hiddenMessage={
-            submitResult && !submitResult.showResults
-              ? submitResult.message || 'Results are hidden by instructor.'
+            displayResult && !displayResult.showResults
+              ? displayResult.message || 'Results are hidden by instructor.'
               : undefined
           }
         />
         <div className="flex flex-wrap gap-3">
-          {canStart && !submitResult?.passed ? (
-            <Button type="button" variant="outline" onClick={() => setPhase('intro')}>
+          {canAttempt && !hasPassed ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setSelectedAttemptId(null);
+                setPhase('intro');
+              }}
+            >
               Try Again ({attemptsRemaining} left)
             </Button>
           ) : null}

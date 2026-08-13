@@ -5,6 +5,18 @@ import type { AppNotification } from '@/types/notification.types';
 import { formatRelativeTime, getNotificationHref } from '@/lib/notification-utils';
 import { cn } from '@/lib/utils';
 
+const CATEGORY_LABEL: Record<string, string> = {
+  AUTHENTICATION: 'Account',
+  COURSE: 'Course',
+  ASSESSMENT: 'Assessment',
+  ASSIGNMENT: 'Assignment',
+  EXAM: 'Exam',
+  PAYMENT: 'Payment',
+  CERTIFICATE: 'Certificate',
+  ENROLLMENT: 'Enrollment',
+  SYSTEM: 'System',
+};
+
 export function NotificationItem({
   notification,
   onRead,
@@ -14,6 +26,8 @@ export function NotificationItem({
 }) {
   const href = getNotificationHref(notification.actionUrl);
   const isUnread = !notification.isRead && !notification.readAt;
+  const categoryLabel =
+    CATEGORY_LABEL[String(notification.category)] ?? String(notification.category);
 
   const content = (
     <div className="flex gap-3">
@@ -25,7 +39,12 @@ export function NotificationItem({
         aria-hidden
       />
       <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium leading-snug text-foreground">{notification.title}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-medium leading-snug text-foreground">{notification.title}</p>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            {categoryLabel}
+          </span>
+        </div>
         <p className="text-xs leading-relaxed text-muted-foreground">{notification.message}</p>
         <p className="text-[10px] text-muted-foreground/80">
           {formatRelativeTime(notification.createdAt)}

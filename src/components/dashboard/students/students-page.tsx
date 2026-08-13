@@ -6,16 +6,11 @@ import { PageHeader } from '@/components/dashboard/page-header';
 import { StudentsTable } from '@/components/dashboard/students/students-table';
 import { useDashboard } from '@/contexts/dashboard-context';
 
-const STUDENT_VIEWER_ROLES = [
-  UserRole.INSTITUTION_ADMIN,
-  UserRole.LECTURER,
-  UserRole.DATA_MANAGER,
-  UserRole.SUPER_ADMIN,
-];
+const STUDENT_VIEWER_ROLES = [UserRole.LECTURER, UserRole.DATA_MANAGER];
 
 export function StudentsPage() {
   const { role } = useDashboard();
-  const isReadOnly = role === UserRole.SUPER_ADMIN || role === UserRole.LECTURER;
+  const isReadOnly = role === UserRole.LECTURER;
 
   return (
     <RoleGuard allowedRoles={STUDENT_VIEWER_ROLES}>

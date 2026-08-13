@@ -2,6 +2,7 @@
 
 import { Controller, type Control, type UseFormSetValue, useWatch } from 'react-hook-form';
 import { DollarSign, Percent, Tag } from 'lucide-react';
+import { DateTimePicker, toDatetimeLocalValue } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -142,7 +143,7 @@ export function CoursePricingFields({
           name="discountEnabled"
           render={({ field }) => (
             <Switch
-              size="xs"
+              size="sm"
               checked={Boolean(field.value)}
               disabled={disabled}
               onCheckedChange={(checked) => {
@@ -257,13 +258,13 @@ export function CoursePricingFields({
                 control={control}
                 name="discountStartAt"
                 render={({ field }) => (
-                  <Input
-                    type="datetime-local"
+                  <DateTimePicker
                     disabled={disabled}
                     className={courseFormInputClass}
                     value={toDatetimeLocalValue(field.value)}
-                    onChange={(event) => {
-                      const value = fromDatetimeLocalValue(event.target.value);
+                    placeholder="Start date & time"
+                    onChange={(localValue) => {
+                      const value = fromDatetimeLocalValue(localValue);
                       field.onChange(value);
                       syncPublicPrice({ discountStartAt: value });
                     }}
@@ -277,13 +278,13 @@ export function CoursePricingFields({
                 control={control}
                 name="discountEndAt"
                 render={({ field }) => (
-                  <Input
-                    type="datetime-local"
+                  <DateTimePicker
                     disabled={disabled}
                     className={courseFormInputClass}
                     value={toDatetimeLocalValue(field.value)}
-                    onChange={(event) => {
-                      const value = fromDatetimeLocalValue(event.target.value);
+                    placeholder="End date & time"
+                    onChange={(localValue) => {
+                      const value = fromDatetimeLocalValue(localValue);
                       field.onChange(value);
                       syncPublicPrice({ discountEndAt: value });
                     }}
@@ -319,14 +320,6 @@ export function CoursePricingFields({
       ) : null}
     </div>
   );
-}
-
-function toDatetimeLocalValue(value?: string) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function fromDatetimeLocalValue(value: string): string | undefined {

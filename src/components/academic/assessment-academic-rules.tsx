@@ -1,17 +1,22 @@
 'use client';
 
+import { Check, Loader2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
+import { cn } from '@/lib/utils';
+
+export type AcademicRulesSaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 interface AssessmentAcademicRulesProps {
   idPrefix: string;
   values: AssessmentAcademicRulesFormValues;
   readOnly?: boolean;
   disabled?: boolean;
+  saveStatus?: AcademicRulesSaveStatus;
   onChange: (values: Partial<AssessmentAcademicRulesFormValues>) => void;
-  onBlur?: () => void;
+  onCommit?: (values: Partial<AssessmentAcademicRulesFormValues>) => void;
 }
 
 export function AssessmentAcademicRules({
@@ -19,18 +24,46 @@ export function AssessmentAcademicRules({
   values,
   readOnly = false,
   disabled = false,
+  saveStatus = 'idle',
   onChange,
-  onBlur,
+  onCommit,
 }: AssessmentAcademicRulesProps) {
   const isDisabled = readOnly || disabled;
 
+  const commit = (patch: Partial<AssessmentAcademicRulesFormValues>) => {
+    onChange(patch);
+    onCommit?.(patch);
+  };
+
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-[13px] font-semibold text-foreground">Academic Rules</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Control completion, certificate eligibility, and progress blocking for this assessment.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[13px] font-semibold text-foreground">Academic Rules</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Control completion, certificate eligibility, and progress blocking for this assessment.
+          </p>
+        </div>
+        {saveStatus !== 'idle' ? (
+          <span
+            className={cn(
+              'inline-flex shrink-0 items-center gap-1 pt-0.5 text-[11px] font-medium',
+              saveStatus === 'error'
+                ? 'text-destructive'
+                : saveStatus === 'saved'
+                  ? 'text-emerald-600'
+                  : 'text-muted-foreground',
+            )}
+          >
+            {saveStatus === 'saving' ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            {saveStatus === 'saved' ? <Check className="h-3 w-3" /> : null}
+            {saveStatus === 'saving'
+              ? 'Saving...'
+              : saveStatus === 'saved'
+                ? 'Saved'
+                : 'Not saved'}
+          </span>
+        ) : null}
       </div>
 
       <div className="space-y-3">
@@ -43,10 +76,10 @@ export function AssessmentAcademicRules({
           </div>
           <Switch
             id={`${idPrefix}-required`}
-            size="default"
+            size="sm"
             checked={values.required}
             disabled={isDisabled}
-            onCheckedChange={(checked) => onChange({ required: checked })}
+            onCheckedChange={(checked) => commit({ required: checked })}
           />
         </div>
 
@@ -54,15 +87,15 @@ export function AssessmentAcademicRules({
           <div className="space-y-1 pr-4">
             <Label htmlFor={`${idPrefix}-certificate`}>Counts Toward Certificate</Label>
             <p className="text-xs text-muted-foreground">
-              Include this assessment when evaluating certificate eligibility.
+              Include this assessment in the overall grade used for certificate eligibility.
             </p>
           </div>
           <Switch
             id={`${idPrefix}-certificate`}
-            size="default"
+            size="sm"
             checked={values.countsTowardCertificate}
             disabled={isDisabled}
-            onCheckedChange={(checked) => onChange({ countsTowardCertificate: checked })}
+            onCheckedChange={(checked) => commit({ countsTowardCertificate: checked })}
           />
         </div>
 
@@ -71,15 +104,16 @@ export function AssessmentAcademicRules({
             <Label htmlFor={`${idPrefix}-blocking`}>Block Progress Until Submitted</Label>
             <p className="text-xs text-muted-foreground">
               Learner cannot continue until they submit this assignment or attempt this quiz or
-              exam. Passing is still required for certificate eligibility.
+              exam. Certificate eligibility uses overall grade; the final exam must still be
+              passed when it counts toward the certificate.
             </p>
           </div>
           <Switch
             id={`${idPrefix}-blocking`}
-            size="default"
+            size="sm"
             checked={values.blockProgressUntilPassed}
             disabled={isDisabled}
-            onCheckedChange={(checked) => onChange({ blockProgressUntilPassed: checked })}
+            onCheckedChange={(checked) => commit({ blockProgressUntilPassed: checked })}
           />
         </div>
       </div>
@@ -102,7 +136,7 @@ export function AssessmentAcademicRules({
               onChange({ passingScore: Number(event.target.value) || 0 })
             }
             onBlur={(event) =>
-              onChange({ passingScore: Number(event.currentTarget.value) || 0 })
+              commit({ passingScore: Number(event.currentTarget.value) || 0 })
             }
           />
         </div>
@@ -116,7 +150,7 @@ export function AssessmentAcademicRules({
             disabled={isDisabled}
             onChange={(event) => onChange({ maxAttempts: Number(event.target.value) || 1 })}
             onBlur={(event) =>
-              onChange({ maxAttempts: Number(event.currentTarget.value) || 1 })
+              commit({ maxAttempts: Number(event.currentTarget.value) || 1 })
             }
           />
         </div>
@@ -130,7 +164,7 @@ export function defaultAssessmentAcademicRules(
 ): AssessmentAcademicRulesFormValues {
   return {
     required: true,
-    countsTowardCertificate: true,
+    countsTowardCertificate: false,
     blockProgressUntilPassed: false,
     passingScore: 70,
     maxAttempts: 3,

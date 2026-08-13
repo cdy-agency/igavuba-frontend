@@ -27,7 +27,30 @@ export function useNotificationSocket() {
     (notification: AppNotification) => {
       queryClient.setQueryData(
         notificationQueryKeys.unreadCount,
-        (prev: number | undefined) => (typeof prev === 'number' ? prev + (notification.isRead ? 0 : 1) : prev),
+        (prev: number | undefined) =>
+          typeof prev === 'number' ? prev + (notification.isRead ? 0 : 1) : 1,
+      );
+
+      queryClient.setQueryData(
+        notificationQueryKeys.infinite,
+        (previous: { pages: Array<{ data: AppNotification[]; unreadCount: number }>; pageParams: unknown[] } | undefined) => {
+          if (!previous?.pages?.length) return previous;
+          const [firstPage, ...rest] = previous.pages;
+          const alreadyExists = firstPage.data.some((item) => item.id === notification.id);
+          if (alreadyExists) return previous;
+
+          return {
+            ...previous,
+            pages: [
+              {
+                ...firstPage,
+                data: [notification, ...firstPage.data],
+                unreadCount: firstPage.unreadCount + (notification.isRead ? 0 : 1),
+              },
+              ...rest,
+            ],
+          };
+        },
       );
 
       queryClient.invalidateQueries({ queryKey: notificationQueryKeys.all });

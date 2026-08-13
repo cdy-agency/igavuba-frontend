@@ -263,11 +263,11 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
         <div className="shrink-0 border-b border-violet-500/20 bg-violet-500/5 px-4 py-2 text-center text-xs text-violet-900 md:px-6">
           {course.hasUnpublishedChanges
             ? requireCourseApproval
-              ? 'You are editing a draft revision. Learners still see the published version until this revision is submitted and approved.'
-              : 'You are editing a draft revision. Learners still see the published version until you publish this revision.'
+              ? 'You are editing a draft. Click “Submit revision”, then an institution admin must approve before learners see it.'
+              : 'You are editing a draft. Learners still see the live course until you click “Publish revision”.'
             : requireCourseApproval
-              ? 'Edits on this published course are saved as a draft revision. Learners will not see changes until you submit and an admin approves.'
-              : 'Edits on this published course are saved as a draft revision. Learners will not see changes until you publish the revision.'}
+              ? 'Edits are saved as a draft. Click “Submit revision” when ready — an institution admin must approve before learners see changes.'
+              : 'Edits are saved as a draft. Click “Publish revision” when ready so learners can see your changes.'}
         </div>
       ) : null}
 
@@ -300,7 +300,7 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
           />
 
           <div className="course-builder-main">
-            <div className="course-builder-content-scroll custom-scrollbar custom-scrollbar-muted px-4 py-6 md:px-8 md:py-8">
+            <div className="course-builder-content-scroll custom-scrollbar custom-scrollbar-muted px-0 py-0">
               {viewingFinalExam ? (
                 <CourseFinalExamPanel
                   courseId={course.id}
@@ -308,6 +308,7 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
                   courseStatus={course.status}
                   hasUnpublishedChanges={course.hasUnpublishedChanges}
                   revisionStatus={course.revisionStatus}
+                  requireCourseApproval={requireCourseApproval}
                   readOnly={readOnly}
                   canResubmit={canResubmit}
                   isSubmittingRevision={submitRevisionMutation.isPending || resubmitRevisionMutation.isPending}

@@ -124,6 +124,14 @@ export async function createExamQuestion(
   return response.data;
 }
 
+export async function reorderExamQuestions(examId: string, questionIds: string[]) {
+  const response = await apiClient.post<ExamMutationResponse>(
+    `/exams/${examId}/questions/reorder`,
+    { questionIds },
+  );
+  return response.data;
+}
+
 export async function updateExamQuestion(questionId: string, payload: UpdateQuestionPayload) {
   const response = await apiClient.patch<QuestionMutationResponse>(
     `/exam-questions/${questionId}`,

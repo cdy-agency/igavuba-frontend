@@ -13,6 +13,7 @@ import {
   LessonSettingsGroup,
   VideoLessonFields,
   defaultUntitledTitle,
+  getContentTitleError,
   minutesToSeconds,
   resolveLessonTitle,
   secondsToMinutes,
@@ -256,6 +257,7 @@ function TextLessonEditor({
   readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [body, setBody] = useState(item.content.textContent?.body ?? '<p></p>');
   const [isVisible, setIsVisible] = useState(item.content.isPublished);
@@ -264,6 +266,7 @@ function TextLessonEditor({
 
   useEffect(() => {
     setTitle(item.content.title);
+    setTitleError(null);
     setDescription(item.content.description ?? '');
     setBody(item.content.textContent?.body ?? '<p></p>');
     setIsVisible(item.content.isPublished);
@@ -276,9 +279,22 @@ function TextLessonEditor({
     isPublished?: boolean;
   }) => {
     if (readOnly) return;
+    const nextTitle = payload.title ?? title;
+    const error = getContentTitleError(nextTitle);
+    setTitleError(error);
+    if (error) {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      return;
+    }
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      updateMutation.mutate({ contentId: item.contentId, payload });
+      updateMutation.mutate({
+        contentId: item.contentId,
+        payload: {
+          ...payload,
+          title: nextTitle.trim(),
+        },
+      });
     }, 600);
   };
 
@@ -286,12 +302,31 @@ function TextLessonEditor({
     <BuilderLessonShell
       readOnly={readOnly}
       title={title}
+      titleError={titleError}
       onTitleChange={(value) => {
+        if (readOnly) return;
         setTitle(value);
-        scheduleSave({ title: value.trim(), description, body, isPublished: isVisible });
+        const error = getContentTitleError(value);
+        setTitleError(error);
+        if (error) {
+          if (saveTimer.current) clearTimeout(saveTimer.current);
+          return;
+        }
+        scheduleSave({ title: value, description, body, isPublished: isVisible });
       }}
+      onTitleBlur={
+        readOnly
+          ? undefined
+          : () => {
+              const error = getContentTitleError(title);
+              setTitleError(error);
+              if (error) return;
+              scheduleSave({ title, description, body, isPublished: isVisible });
+            }
+      }
       description={description}
       onDescriptionChange={(value) => {
+        if (readOnly) return;
         setDescription(value);
         scheduleSave({
           title,
@@ -308,6 +343,7 @@ function TextLessonEditor({
             visible={isVisible}
             disabled={readOnly}
             onChange={(value) => {
+              if (readOnly) return;
               setIsVisible(value);
               scheduleSave({
                 title,
@@ -352,6 +388,7 @@ function VideoLessonEditor({
   readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [videoUrl, setVideoUrl] = useState(item.content.videoContent?.videoUrl ?? '');
   const [videoPlatform, setVideoPlatform] = useState<VideoPlatform>('youtube');
@@ -367,27 +404,13 @@ function VideoLessonEditor({
 
   useEffect(() => {
     setTitle(item.content.title);
+    setTitleError(null);
     setDescription(item.content.description ?? '');
     setVideoUrl(item.content.videoContent?.videoUrl ?? '');
     setDurationMinutes(secondsToMinutes(item.content.videoContent?.durationSeconds));
     setIsVisible(item.content.isPublished);
     setAllowDownload(item.content.videoContent?.allowDownload ?? true);
   }, [item]);
-
-  const save = (payload: {
-    title?: string;
-    description?: string;
-    videoUrl?: string;
-    durationSeconds?: number;
-    isPublished?: boolean;
-    allowDownload?: boolean;
-  }) => {
-    if (readOnly) return;
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      updateMutation.mutate({ contentId: item.contentId, payload });
-    }, 600);
-  };
 
   const buildPayload = (overrides?: {
     title?: string;
@@ -405,16 +428,46 @@ function VideoLessonEditor({
     allowDownload: overrides?.allowDownload ?? allowDownload,
   });
 
+  const save = (payload: ReturnType<typeof buildPayload>) => {
+    if (readOnly) return;
+    const error = getContentTitleError(payload.title);
+    setTitleError(error);
+    if (error) {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      return;
+    }
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      updateMutation.mutate({ contentId: item.contentId, payload });
+    }, 600);
+  };
+
   return (
     <BuilderLessonShell
       readOnly={readOnly}
       title={title}
+      titleError={titleError}
       onTitleChange={(value) => {
         if (readOnly) return;
         setTitle(value);
+        const error = getContentTitleError(value);
+        setTitleError(error);
+        if (error) {
+          if (saveTimer.current) clearTimeout(saveTimer.current);
+          return;
+        }
         save(buildPayload({ title: value }));
       }}
-      onTitleBlur={readOnly ? undefined : () => save(buildPayload())}
+      onTitleBlur={
+        readOnly
+          ? undefined
+          : () => {
+              const error = getContentTitleError(title);
+              setTitleError(error);
+              if (error) return;
+              save(buildPayload());
+            }
+      }
       description={description}
       onDescriptionChange={(value) => {
         if (readOnly) return;
@@ -474,6 +527,7 @@ function DocumentLessonEditor({
   readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [fileUrl, setFileUrl] = useState(item.content.documentContent?.fileUrl ?? '');
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -487,6 +541,7 @@ function DocumentLessonEditor({
 
   useEffect(() => {
     setTitle(item.content.title);
+    setTitleError(null);
     setDescription(item.content.description ?? '');
     setFileUrl(item.content.documentContent?.fileUrl ?? '');
     setUploadedFileName(null);
@@ -502,14 +557,31 @@ function DocumentLessonEditor({
     allowDownload?: boolean;
   }) => {
     if (readOnly) return;
+    const nextTitle = payload.title ?? title;
+    const error = getContentTitleError(nextTitle);
+    setTitleError(error);
+    if (error) {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      return;
+    }
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      updateMutation.mutate({ contentId: item.contentId, payload });
+      updateMutation.mutate({
+        contentId: item.contentId,
+        payload: {
+          ...payload,
+          title: nextTitle.trim(),
+        },
+      });
     }, 600);
   };
 
   const handleDocumentUpload = async (file: File) => {
     if (readOnly) return;
+    const error = getContentTitleError(title);
+    setTitleError(error);
+    if (error) return;
+
     setIsUploading(true);
     try {
       const url = await uploadFile(file);
@@ -517,8 +589,8 @@ function DocumentLessonEditor({
       setUploadedFileName(file.name);
       save({ title, description: description || undefined, fileUrl: url });
       toast.success('Document uploaded successfully.');
-    } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Unable to upload document.'));
+    } catch (uploadError) {
+      toast.error(getApiErrorMessage(uploadError, 'Unable to upload document.'));
     } finally {
       setIsUploading(false);
     }
@@ -528,15 +600,27 @@ function DocumentLessonEditor({
     <BuilderLessonShell
       readOnly={readOnly}
       title={title}
+      titleError={titleError}
       onTitleChange={(value) => {
         if (readOnly) return;
         setTitle(value);
+        const error = getContentTitleError(value);
+        setTitleError(error);
+        if (error) {
+          if (saveTimer.current) clearTimeout(saveTimer.current);
+          return;
+        }
         save({ title: value.trim(), description: description || undefined, fileUrl });
       }}
       onTitleBlur={
         readOnly
           ? undefined
-          : () => save({ title: title.trim(), description: description || undefined, fileUrl })
+          : () => {
+              const error = getContentTitleError(title);
+              setTitleError(error);
+              if (error) return;
+              save({ title: title.trim(), description: description || undefined, fileUrl });
+            }
       }
       description={description}
       onDescriptionChange={(value) => {

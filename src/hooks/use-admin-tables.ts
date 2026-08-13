@@ -30,6 +30,7 @@ function toQueryRecord(params: ListQueryParams): Record<string, string | number>
   if (params.searchq) record.searchq = params.searchq;
   if (params.role) record.role = params.role;
   if (params.status) record.status = params.status;
+  if (params.learnerType) record.learnerType = params.learnerType;
   if (params.sort) record.sort = params.sort;
   return record;
 }

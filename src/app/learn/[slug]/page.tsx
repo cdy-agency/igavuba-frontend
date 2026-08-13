@@ -216,11 +216,16 @@ export default function LearningPlayerPage() {
 
     const nextLesson = preservedLesson ?? initialLesson;
     if (nextLesson) {
-      const ownerModule = normalized.find((module) =>
-        (module.lessons || []).some((lesson) => lesson.id === nextLesson.id),
-      );
-      if (ownerModule?.id) {
-        activeModuleId = ownerModule.id;
+      if (finalExam && nextLesson.id === finalExam.id) {
+        // Final exam lives under the last module in the sidebar — keep that module open.
+        activeModuleId = normalized[normalized.length - 1]?.id ?? '';
+      } else {
+        const ownerModule = normalized.find((module) =>
+          (module.lessons || []).some((lesson) => lesson.id === nextLesson.id),
+        );
+        if (ownerModule?.id) {
+          activeModuleId = ownerModule.id;
+        }
       }
     }
 
@@ -613,12 +618,20 @@ export default function LearningPlayerPage() {
             onCourseCompletionClick={handleCourseCompletionClick}
             finalExamLesson={finalExamLesson as unknown as LessonItem | null}
             onSelectFinalExam={() => {
-              if (!finalExamLesson || !moduleLessonsComplete) return;
+              if (!finalExamLesson) return;
               if (shouldGateLessonForPayment(finalExamLesson, paymentLockOptions)) {
                 openPaymentDialog();
                 return;
               }
               setSelectedLesson(finalExamLesson);
+              setAssignmentContinueBlock(null);
+              setModules((prev) => {
+                if (!prev.length) return prev;
+                const lastModuleId = prev[prev.length - 1]?.id;
+                return prev.map((module) =>
+                  module.id === lastModuleId ? { ...module, expanded: true } : module,
+                );
+              });
               if (isMobile) setSidebarOpen(false);
             }}
             moduleLessonsComplete={moduleLessonsComplete}
@@ -640,6 +653,7 @@ export default function LearningPlayerPage() {
                   title: selectedLesson.title,
                   raw: selectedLesson.raw,
                   completed: selectedLesson.completed,
+                  isFinalExam: Boolean(selectedLesson.isFinalExam),
                 }}
                 onPrev={() => navigateLesson('prev')}
                 onNext={() => navigateLesson('next')}
@@ -666,6 +680,12 @@ export default function LearningPlayerPage() {
                 assignmentContinueBlockMessage={
                   assignmentContinueBlock?.contentId === selectedLesson.id
                     ? assignmentContinueBlock.message
+                    : null
+                }
+                isFinalExam={Boolean(selectedLesson.isFinalExam)}
+                examAttemptBlockReason={
+                  selectedLesson.isFinalExam && !moduleLessonsComplete
+                    ? 'Complete all course lessons before attempting the final exam.'
                     : null
                 }
               />

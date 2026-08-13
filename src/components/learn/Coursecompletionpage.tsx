@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRef } from 'react';
 import {
   Award,
   CheckCircle2,
@@ -10,8 +9,10 @@ import {
   Download,
   ExternalLink,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { CertificateProgressContent } from '@/components/academic/certificate-progress-card';
 import { IssuedCertificatePreview } from '@/components/certificate/issued-certificate-preview';
 import { ReviewModal } from '@/components/reviews/ReviewModal';
@@ -25,7 +26,7 @@ import {
 import { downloadCertificateByCode } from '@/lib/certificate-download';
 import { getApiErrorMessage } from '@/lib/auth';
 import type { IssuedCertificate } from '@/api/certificates.api';
-import type { AssessmentSummaryItem } from '@/types/academic.types';
+import { cn } from '@/lib/utils';
 
 interface CourseCompletionPageProps {
   courseId: string;
@@ -90,9 +91,9 @@ function IssuedCertificateCard({ certificate }: { certificate: IssuedCertificate
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {certificate.template ? (
-        <div className="overflow-hidden rounded-lg border bg-gray-50 p-3">
+        <div className="overflow-hidden rounded-xl border border-border bg-[var(--primary-subtle)] p-4">
           <IssuedCertificatePreview
             ref={previewRef}
             template={certificate.template}
@@ -103,45 +104,49 @@ function IssuedCertificateCard({ certificate }: { certificate: IssuedCertificate
         </div>
       ) : null}
 
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-100">
-        <div className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>Your certificate has been generated and is ready to view or share.</p>
-        </div>
+      <div className="flex items-start gap-3 rounded-xl border border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[color-mix(in_srgb,var(--success)_10%,white)] px-4 py-3 text-sm text-foreground">
+        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--success)]" />
+        <p>Your certificate is ready. Share the verification code with employers or download a PDF copy.</p>
       </div>
 
-      <div className="grid gap-3 rounded-lg border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+      <div className="grid gap-3 rounded-xl border border-border bg-muted/30 p-4 text-sm sm:grid-cols-2">
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Certificate code</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Certificate code
+          </p>
           <div className="mt-1 flex items-center gap-2">
-            <p className="font-mono font-semibold">{certificate.certificateCode}</p>
+            <p className="font-mono font-semibold text-foreground">{certificate.certificateCode}</p>
             <Button type="button" variant="ghost" size="sm" className="h-7 px-2" onClick={handleCopyCode}>
               <Copy className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Issued on</p>
-          <p className="mt-1 font-medium">{formatDate(certificate.issuedAt)}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Issued on</p>
+          <p className="mt-1 font-medium text-foreground">{formatDate(certificate.issuedAt)}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall grade</p>
-          <p className="mt-1 font-medium">{formatPercent(certificate.overallGrade)}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Overall grade
+          </p>
+          <p className="mt-1 font-medium text-foreground">
+            {formatPercent(certificate.overallGrade)}
+          </p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Course</p>
-          <p className="mt-1 font-medium">{certificate.courseTitle}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Course</p>
+          <p className="mt-1 font-medium text-foreground">{certificate.courseTitle}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Button type="button" asChild>
+        <Button type="button" asChild className="bg-[var(--primary)] hover:bg-[var(--primary-hover)]">
           <Link href={verifyPath}>
             <ExternalLink className="mr-2 h-4 w-4" />
             View certificate
           </Link>
         </Button>
-        {(certificate.template || certificate.pdfUrl) ? (
+        {certificate.template || certificate.pdfUrl ? (
           <Button type="button" variant="outline" onClick={() => void handleDownload()}>
             <Download className="mr-2 h-4 w-4" />
             Download PDF
@@ -193,33 +198,42 @@ function CertificateClaimSection({
   }
 
   const issuedCertificate = certificate ?? issueCertificate.data ?? null;
-  const canGenerateCertificate =
-    eligibility.eligibilityStatus === 'ELIGIBLE' &&
-    eligibility.pendingAssessments.length === 0 &&
-    eligibility.requiredAssessments.every((item: AssessmentSummaryItem) => item.status === 'PASSED');
+  const canClaimCertificate =
+    eligibility.eligibilityStatus === 'ELIGIBLE' && eligibility.pendingAssessments.length === 0;
 
   if (issuedCertificate) {
     return <IssuedCertificateCard certificate={issuedCertificate} />;
   }
 
-  if (canGenerateCertificate) {
+  if (canClaimCertificate) {
     const issueError = issueCertificate.isError
-      ? getApiErrorMessage(issueCertificate.error, 'Unable to generate certificate.')
+      ? getApiErrorMessage(issueCertificate.error, 'Unable to claim certificate.')
       : issueCertificate.isSuccess && !issueCertificate.data
         ? 'Certificate was created but the response could not be loaded. Please refresh the page.'
         : null;
 
     return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          You meet all requirements for this course. Generate your certificate now to receive a
-          unique verification code you can share with employers.
-        </p>
+      <div className="space-y-5">
+        <div className="rounded-xl border border-[color-mix(in_srgb,var(--success)_30%,transparent)] bg-[color-mix(in_srgb,var(--success)_8%,white)] px-4 py-3">
+          <div className="flex items-start gap-3">
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[var(--success)]" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">You are eligible</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Claim your certificate to get a unique verification code you can share with
+                employers.
+                {eligibility.overallGrade != null
+                  ? ` Overall grade: ${formatPercent(eligibility.overallGrade)}.`
+                  : ''}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {issueError ? (
           <div
             role="alert"
-            className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
           >
             {issueError}
           </div>
@@ -227,17 +241,21 @@ function CertificateClaimSection({
 
         <Button
           type="button"
-          className="w-full sm:w-auto"
+          size="lg"
+          className="h-12 w-full bg-[var(--primary)] text-base font-semibold text-white hover:bg-[var(--primary-hover)] sm:w-auto sm:min-w-[240px]"
           disabled={issueCertificate.isPending}
           onClick={() => issueCertificate.mutate()}
         >
           {issueCertificate.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating certificate...
+              Claiming certificate...
             </>
           ) : (
-            'Generate my certificate'
+            <>
+              <Award className="mr-2 h-4 w-4" />
+              Claim Certificate
+            </>
           )}
         </Button>
       </div>
@@ -247,7 +265,7 @@ function CertificateClaimSection({
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Complete the remaining requirements below before you can generate your certificate.
+        Finish the remaining requirements below, then you can claim your certificate.
       </p>
       <CertificateProgressContent data={eligibility} courseTitle={courseTitle} />
     </div>
@@ -262,72 +280,123 @@ export function CourseCompletionPage({
 }: CourseCompletionPageProps) {
   const courseIdOrSlug = courseSlug || courseId;
   const [reviewOpen, setReviewOpen] = useState(false);
-  const { data: eligibility } = useReviewEligibility(courseIdOrSlug, true);
+  const autoPromptedRef = useRef(false);
+  const { data: eligibility, isPending: eligibilityPending } = useReviewEligibility(
+    courseIdOrSlug,
+    true,
+  );
   const saveReview = useCreateOrUpdateReview(courseIdOrSlug);
   const myReview = eligibility?.myReview ?? null;
+  const hasReview = Boolean(eligibility?.hasReview || myReview);
   const canReview = Boolean(eligibility?.canReview);
 
+  // Only auto-prompt when the learner can review and has not rated yet.
+  useEffect(() => {
+    if (autoPromptedRef.current || eligibilityPending || !eligibility) return;
+    if (!canReview || hasReview) return;
+
+    autoPromptedRef.current = true;
+    setReviewOpen(true);
+  }, [eligibilityPending, eligibility, canReview, hasReview]);
+
   return (
-    <div className="h-full overflow-y-auto dark:bg-gray-900">
-      <div className="mx-auto max-w-2xl px-4 py-12 text-center sm:px-6">
-        <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-          <Award className="h-10 w-10 text-green-600 dark:text-green-400" />
-        </div>
+    <div className="h-full overflow-y-auto bg-[var(--surface)]">
+      <div className="relative overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[radial-gradient(ellipse_at_top,var(--primary-muted)_0%,transparent_65%)]"
+        />
 
-        <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
-          Congratulations, {userName}!
-        </h1>
-        <p className="mb-8 text-lg text-gray-600 dark:text-gray-300">
-          You have completed <span className="font-semibold">{courseTitle}</span>.
-        </p>
+        <div className="relative mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-12">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="relative mb-5 w-full max-w-[280px] sm:max-w-[340px]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/Graduation-cuate.svg"
+                alt=""
+                width={500}
+                height={500}
+                className="mx-auto h-auto w-full drop-shadow-sm"
+              />
+            </div>
 
-        <div className="mb-6 space-y-4 border border-[#d1d2e0] bg-white p-6 text-left dark:border-gray-700 dark:bg-gray-800">
-          <div className="space-y-1">
-            <h2 className="text-xl font-bold text-[#1c1d1f] dark:text-white">
-              How would you rate this course?
-            </h2>
-            <p className="text-sm text-[#6a6f73] dark:text-muted-foreground">
-              Your rating helps other learners find the right course.
+            <Badge className="mb-3 border-[color-mix(in_srgb,var(--success)_35%,transparent)] bg-[color-mix(in_srgb,var(--success)_12%,white)] text-[var(--success)] hover:bg-[color-mix(in_srgb,var(--success)_12%,white)]">
+              Course completed
+            </Badge>
+
+            <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              Congratulations, {userName}!
+            </h1>
+            <p className="mt-3 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
+              You have completed{' '}
+              <span className="font-semibold text-foreground">{courseTitle}</span>.
             </p>
           </div>
-          {canReview ? (
-            <>
-              {myReview ? (
-                <div className="space-y-2 border border-[#d1d2e0] bg-[#f7f9fa] p-4 dark:border-gray-600 dark:bg-gray-900/40">
-                  <RatingStars value={myReview.rating} size="md" />
-                  <p className="text-[15px] font-bold text-[#1c1d1f] dark:text-white">
-                    {myReview.title}
-                  </p>
-                  <p className="line-clamp-2 text-sm leading-6 text-[#2d2f31] dark:text-muted-foreground">
-                    {myReview.comment}
-                  </p>
+
+          <div className="space-y-5">
+            <section
+              className={cn(
+                'rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6',
+                'text-left',
+              )}
+            >
+              <div className="mb-4 space-y-1">
+                <h2 className="text-lg font-semibold text-foreground">How would you rate this course?</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your rating helps other learners find the right course.
+                </p>
+              </div>
+
+              {canReview ? (
+                <div className="space-y-4">
+                  {myReview ? (
+                    <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-4">
+                      <RatingStars value={myReview.rating} size="md" />
+                      <p className="text-[15px] font-semibold text-foreground">{myReview.title}</p>
+                      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                        {myReview.comment}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center rounded-xl border border-dashed border-border bg-[var(--primary-subtle)] py-4">
+                      <RatingStars
+                        value={0}
+                        size="xl"
+                        interactive
+                        onChange={() => setReviewOpen(true)}
+                      />
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    className="h-11 w-full bg-[var(--primary)] font-semibold text-white hover:bg-[var(--primary-hover)] sm:w-auto"
+                    onClick={() => setReviewOpen(true)}
+                  >
+                    {myReview ? 'Edit your review' : 'Leave a rating'}
+                  </Button>
                 </div>
               ) : (
-                <div className="flex justify-center py-2">
-                  <RatingStars value={0} size="xl" interactive onChange={() => setReviewOpen(true)} />
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Finish all completion requirements to unlock course reviews.
+                </p>
               )}
-              <Button
-                type="button"
-                className="h-11 w-full rounded-none bg-[#a435f0] font-bold text-white hover:bg-[#8710d8] sm:w-auto"
-                onClick={() => setReviewOpen(true)}
-              >
-                {myReview ? 'Edit your review' : 'Leave a rating'}
-              </Button>
-            </>
-          ) : (
-            <p className="text-sm text-[#6a6f73]">
-              Finish all completion requirements to unlock course reviews.
-            </p>
-          )}
-        </div>
+            </section>
 
-        <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 text-left dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center gap-2">
-            <Award className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold dark:text-white">Certificate</h2>
+            <section className="rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-muted)]">
+                  <Award className="h-5 w-5 text-[var(--primary)]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Certificate</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Claim and download your official course certificate.
+                  </p>
+                </div>
+              </div>
+              <CertificateClaimSection courseIdOrSlug={courseIdOrSlug} courseTitle={courseTitle} />
+            </section>
           </div>
-          <CertificateClaimSection courseIdOrSlug={courseIdOrSlug} courseTitle={courseTitle} />
         </div>
       </div>
 

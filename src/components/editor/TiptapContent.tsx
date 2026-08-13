@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import { sanitizeHtml } from '@/lib/sanitize';
 
 /**
@@ -144,12 +145,18 @@ interface TiptapContentProps {
 /**
  * Renders sanitized TipTap HTML with styles that match the editor.
  * Drop-in replacement for `<div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />`.
+ * Memoized so parent re-renders (e.g. learn scroll/progress) do not remount YouTube iframes.
  */
-export function TiptapContent({ html, className = '' }: TiptapContentProps) {
+export const TiptapContent = memo(function TiptapContent({
+  html,
+  className = '',
+}: TiptapContentProps) {
+  const sanitized = useMemo(() => sanitizeHtml(html), [html]);
+
   return (
     <div
       className={`tiptap-content max-w-none ${className}`}
-      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
+      dangerouslySetInnerHTML={{ __html: sanitized }}
     />
   );
-}
+});

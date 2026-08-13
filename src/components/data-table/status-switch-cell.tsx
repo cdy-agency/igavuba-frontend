@@ -12,6 +12,7 @@ interface StatusSwitchCellProps {
   label?: string;
   className?: string;
   size?: 'default' | 'sm' | 'xs' | 'xxs';
+  showLabel?: boolean;
 }
 
 export function StatusSwitchCell({
@@ -21,14 +22,14 @@ export function StatusSwitchCell({
   onCheckedChange,
   label = 'Active',
   className,
-  size = 'xxs',
+  size = 'sm',
+  showLabel = true,
 }: StatusSwitchCellProps) {
   return (
-    <div className={cn('flex items-center justify-end gap-1.5', className)}>
+    <div className={cn('flex items-center justify-end gap-2', className)}>
       {isPending ? (
-        <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" aria-hidden />
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden />
       ) : null}
-      <span className="sr-only">{label}</span>
       <Switch
         size={size}
         checked={checked}
@@ -36,6 +37,11 @@ export function StatusSwitchCell({
         onCheckedChange={onCheckedChange}
         aria-label={label}
       />
+      {showLabel ? (
+        <span className="text-sm text-muted-foreground">{label}</span>
+      ) : (
+        <span className="sr-only">{label}</span>
+      )}
     </div>
   );
 }

@@ -33,9 +33,27 @@ function parseVideoSrc(element: HTMLElement): string | null {
   return element.getAttribute('src');
 }
 
+function applyIframeAttrs(iframe: HTMLIFrameElement, embedUrl: string, title: string) {
+  iframe.setAttribute('src', embedUrl);
+  iframe.setAttribute('data-original-src', embedUrl);
+  iframe.title = title;
+  iframe.setAttribute('frameborder', '0');
+  iframe.setAttribute('allowfullscreen', 'true');
+  iframe.setAttribute('loading', 'eager');
+  iframe.setAttribute(
+    'allow',
+    'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+  );
+  iframe.style.width = '100%';
+  iframe.style.aspectRatio = '16/9';
+  iframe.style.borderRadius = '0.5rem';
+  iframe.style.border = '1px solid var(--border)';
+}
+
 export const Video = Node.create({
   name: 'video',
   group: 'block',
+  atom: true,
   draggable: true,
   selectable: true,
 
@@ -82,6 +100,7 @@ export const Video = Node.create({
             src: getVideoEmbedUrl(src),
             'data-original-src': src,
             title,
+            loading: 'eager',
             frameborder: '0',
             allowfullscreen: 'true',
             allow:
@@ -97,16 +116,14 @@ export const Video = Node.create({
       wrapperAttrs,
       [
         'video',
-        mergeAttributes(
-          {
-            src,
-            title,
-            controls: true,
-            style: attrs.width
-              ? `width: ${attrs.width}; height: auto;`
-              : 'width: 100%; height: auto;',
-          },
-        ),
+        mergeAttributes({
+          src,
+          title,
+          controls: true,
+          style: attrs.width
+            ? `width: ${attrs.width}; height: auto;`
+            : 'width: 100%; height: auto;',
+        }),
       ],
     ];
   },
@@ -147,18 +164,7 @@ export const Video = Node.create({
 
       if (embedUrl) {
         const iframe = document.createElement('iframe');
-        iframe.src = embedUrl;
-        iframe.title = attrs.title ?? 'Video';
-        iframe.setAttribute('frameborder', '0');
-        iframe.setAttribute('allowfullscreen', 'true');
-        iframe.setAttribute(
-          'allow',
-          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
-        );
-        iframe.style.width = '100%';
-        iframe.style.aspectRatio = '16/9';
-        iframe.style.borderRadius = '0.5rem';
-        iframe.style.border = '1px solid var(--border)';
+        applyIframeAttrs(iframe, embedUrl, attrs.title ?? 'Video');
         mediaEl = iframe;
       } else {
         const video = document.createElement('video');
@@ -216,6 +222,10 @@ export const Video = Node.create({
         dom: container,
         contentDOM: null,
 
+        // YouTube/Vimeo iframes mutate attributes as they load; ignore so
+        // ProseMirror does not tear down and recreate the node view.
+        ignoreMutation: () => true,
+
         selectNode: () => {
           mediaEl.style.border = '2px solid var(--primary)';
         },
@@ -231,24 +241,34 @@ export const Video = Node.create({
           const newSrc = (newAttrs.src ?? '').trim();
           const newUseEmbed = Boolean(newSrc && isEmbeddableVideoUrl(newSrc));
           const newEmbedUrl = newUseEmbed ? getVideoEmbedUrl(newSrc) : null;
+          const nextTitle = newAttrs.title ?? 'Video';
 
           if (mediaEl instanceof HTMLIFrameElement && newEmbedUrl) {
-            mediaEl.src = newEmbedUrl;
-            mediaEl.title = newAttrs.title ?? 'Video';
+            // Reassigning iframe.src always reloads the embed — only update when changed.
+            const currentSrc = mediaEl.getAttribute('src') || '';
+            if (currentSrc !== newEmbedUrl) {
+              mediaEl.setAttribute('src', newEmbedUrl);
+            }
+            if (mediaEl.title !== nextTitle) {
+              mediaEl.title = nextTitle;
+            }
             container.setAttribute('data-src', newSrc);
-          } else if (mediaEl instanceof HTMLVideoElement && !newEmbedUrl) {
-            mediaEl.src = newSrc;
-            mediaEl.title = newAttrs.title ?? 'Video';
-            container.setAttribute('data-src', newSrc);
-          } else {
-            return false;
+            return true;
           }
 
-          return true;
-        },
+          if (mediaEl instanceof HTMLVideoElement && !newEmbedUrl) {
+            if (mediaEl.getAttribute('src') !== newSrc) {
+              mediaEl.src = newSrc;
+            }
+            if (mediaEl.title !== nextTitle) {
+              mediaEl.title = nextTitle;
+            }
+            container.setAttribute('data-src', newSrc);
+            return true;
+          }
 
-        destroy: () => {
-          container.remove();
+          // Embed ↔ native switch needs a full node-view remount.
+          return false;
         },
       };
     };

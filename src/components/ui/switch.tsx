@@ -36,7 +36,7 @@ const switchThumbVariants = cva(
       },
     },
     defaultVariants: {
-      size: 'xs',
+      size: 'sm',
     },
   },
 );

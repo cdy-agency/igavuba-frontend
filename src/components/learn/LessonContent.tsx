@@ -284,6 +284,7 @@ interface Props {
     title?: string;
     raw?: LearningLessonRaw;
     completed?: boolean;
+    isFinalExam?: boolean;
   };
   onPrev?: () => void;
   onNext?: () => void;
@@ -308,6 +309,8 @@ interface Props {
   showPayToContinue?: boolean;
   onPayToContinue?: () => void;
   assignmentContinueBlockMessage?: string | null;
+  isFinalExam?: boolean;
+  examAttemptBlockReason?: string | null;
 }
 
 const PAYMENT_SUPPORT_EMAIL = 'info@cdyagency.com';
@@ -337,6 +340,8 @@ const LessonContent = ({
   showPayToContinue = false,
   onPayToContinue,
   assignmentContinueBlockMessage,
+  isFinalExam = false,
+  examAttemptBlockReason = null,
 }: Props) => {
   const { viewerState, openViewer, closeViewer } = useDocumentViewer();
   const [hasReachedBottom, setHasReachedBottom] = useState(false);
@@ -584,6 +589,8 @@ const LessonContent = ({
                 description={content.description}
                 instructions={content.examContent.instructions}
                 isCompleted={isCompleted}
+                isFinalExam={Boolean(isFinalExam || lesson?.isFinalExam)}
+                externalBlockReason={examAttemptBlockReason}
                 onContinue={() => onNext?.()}
               />
             ) : null}

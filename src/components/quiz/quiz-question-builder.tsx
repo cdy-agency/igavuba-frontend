@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   DndContext,
   KeyboardSensor,
@@ -18,11 +18,22 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  Copy,
+  GripVertical,
+  Plus,
+  Settings2,
+  Trash2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -38,7 +49,7 @@ import {
   applyQuestionTypeChange,
   createEmptyDraftOption,
   createEmptyDraftQuestion,
-  questionTypeLabel,
+  createClientId,
 } from '@/lib/quiz-utils';
 import { cn } from '@/lib/utils';
 
@@ -49,63 +60,268 @@ interface QuizQuestionBuilderProps {
   allowEssayTypes?: boolean;
 }
 
-function SortableQuestionItem({
+function SortableQuestionCard({
   question,
   index,
-  isActive,
-  onSelect,
+  allowEssayTypes,
+  onUpdate,
   onDelete,
+  onDuplicate,
 }: {
   question: DraftQuestionValues;
   index: number;
-  isActive: boolean;
-  onSelect: () => void;
+  allowEssayTypes: boolean;
+  onUpdate: (next: DraftQuestionValues) => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
+  const [advancedOpen, setAdvancedOpen] = useState(Boolean(question.explanation));
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: question.clientId,
   });
+
+  const handleOptionCorrectChange = (optionClientId: string, checked: boolean) => {
+    onUpdate({
+      ...question,
+      options: question.options.map((option) => {
+        if (option.clientId !== optionClientId) {
+          if (
+            question.type === QuestionType.SINGLE_CHOICE ||
+            question.type === QuestionType.TRUE_FALSE
+          ) {
+            return { ...option, isCorrect: false };
+          }
+          return option;
+        }
+        return { ...option, isCorrect: checked };
+      }),
+    });
+  };
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'flex items-center gap-2 rounded-md border px-2 py-2',
-        isActive ? 'border-primary bg-primary/5' : 'border-border bg-background',
-        isDragging && 'opacity-60',
+        'rounded-lg border border-border/80 bg-white',
+        isDragging && 'opacity-60 shadow-md',
       )}
     >
-      <button
-        type="button"
-        className="cursor-grab rounded p-1 text-muted-foreground hover:bg-muted"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <button type="button" className="min-w-0 flex-1 text-left" onClick={onSelect}>
-        <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Question {index + 1}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border/50 px-3 py-2.5">
+        <button
+          type="button"
+          className="cursor-grab rounded p-1 text-muted-foreground hover:bg-muted"
+          {...attributes}
+          {...listeners}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
+        <span className="inline-flex h-6 items-center rounded-full bg-slate-100 px-2.5 text-[11px] font-semibold text-slate-600">
+          Q{index + 1}
         </span>
-        <span className="block truncate text-sm font-medium">
-          {question.title.trim() || 'Untitled question'}
-        </span>
-      </button>
-      <button
-        type="button"
-        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        onClick={onSelect}
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
-      <button
-        type="button"
-        className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        onClick={onDelete}
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+
+        <Select
+          value={question.type}
+          onValueChange={(value) =>
+            onUpdate(applyQuestionTypeChange(question, value as QuestionType))
+          }
+        >
+          <SelectTrigger className="h-8 w-[150px] border-border/70 text-xs shadow-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={QuestionType.SINGLE_CHOICE}>Single Choice</SelectItem>
+            <SelectItem value={QuestionType.MULTIPLE_CHOICE}>Multiple Choice</SelectItem>
+            <SelectItem value={QuestionType.TRUE_FALSE}>True/False</SelectItem>
+            {allowEssayTypes ? (
+              <SelectItem value={QuestionType.ESSAY}>Essay</SelectItem>
+            ) : null}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-1.5">
+          <Input
+            type="number"
+            min={1}
+            value={question.points}
+            onChange={(event) =>
+              onUpdate({ ...question, points: Number(event.target.value) || 1 })
+            }
+            className="h-8 w-14 border-0 bg-transparent px-1 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <span className="text-xs text-muted-foreground">Marks</span>
+        </div>
+
+        <div className="ml-auto flex items-center gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground"
+            onClick={onDuplicate}
+            aria-label="Duplicate question"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:text-destructive"
+            onClick={onDelete}
+            aria-label="Delete question"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-4 px-4 py-4">
+        <Input
+          value={question.title}
+          onChange={(event) => onUpdate({ ...question, title: event.target.value })}
+          placeholder="Click to enter your question..."
+          className="h-auto rounded-none border-0 border-b border-transparent bg-transparent px-0 py-1 text-[15px] shadow-none focus-visible:border-primary/40 focus-visible:ring-0 focus-visible:ring-offset-0"
+        />
+
+        {question.type === QuestionType.ESSAY ? (
+          <Textarea
+            value={question.instructions ?? ''}
+            onChange={(event) =>
+              onUpdate({ ...question, instructions: event.target.value })
+            }
+            placeholder="Guidance for the essay response (optional)"
+            rows={3}
+          />
+        ) : (
+          <div className="space-y-2">
+            {question.options.map((option) => {
+              const isSingle =
+                question.type === QuestionType.SINGLE_CHOICE ||
+                question.type === QuestionType.TRUE_FALSE;
+
+              return (
+                <div
+                  key={option.clientId}
+                  className={cn(
+                    'flex items-center gap-2 rounded-md px-2 py-1.5',
+                    option.isCorrect && 'bg-slate-50',
+                  )}
+                >
+                  {isSingle ? (
+                    <button
+                      type="button"
+                      className={cn(
+                        'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                        option.isCorrect
+                          ? 'border-primary bg-primary'
+                          : 'border-slate-300 bg-white',
+                      )}
+                      onClick={() => handleOptionCorrectChange(option.clientId, true)}
+                      aria-label="Mark as correct"
+                    >
+                      {option.isCorrect ? (
+                        <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                      ) : null}
+                    </button>
+                  ) : (
+                    <Checkbox
+                      checked={option.isCorrect}
+                      onCheckedChange={(checked) =>
+                        handleOptionCorrectChange(option.clientId, checked === true)
+                      }
+                    />
+                  )}
+                  <Input
+                    value={option.text}
+                    disabled={question.type === QuestionType.TRUE_FALSE}
+                    onChange={(event) =>
+                      onUpdate({
+                        ...question,
+                        options: question.options.map((currentOption) =>
+                          currentOption.clientId === option.clientId
+                            ? { ...currentOption, text: event.target.value }
+                            : currentOption,
+                        ),
+                      })
+                    }
+                    placeholder="Option text"
+                    className="h-9 flex-1 rounded-none border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  {question.type !== QuestionType.TRUE_FALSE &&
+                  question.options.length > 2 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-destructive"
+                      onClick={() =>
+                        onUpdate({
+                          ...question,
+                          options: question.options.filter(
+                            (currentOption) => currentOption.clientId !== option.clientId,
+                          ),
+                        })
+                      }
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
+              );
+            })}
+
+            {question.type !== QuestionType.TRUE_FALSE ? (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-2 py-1 text-[13px] font-medium text-primary hover:underline"
+                onClick={() =>
+                  onUpdate({
+                    ...question,
+                    options: [
+                      ...question.options,
+                      createEmptyDraftOption(question.options.length + 1),
+                    ],
+                  })
+                }
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add option
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Advanced Settings
+              <ChevronDown
+                className={cn(
+                  'h-3.5 w-3.5 transition-transform',
+                  advancedOpen && 'rotate-180',
+                )}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3">
+            <Textarea
+              value={question.explanation ?? ''}
+              onChange={(event) =>
+                onUpdate({ ...question, explanation: event.target.value })
+              }
+              placeholder="Explain the correct answer (optional)"
+              rows={3}
+            />
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
     </div>
   );
 }
@@ -116,36 +332,38 @@ export function QuizQuestionBuilder({
   className,
   allowEssayTypes = false,
 }: QuizQuestionBuilderProps) {
-  const [activeId, setActiveId] = useState<string | null>(questions[0]?.clientId ?? null);
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  const activeQuestion = useMemo(
-    () => questions.find((question) => question.clientId === activeId) ?? null,
-    [activeId, questions],
-  );
-
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const updateQuestion = (clientId: string, updater: (current: DraftQuestionValues) => DraftQuestionValues) => {
-    onChange(questions.map((question) => (question.clientId === clientId ? updater(question) : question)));
-  };
-
-  const handleAddQuestion = (type: QuestionType) => {
-    const nextQuestion = createEmptyDraftQuestion(type);
-    onChange([...questions, nextQuestion]);
-    setActiveId(nextQuestion.clientId);
-    setValidationError(null);
+  const handleAddQuestion = (type: QuestionType = QuestionType.SINGLE_CHOICE) => {
+    onChange([...questions, createEmptyDraftQuestion(type)]);
   };
 
   const handleDeleteQuestion = (clientId: string) => {
-    const nextQuestions = questions.filter((question) => question.clientId !== clientId);
-    onChange(nextQuestions);
-    if (activeId === clientId) {
-      setActiveId(nextQuestions[0]?.clientId ?? null);
-    }
+    onChange(questions.filter((question) => question.clientId !== clientId));
+  };
+
+  const handleDuplicateQuestion = (clientId: string) => {
+    const source = questions.find((question) => question.clientId === clientId);
+    if (!source) return;
+
+    const duplicate: DraftQuestionValues = {
+      ...source,
+      clientId: createClientId(),
+      id: undefined,
+      options: source.options.map((option) => ({
+        ...option,
+        clientId: createClientId(),
+        id: undefined,
+      })),
+    };
+
+    const index = questions.findIndex((question) => question.clientId === clientId);
+    const next = [...questions];
+    next.splice(index + 1, 0, duplicate);
+    onChange(next);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -159,275 +377,59 @@ export function QuizQuestionBuilder({
     onChange(arrayMove(questions, oldIndex, newIndex));
   };
 
-  const handleOptionCorrectChange = (
-    question: DraftQuestionValues,
-    optionClientId: string,
-    checked: boolean,
-  ) => {
-    updateQuestion(question.clientId, (current) => ({
-      ...current,
-      options: current.options.map((option) => {
-        if (option.clientId !== optionClientId) {
-          if (current.type === QuestionType.SINGLE_CHOICE || current.type === QuestionType.TRUE_FALSE) {
-            return { ...option, isCorrect: false };
-          }
-          return option;
-        }
-        return { ...option, isCorrect: checked };
-      }),
-    }));
-  };
-
-  const validateActiveQuestion = () => {
-    if (!activeQuestion) return true;
-    const result = draftQuestionSchema.safeParse(activeQuestion);
-    if (!result.success) {
-      setValidationError(result.error.issues[0]?.message ?? 'Invalid question');
-      return false;
-    }
-    setValidationError(null);
-    return true;
-  };
+  if (questions.length === 0) {
+    return (
+      <div className={cn('flex min-h-[280px] flex-col items-center justify-center gap-5', className)}>
+        <p className="max-w-sm text-center text-[14px] text-muted-foreground">
+          No questions added yet. Start by adding your first question.
+        </p>
+        <Button type="button" className="h-10 gap-1.5 px-5" onClick={() => handleAddQuestion()}>
+          <Plus className="h-4 w-4" />
+          Add Your First Question
+        </Button>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn('grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]', className)}>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold">Questions</p>
-          <Select
-            onValueChange={(value) => handleAddQuestion(value as QuestionType)}
-            value=""
-          >
-            <SelectTrigger className="h-8 w-[130px] text-xs">
-              <SelectValue placeholder="Add question" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={QuestionType.SINGLE_CHOICE}>Single Choice</SelectItem>
-              <SelectItem value={QuestionType.MULTIPLE_CHOICE}>Multiple Choice</SelectItem>
-              <SelectItem value={QuestionType.TRUE_FALSE}>True/False</SelectItem>
-              {allowEssayTypes ? (
-                <SelectItem value={QuestionType.ESSAY}>Essay</SelectItem>
-              ) : null}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {questions.length === 0 ? (
-          <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-            No questions yet. Add your first question.
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={questions.map((question) => question.clientId)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-2">
-                {questions.map((question, index) => (
-                  <SortableQuestionItem
-                    key={question.clientId}
-                    question={question}
-                    index={index}
-                    isActive={question.clientId === activeId}
-                    onSelect={() => {
-                      setValidationError(null);
-                      setActiveId(question.clientId);
-                    }}
-                    onDelete={() => handleDeleteQuestion(question.clientId)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-      </div>
-
-      <div className="rounded-lg border border-border bg-card p-4">
-        {!activeQuestion ? (
-          <p className="text-sm text-muted-foreground">Select a question to edit.</p>
-        ) : (
+    <div className={cn('space-y-4', className)}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={questions.map((question) => question.clientId)}
+          strategy={verticalListSortingStrategy}
+        >
           <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold">{questionTypeLabel(activeQuestion.type)}</p>
-              <Select
-                value={activeQuestion.type}
-                onValueChange={(value) => {
-                  const nextType = value as QuestionType;
-                  updateQuestion(activeQuestion.clientId, (current) =>
-                    applyQuestionTypeChange(current, nextType),
-                  );
-                  setValidationError(null);
-                }}
-              >
-                <SelectTrigger className="h-8 w-[160px] text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={QuestionType.SINGLE_CHOICE}>Single Choice</SelectItem>
-                  <SelectItem value={QuestionType.MULTIPLE_CHOICE}>Multiple Choice</SelectItem>
-                  <SelectItem value={QuestionType.TRUE_FALSE}>True/False</SelectItem>
-                  {allowEssayTypes ? (
-                    <SelectItem value={QuestionType.ESSAY}>Essay</SelectItem>
-                  ) : null}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="question-title">Question title</Label>
-              <Input
-                id="question-title"
-                value={activeQuestion.title}
-                onChange={(event) =>
-                  updateQuestion(activeQuestion.clientId, (current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
+            {questions.map((question, index) => (
+              <SortableQuestionCard
+                key={question.clientId}
+                question={question}
+                index={index}
+                allowEssayTypes={allowEssayTypes}
+                onUpdate={(next) =>
+                  onChange(
+                    questions.map((current) =>
+                      current.clientId === next.clientId ? next : current,
+                    ),
+                  )
                 }
-                placeholder="Enter question title"
+                onDelete={() => handleDeleteQuestion(question.clientId)}
+                onDuplicate={() => handleDuplicateQuestion(question.clientId)}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="question-explanation">Explanation (optional)</Label>
-              <Textarea
-                id="question-explanation"
-                value={activeQuestion.explanation ?? ''}
-                onChange={(event) =>
-                  updateQuestion(activeQuestion.clientId, (current) => ({
-                    ...current,
-                    explanation: event.target.value,
-                  }))
-                }
-                placeholder="Explain the correct answer"
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="question-points">Points</Label>
-              <Input
-                id="question-points"
-                type="number"
-                min={1}
-                value={activeQuestion.points}
-                onChange={(event) =>
-                  updateQuestion(activeQuestion.clientId, (current) => ({
-                    ...current,
-                    points: Number(event.target.value) || 1,
-                  }))
-                }
-                className="w-28"
-              />
-            </div>
-
-            <div className="space-y-3">
-              {activeQuestion.type === QuestionType.ESSAY ? (
-                <div className="space-y-2">
-                  <Label htmlFor="question-instructions">Instructions (optional)</Label>
-                  <Textarea
-                    id="question-instructions"
-                    value={activeQuestion.instructions ?? ''}
-                    onChange={(event) =>
-                      updateQuestion(activeQuestion.clientId, (current) => ({
-                        ...current,
-                        instructions: event.target.value,
-                      }))
-                    }
-                    placeholder="Guidance for the essay response"
-                    rows={3}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Essay questions are manually graded by the instructor.
-                  </p>
-                </div>
-              ) : (
-                <>
-              <div className="flex items-center justify-between">
-                <Label>Options</Label>
-                {activeQuestion.type !== QuestionType.TRUE_FALSE ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8"
-                    onClick={() =>
-                      updateQuestion(activeQuestion.clientId, (current) => ({
-                        ...current,
-                        options: [
-                          ...current.options,
-                          createEmptyDraftOption(current.options.length + 1),
-                        ],
-                      }))
-                    }
-                  >
-                    <Plus className="mr-1 h-3.5 w-3.5" />
-                    Add option
-                  </Button>
-                ) : null}
-              </div>
-
-              <div className="space-y-2">
-                {activeQuestion.options.map((option) => (
-                  <div key={option.clientId} className="flex items-start gap-2 rounded-md border p-2">
-                    <Checkbox
-                      checked={option.isCorrect}
-                      onCheckedChange={(checked) =>
-                        handleOptionCorrectChange(
-                          activeQuestion,
-                          option.clientId,
-                          checked === true,
-                        )
-                      }
-                      className="mt-2"
-                    />
-                    <Input
-                      value={option.text}
-                      disabled={activeQuestion.type === QuestionType.TRUE_FALSE}
-                      onChange={(event) =>
-                        updateQuestion(activeQuestion.clientId, (current) => ({
-                          ...current,
-                          options: current.options.map((currentOption) =>
-                            currentOption.clientId === option.clientId
-                              ? { ...currentOption, text: event.target.value }
-                              : currentOption,
-                          ),
-                        }))
-                      }
-                      placeholder="Option text"
-                      className="flex-1"
-                    />
-                    {activeQuestion.type !== QuestionType.TRUE_FALSE &&
-                    activeQuestion.options.length > 2 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-destructive"
-                        onClick={() =>
-                          updateQuestion(activeQuestion.clientId, (current) => ({
-                            ...current,
-                            options: current.options.filter(
-                              (currentOption) => currentOption.clientId !== option.clientId,
-                            ),
-                          }))
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-                </>
-              )}
-            </div>
-
-            {validationError ? (
-              <p className="text-sm text-destructive">{validationError}</p>
-            ) : null}
+            ))}
           </div>
-        )}
+        </SortableContext>
+      </DndContext>
+
+      <div className="flex justify-center pt-1">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 gap-1.5 border-border/80 bg-white px-5 text-[13px] text-foreground hover:bg-muted/40"
+          onClick={() => handleAddQuestion()}
+        >
+          <Plus className="h-4 w-4" />
+          Add Another Question
+        </Button>
       </div>
     </div>
   );
@@ -471,5 +473,5 @@ export function mapDraftQuestionsToPayload(questions: DraftQuestionValues[]) {
 }
 
 export function createInitialDraftQuestions(): DraftQuestionValues[] {
-  return [createEmptyDraftQuestion(QuestionType.SINGLE_CHOICE)];
+  return [];
 }

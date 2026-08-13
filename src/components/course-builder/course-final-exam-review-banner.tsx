@@ -9,6 +9,7 @@ interface CourseFinalExamReviewBannerProps {
   courseStatus: string;
   hasUnpublishedChanges?: boolean;
   revisionStatus?: CourseRevisionStatus | null;
+  requireCourseApproval?: boolean;
   readOnly?: boolean;
   onSubmitRevision?: () => void;
   onResubmitRevision?: () => void;
@@ -20,6 +21,7 @@ export function CourseFinalExamReviewBanner({
   courseStatus,
   hasUnpublishedChanges,
   revisionStatus,
+  requireCourseApproval = true,
   readOnly = false,
   onSubmitRevision,
   onResubmitRevision,
@@ -44,7 +46,11 @@ export function CourseFinalExamReviewBanner({
   if (revisionStatus === CourseRevisionStatus.CHANGES_REQUESTED) {
     return (
       <div className="space-y-3 rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
-        <p>An admin requested changes. Update the exam, then resubmit the course revision.</p>
+        <p>
+          {requireCourseApproval
+            ? 'An admin requested changes. Update the exam, then resubmit the course revision.'
+            : 'Changes were requested. Update the exam, then publish the revision again.'}
+        </p>
         {!readOnly && onResubmitRevision ? (
           <Button
             type="button"
@@ -57,7 +63,7 @@ export function CourseFinalExamReviewBanner({
             ) : (
               <Send className="mr-2 h-4 w-4" />
             )}
-            Resubmit revision
+            {requireCourseApproval ? 'Resubmit revision' : 'Publish revision'}
           </Button>
         ) : null}
       </div>
@@ -68,8 +74,9 @@ export function CourseFinalExamReviewBanner({
     return (
       <div className="space-y-3 rounded-md border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
         <p>
-          This final exam is saved as a draft. Submit the course revision for review so an
-          institution admin can approve it before learners see it.
+          {requireCourseApproval
+            ? 'This final exam is in a draft. Submit the course revision for institution admin approval before learners see it.'
+            : 'This final exam is in a draft. Click “Publish revision” when ready so learners can see it.'}
         </p>
         <Button type="button" size="sm" disabled={isSubmitting} onClick={onSubmitRevision}>
           {isSubmitting ? (
@@ -77,7 +84,7 @@ export function CourseFinalExamReviewBanner({
           ) : (
             <Send className="mr-2 h-4 w-4" />
           )}
-          Submit revision for review
+          {requireCourseApproval ? 'Submit revision for review' : 'Publish revision'}
         </Button>
       </div>
     );
