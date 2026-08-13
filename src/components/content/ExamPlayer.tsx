@@ -219,10 +219,10 @@ export function ExamPlayer({
   const publishedAttempt = publishedAttempts[0];
   const bestPublishedAttemptId = useMemo(() => {
     const scored = publishedAttempts.filter(
-      (attempt) => attempt.percentage != null,
+      (attempt: ExamAttemptSummary) => attempt.percentage != null,
     );
     if (!scored.length) return publishedAttempts[0]?.id ?? null;
-    return scored.reduce((best, attempt) =>
+    return scored.reduce((best: ExamAttemptSummary, attempt: ExamAttemptSummary) =>
       (attempt.percentage ?? -1) > (best.percentage ?? -1) ? attempt : best,
     ).id;
   }, [publishedAttempts]);
@@ -251,7 +251,7 @@ export function ExamPlayer({
   const attemptsRemaining = attemptHistory?.attemptsRemaining ?? examMeta.maxAttempts;
   const availabilityBlockReason = getExamAvailabilityBlockReason(examMeta);
   const hasPassedExam =
-    publishedAttempts.some((attempt) => attempt.passed === true) ||
+    publishedAttempts.some((attempt: ExamAttemptSummary) => attempt.passed === true) ||
     (publishedResult && 'passed' in publishedResult && publishedResult.passed === true) ||
     isCompleted === true;
   const canRetryAfterFail = Boolean(
@@ -490,7 +490,7 @@ export function ExamPlayer({
               ) : null}
             </div>
             <div className="space-y-2">
-              {publishedAttempts.map((attempt, index) => {
+              {publishedAttempts.map((attempt: ExamAttemptSummary, index: number) => {
                 const isBest = attempt.id === bestPublishedAttemptId;
                 const isSelected = attempt.id === resultAttemptId;
                 return (
@@ -641,7 +641,7 @@ export function ExamPlayer({
               ) : null}
             </div>
             <div className="space-y-2">
-              {publishedAttempts.map((attempt, index) => {
+              {publishedAttempts.map((attempt: ExamAttemptSummary, index: number) => {
                 const isBest = attempt.id === bestPublishedAttemptId;
                 return (
                   <button

@@ -295,7 +295,7 @@ export function QuizPlayer({
   );
   const bestAttemptId = useMemo(() => {
     if (!submittedAttempts.length) return null;
-    return submittedAttempts.reduce((best, attempt) =>
+    return submittedAttempts.reduce((best: QuizAttemptSummary, attempt: QuizAttemptSummary) =>
       attempt.percentage > best.percentage ? attempt : best,
     ).id;
   }, [submittedAttempts]);
@@ -360,7 +360,7 @@ export function QuizPlayer({
     const totalPoints =
       selectedAttemptResult.totalPoints ??
       selectedAttemptResult.result?.questions?.reduce(
-        (sum, question) => sum + (question.points ?? 0),
+        (sum: number, question: LearnerQuizQuestion) => sum + (question.points ?? 0),
         0,
       ) ??
       0;
@@ -499,7 +499,7 @@ export function QuizPlayer({
               ) : null}
             </div>
             <div className="space-y-2">
-              {submittedAttempts.map((attempt, index) => {
+              {submittedAttempts.map((attempt: QuizAttemptSummary, index: number) => {
                 const isBest = attempt.id === bestAttemptId;
                 return (
                   <button

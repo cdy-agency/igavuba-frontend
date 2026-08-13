@@ -77,7 +77,7 @@ function canToggleUser(row: UserListItem, viewerRole: UserRole | null): boolean 
   }
   if (viewerRole === UserRole.SUPER_ADMIN) return true;
   if (viewerRole === UserRole.INSTITUTION_ADMIN) {
-    return row.role !== UserRole.SUPER_ADMIN;
+    return true;
   }
   return false;
 }

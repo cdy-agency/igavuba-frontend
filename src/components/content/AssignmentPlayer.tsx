@@ -136,7 +136,7 @@ export function AssignmentPlayer({
   );
   const bestSubmissionId = useMemo(() => {
     if (!gradedSubmissions.length) return null;
-    return gradedSubmissions.reduce((best, entry) => {
+    return gradedSubmissions.reduce((best: AssignmentSubmission, entry: AssignmentSubmission) => {
       const bestScore = best.grade?.score ?? -1;
       const entryScore = entry.grade?.score ?? -1;
       return entryScore > bestScore ? entry : best;
@@ -144,7 +144,9 @@ export function AssignmentPlayer({
   }, [gradedSubmissions]);
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const selectedSubmission =
-    (history?.submissions ?? []).find((entry) => entry.id === selectedSubmissionId) ?? null;
+    (history?.submissions ?? []).find(
+      (entry: AssignmentSubmission) => entry.id === selectedSubmissionId,
+    ) ?? null;
   const lastReportedProgressRef = useRef<number | null>(null);
   const onProgressUpdatedRef = useRef(onProgressUpdated);
   onProgressUpdatedRef.current = onProgressUpdated;
@@ -369,7 +371,7 @@ export function AssignmentPlayer({
             ) : null}
           </div>
           <div className="space-y-2">
-            {gradedSubmissions.map((submission) => {
+            {gradedSubmissions.map((submission: AssignmentSubmission) => {
               const score = submission.grade?.score ?? 0;
               const submissionMax = submission.grade?.maxScore ?? maxScore;
               const percentage =

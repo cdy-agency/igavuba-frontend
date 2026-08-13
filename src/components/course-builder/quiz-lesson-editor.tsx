@@ -123,7 +123,11 @@ export function QuizLessonEditor({
   );
 
   const totalMarks = useMemo(
-    () => quiz?.questions.reduce((sum, question) => sum + question.points, 0) ?? 0,
+    () =>
+      quiz?.questions.reduce(
+        (sum: number, question: { points: number }) => sum + question.points,
+        0,
+      ) ?? 0,
     [quiz?.questions],
   );
 

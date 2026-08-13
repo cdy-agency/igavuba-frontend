@@ -203,7 +203,7 @@ export function ExamLessonEditor({
           <AssessmentSettingsTabs
             settingsContent={
               <>
-                <LessonSettingsGroup title="Visibility">
+                <LessonSettingsGroup>
                   <ContentVisibilityToggle
                     visible={isVisible}
                     disabled={readOnly}
