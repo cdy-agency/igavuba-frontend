@@ -35,7 +35,7 @@ function AcademicPolicyToggle({
       </div>
       <Switch
         id={id}
-        size="default"
+        size="sm"
         checked={checked}
         disabled={disabled}
         onCheckedChange={onCheckedChange}

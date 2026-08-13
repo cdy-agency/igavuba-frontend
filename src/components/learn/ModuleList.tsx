@@ -38,15 +38,40 @@ type Props = {
 };
 
 const getContentIcon = (type: string) => {
-  switch (type) {
+  switch (String(type).toUpperCase()) {
     case ContentType.TEXT:
       return <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />;
     case ContentType.VIDEO:
       return <Video className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />;
     case ContentType.DOCUMENT:
       return <FileType className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />;
+    case ContentType.QUIZ:
+      return <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 dark:text-orange-400" />;
+    case ContentType.ASSIGNMENT:
+      return <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 dark:text-yellow-400" />;
+    case ContentType.EXAM:
+      return <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400" />;
     default:
       return <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400" />;
+  }
+};
+
+const getContentTypeLabel = (type: string) => {
+  switch (String(type).toUpperCase()) {
+    case ContentType.VIDEO:
+      return 'Video';
+    case ContentType.TEXT:
+      return 'Text Content';
+    case ContentType.DOCUMENT:
+      return 'Document';
+    case ContentType.QUIZ:
+      return 'Quiz';
+    case ContentType.ASSIGNMENT:
+      return 'Assignment';
+    case ContentType.EXAM:
+      return 'Exam';
+    default:
+      return 'Lesson';
   }
 };
 
@@ -191,13 +216,7 @@ const ModuleList: React.FC<Props> = ({
                                   : 'Locked'
                               : isLessonBlocked
                                 ? 'Complete previous lesson first'
-                                : lesson.type === ContentType.VIDEO
-                                  ? 'Video Lesson'
-                                  : lesson.type === ContentType.TEXT
-                                    ? 'Text Content'
-                                    : lesson.type === ContentType.DOCUMENT
-                                      ? 'Document'
-                                      : 'Lesson'}
+                                : getContentTypeLabel(lesson.type ?? '')}
                           </div>
                         </div>
 
@@ -217,61 +236,61 @@ const ModuleList: React.FC<Props> = ({
                 )}
 
                 {modules[modules?.length - 1]?.id === module.id && finalExamLesson ? (
-                  <button
-                    type="button"
-                    onClick={() => onSelectFinalExam?.()}
-                    className={`w-full flex items-center gap-3 transition-all text-left py-2 pr-8 sm:pr-6 ${
-                      selectedLesson?.id === finalExamLesson.id
-                        ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-primary'
-                        : finalExamPaymentLocked
-                          ? 'opacity-50 cursor-not-allowed bg-white dark:bg-gray-800 border-l-4 border-transparent'
-                          : moduleLessonsComplete
-                            ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border-l-4 border-transparent'
-                            : 'opacity-50 cursor-not-allowed bg-white dark:bg-gray-800 border-l-4 border-transparent'
-                    }`}
-                    disabled={!moduleLessonsComplete && !finalExamPaymentLocked}
-                  >
-                    <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
-                      {finalExamPaymentLocked ? (
-                        <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
-                      ) : moduleLessonsComplete ? (
-                        <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
-                      ) : (
-                        <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className={`text-sm sm:text-base font-medium ${
-                          selectedLesson?.id === finalExamLesson.id
-                            ? 'dark:text-blue-300'
-                            : finalExamPaymentLocked
-                              ? 'text-gray-400 dark:text-gray-500'
-                              : moduleLessonsComplete
-                                ? 'text-gray-900 dark:text-gray-100'
-                                : 'text-gray-400 dark:text-gray-500'
-                        }`}
-                      >
-                        {finalExamLesson.title}
+                  <div className="border-t border-dashed border-amber-300/80 bg-amber-50/40 px-2 py-2 dark:border-amber-800/50 dark:bg-amber-950/20">
+                    <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                      Course Final Exam
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => onSelectFinalExam?.()}
+                      className={`w-full flex items-center gap-3 rounded-md transition-all text-left py-2.5 pr-6 ${
+                        selectedLesson?.id === finalExamLesson.id
+                          ? 'bg-amber-100 dark:bg-amber-900/40 border border-amber-400 dark:border-amber-600'
+                          : finalExamPaymentLocked || !moduleLessonsComplete
+                            ? 'border border-amber-200/80 bg-white/70 opacity-80 dark:border-amber-900/40 dark:bg-gray-900/40'
+                            : 'border border-amber-200 bg-white hover:bg-amber-50 dark:border-amber-800/40 dark:bg-gray-900/50 dark:hover:bg-amber-950/30'
+                      }`}
+                    >
+                      <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center">
+                        {finalExamPaymentLocked || !moduleLessonsComplete ? (
+                          <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700/70 dark:text-amber-400/70" />
+                        ) : (
+                          <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-700 dark:text-amber-400" />
+                        )}
                       </div>
-                      <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                        {finalExamPaymentLocked
-                          ? hasPendingPayment
-                            ? 'Awaiting payment confirmation'
-                            : 'Available after payment approval'
-                          : moduleLessonsComplete
-                            ? 'Final exam'
-                            : 'Complete all lessons first'}
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className={`text-sm sm:text-base font-semibold ${
+                            selectedLesson?.id === finalExamLesson.id
+                              ? 'text-amber-950 dark:text-amber-100'
+                              : finalExamPaymentLocked || !moduleLessonsComplete
+                                ? 'text-amber-900/70 dark:text-amber-200/70'
+                                : 'text-amber-950 dark:text-amber-100'
+                          }`}
+                        >
+                          {finalExamLesson.title}
+                        </div>
+                        <div className="text-xs sm:text-sm text-amber-800/80 dark:text-amber-300/80">
+                          {finalExamPaymentLocked
+                            ? hasPendingPayment
+                              ? 'Locked — awaiting payment confirmation'
+                              : 'Locked — available after payment approval'
+                            : !moduleLessonsComplete
+                              ? 'Locked — complete all lessons first'
+                              : finalExamLesson.completed
+                                ? 'Final exam · Passed'
+                                : 'Final exam · Ready to attempt'}
+                        </div>
                       </div>
-                    </div>
-                    <div className="shrink-0 self-center flex items-center justify-center">
-                      {finalExamLesson.completed ? (
-                        <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400" />
-                      ) : (
-                        <Circle className="w-5 h-5 sm:w-6 sm:h-6 text-gray-300 dark:text-gray-600" />
-                      )}
-                    </div>
-                  </button>
+                      <div className="shrink-0 self-center flex items-center justify-center">
+                        {finalExamLesson.completed ? (
+                          <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 dark:text-green-400" />
+                        ) : (
+                          <Circle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 dark:text-amber-700" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
                 ) : null}
 
                 {/* Course Completion Button — only show on last module */}

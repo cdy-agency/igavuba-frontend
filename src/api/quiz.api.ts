@@ -44,6 +44,14 @@ export async function createQuizQuestion(quizId: string, payload: CreateQuestion
   return response.data;
 }
 
+export async function reorderQuizQuestions(quizId: string, questionIds: string[]) {
+  const response = await apiClient.post<QuizMutationResponse>(
+    `/quizzes/${quizId}/questions/reorder`,
+    { questionIds },
+  );
+  return response.data;
+}
+
 export async function updateQuizQuestion(questionId: string, payload: UpdateQuestionPayload) {
   const response = await apiClient.patch<QuestionMutationResponse>(
     `/quiz-questions/${questionId}`,

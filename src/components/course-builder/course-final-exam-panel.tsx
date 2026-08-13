@@ -5,10 +5,12 @@ import { Award, Loader2, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CourseFinalExamAttachOptions } from '@/components/course-builder/course-final-exam-attach-options';
 import { CourseFinalExamReviewBanner } from '@/components/course-builder/course-final-exam-review-banner';
+import { BUILDER_CONTENT_OUTER_CLASS } from '@/components/course-builder/builder-lesson-shell';
 import { useCourseFinalExam } from '@/hooks/use-course-final-exam';
 import { buildExamBuilderPath } from '@/lib/course-builder-navigation';
 import { CourseLifecycleStatus } from '@/types/course-status';
 import { CourseRevisionStatus } from '@/types/course-revision';
+import { cn } from '@/lib/utils';
 
 interface CourseFinalExamPanelProps {
   courseId: string;
@@ -16,6 +18,7 @@ interface CourseFinalExamPanelProps {
   courseStatus: string;
   hasUnpublishedChanges?: boolean;
   revisionStatus?: CourseRevisionStatus | null;
+  requireCourseApproval?: boolean;
   readOnly?: boolean;
   canResubmit?: boolean;
   isSubmittingRevision?: boolean;
@@ -30,6 +33,7 @@ export function CourseFinalExamPanel({
   courseStatus,
   hasUnpublishedChanges,
   revisionStatus,
+  requireCourseApproval = true,
   readOnly = false,
   canResubmit = true,
   isSubmittingRevision = false,
@@ -84,7 +88,7 @@ export function CourseFinalExamPanel({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className={cn(BUILDER_CONTENT_OUTER_CLASS, 'space-y-6')}>
       <div className="flex items-start gap-4">
         <div className="rounded-lg bg-amber-50 p-3">
           <Award className="h-6 w-6 text-amber-600" />
@@ -105,6 +109,7 @@ export function CourseFinalExamPanel({
         courseStatus={courseStatus}
         hasUnpublishedChanges={hasUnpublishedChanges}
         revisionStatus={revisionStatus}
+        requireCourseApproval={requireCourseApproval}
         readOnly={readOnly}
         onSubmitRevision={onSubmitRevision}
         onResubmitRevision={onResubmitRevision}

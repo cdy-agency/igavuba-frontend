@@ -1,19 +1,17 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Loader2 } from 'lucide-react';
-import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
-import {
-  ContentVisibilityToggle,
-  LessonFormFooter,
-  LessonSettingsGroup,
-} from '@/components/course-builder/lesson-form-ui';
+import { Loader2 } from 'lucide-react';
 import {
   QuizQuestionBuilder,
-  createInitialDraftQuestions,
   mapDraftQuestionsToPayload,
   validateDraftQuestions,
 } from '@/components/quiz/quiz-question-builder';
+import {
+  QuizBuilderShell,
+  QUIZ_UNLIMITED_ATTEMPTS,
+  type QuizBuilderView,
+} from '@/components/quiz/quiz-builder-shell';
 import { useLocalDraft } from '@/hooks/use-autosave';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,9 +20,10 @@ import { persistQuizQuestions } from '@/api/quiz.api';
 import type { DraftQuestionValues } from '@/schema/question.schema';
 import { quizInfoSchema, quizSettingsFormSchema } from '@/schema/quiz.schema';
 import { useCreateQuizContent } from '@/hooks/use-module-contents';
-import { defaultQuizSettings } from '@/lib/quiz-utils';
+import { createEmptyDraftQuestion, defaultQuizSettings } from '@/lib/quiz-utils';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
+import { QuestionType } from '@/types/question';
 
 interface QuizCreateFormProps {
   moduleId: string;
@@ -40,10 +39,12 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
       description: '',
       passingScore: 70,
       maxAttempts: 1,
+      unlimitedAttempts: true,
+      unlimitedTime: true,
       timeLimitMinutes: '',
       settings: defaultQuizSettings(),
       isVisible: true,
-      questions: createInitialDraftQuestions(),
+      questions: [] as DraftQuestionValues[],
     }),
     [],
   );
@@ -52,10 +53,15 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
     initialDraftState,
   );
 
+  const [view, setView] = useState<QuizBuilderView>('builder');
   const [title, setTitle] = useState(initialDraftState.title);
   const [description, setDescription] = useState(initialDraftState.description);
   const [passingScore, setPassingScore] = useState(initialDraftState.passingScore);
   const [maxAttempts, setMaxAttempts] = useState(initialDraftState.maxAttempts);
+  const [unlimitedAttempts, setUnlimitedAttempts] = useState(
+    initialDraftState.unlimitedAttempts,
+  );
+  const [unlimitedTime, setUnlimitedTime] = useState(initialDraftState.unlimitedTime);
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(initialDraftState.timeLimitMinutes);
   const [settings, setSettings] = useState(initialDraftState.settings);
   const [isVisible, setIsVisible] = useState(initialDraftState.isVisible);
@@ -67,13 +73,29 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
   const createQuiz = useCreateQuizContent(moduleId);
   const isSubmitting = createQuiz.isPending || isPersistingQuestions;
 
-  // Restore local form state from localStorage once, then stop reading `draft`.
+  const totalMarks = useMemo(
+    () => questions.reduce((sum, question) => sum + (question.points || 0), 0),
+    [questions],
+  );
+
   useEffect(() => {
     if (!hydrated || draftReady) return;
     setTitle(draft.title);
     setDescription(draft.description);
     setPassingScore(draft.passingScore);
     setMaxAttempts(draft.maxAttempts);
+    setUnlimitedAttempts(
+      typeof draft.unlimitedAttempts === 'boolean'
+        ? draft.unlimitedAttempts
+        : typeof (draft as { limitAttempts?: boolean }).limitAttempts === 'boolean'
+          ? !(draft as { limitAttempts?: boolean }).limitAttempts
+          : true,
+    );
+    setUnlimitedTime(
+      typeof draft.unlimitedTime === 'boolean'
+        ? draft.unlimitedTime
+        : !draft.timeLimitMinutes,
+    );
     setTimeLimitMinutes(draft.timeLimitMinutes);
     setSettings(draft.settings);
     setIsVisible(draft.isVisible);
@@ -81,7 +103,6 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
     setDraftReady(true);
   }, [hydrated, draft, draftReady]);
 
-  // Persist form changes after the one-time restore (avoids draft ↔ state loops).
   useEffect(() => {
     if (!draftReady) return;
 
@@ -90,6 +111,8 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
       description,
       passingScore,
       maxAttempts,
+      unlimitedAttempts,
+      unlimitedTime,
       timeLimitMinutes,
       settings,
       isVisible,
@@ -101,6 +124,8 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
     description,
     passingScore,
     maxAttempts,
+    unlimitedAttempts,
+    unlimitedTime,
     timeLimitMinutes,
     settings,
     isVisible,
@@ -109,15 +134,26 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
   ]);
 
   const validateForm = () => {
-    const infoResult = quizInfoSchema.safeParse({ title, description });
+    const infoResult = quizInfoSchema.safeParse({
+      title: title.trim() || 'Untitled Quiz',
+      description,
+    });
     if (!infoResult.success) {
       return infoResult.error.issues[0]?.message ?? 'Invalid quiz information';
     }
 
+    if (!unlimitedTime && !timeLimitMinutes) {
+      return 'Enter a time limit in minutes, or turn on Unlimited';
+    }
+
+    if (!unlimitedAttempts && maxAttempts < 1) {
+      return 'Max attempts must be at least 1';
+    }
+
     const settingsResult = quizSettingsFormSchema.safeParse({
       passingScore,
-      maxAttempts,
-      timeLimitMinutes,
+      maxAttempts: unlimitedAttempts ? QUIZ_UNLIMITED_ATTEMPTS : maxAttempts,
+      timeLimitMinutes: unlimitedTime ? undefined : timeLimitMinutes,
       settings,
     });
     if (!settingsResult.success) {
@@ -137,6 +173,11 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
     if (error) {
       setFormError(error);
       toast.error(error);
+      if (error.toLowerCase().includes('question')) {
+        setView('builder');
+      } else {
+        setView('settings');
+      }
       return;
     }
 
@@ -147,8 +188,9 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
         title: title.trim() || 'Untitled Quiz',
         description: description.trim() || undefined,
         passingScore,
-        maxAttempts,
-        timeLimitMinutes: timeLimitMinutes ? Number(timeLimitMinutes) : undefined,
+        maxAttempts: unlimitedAttempts ? QUIZ_UNLIMITED_ATTEMPTS : maxAttempts,
+        timeLimitMinutes:
+          unlimitedTime || !timeLimitMinutes ? undefined : Number(timeLimitMinutes),
         settings,
         isPublished: isVisible,
       });
@@ -170,112 +212,88 @@ export function QuizCreateForm({ moduleId, onCreated, onCancel }: QuizCreateForm
   };
 
   return (
-    <BuilderLessonShell
+    <QuizBuilderShell
+      view={view}
+      onViewChange={setView}
       title={title}
       onTitleChange={setTitle}
       titlePlaceholder="Untitled Quiz"
-      description={description}
-      onDescriptionChange={setDescription}
+      timeLimitMinutes={timeLimitMinutes}
+      onTimeLimitChange={setTimeLimitMinutes}
+      unlimitedTime={unlimitedTime}
+      onUnlimitedTimeChange={setUnlimitedTime}
+      totalMarks={totalMarks}
+      passingScore={passingScore}
+      onPassingScoreChange={setPassingScore}
+      maxAttempts={maxAttempts}
+      onMaxAttemptsChange={setMaxAttempts}
+      unlimitedAttempts={unlimitedAttempts}
+      onUnlimitedAttemptsChange={setUnlimitedAttempts}
+      isVisible={isVisible}
+      onVisibilityToggle={() => setIsVisible((current) => !current)}
+      onAddQuestion={() => {
+        setView('builder');
+        setQuestions((current) => [
+          ...current,
+          createEmptyDraftQuestion(QuestionType.SINGLE_CHOICE),
+        ]);
+      }}
+      onSave={handleSubmit}
       onDelete={onCancel}
-      icon={<CheckCircle2 className="h-4.5 w-4.5 text-orange-600" strokeWidth={2} />}
-      settings={
+      isSaving={isSubmitting}
+      builderContent={
         <div className="space-y-3">
-          <p className="text-[13px] font-semibold text-foreground">Quiz settings</p>
-          <LessonSettingsGroup>
-            <ContentVisibilityToggle
-              visible={isVisible}
-              onChange={setIsVisible}
+          <QuizQuestionBuilder questions={questions} onChange={setQuestions} />
+          {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+          {isSubmitting ? (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving quiz...
+            </div>
+          ) : null}
+        </div>
+      }
+      settingsContent={
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="quiz-description">Description</Label>
+            <Input
+              id="quiz-description"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="Short description for learners"
               disabled={isSubmitting}
             />
-          </LessonSettingsGroup>
-          <div className="grid gap-3 rounded-lg border border-border/60 bg-slate-50/40 p-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="quiz-passing-score">Passing score (%)</Label>
-              <Input
-                id="quiz-passing-score"
-                type="number"
-                min={0}
-                max={100}
-                value={passingScore}
-                onChange={(event) => setPassingScore(Number(event.target.value) || 0)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="quiz-max-attempts">Max attempts</Label>
-              <Input
-                id="quiz-max-attempts"
-                type="number"
-                min={1}
-                value={maxAttempts}
-                onChange={(event) => setMaxAttempts(Number(event.target.value) || 1)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="quiz-time-limit">Time limit (minutes)</Label>
-              <Input
-                id="quiz-time-limit"
-                type="number"
-                min={1}
-                value={timeLimitMinutes}
-                onChange={(event) => setTimeLimitMinutes(event.target.value)}
-                placeholder="Optional"
-                disabled={isSubmitting}
-              />
-            </div>
-            {(
-              [
-                ['showResults', 'Show results'],
-                ['showCorrectAnswers', 'Show correct answers'],
-                ['shuffleQuestions', 'Shuffle questions'],
-                ['shuffleOptions', 'Shuffle options'],
-              ] as const
-            ).map(([key, label]) => (
-              <div
-                key={key}
-                className="flex items-center justify-between rounded-md border border-border/60 bg-white px-3 py-2"
-              >
-                <Label htmlFor={`quiz-${key}`}>{label}</Label>
-                <Switch
-                  id={`quiz-${key}`}
-                  checked={settings[key]}
-                  onCheckedChange={(checked) =>
-                    setSettings((current) => ({ ...current, [key]: checked }))
-                  }
-                  disabled={isSubmitting}
-                />
-              </div>
-            ))}
           </div>
+
+          {(
+            [
+              ['showResults', 'Show results'],
+              ['showCorrectAnswers', 'Show correct answers'],
+              ['shuffleQuestions', 'Shuffle questions'],
+              ['shuffleOptions', 'Shuffle options'],
+            ] as const
+          ).map(([key, label]) => (
+            <div
+              key={key}
+              className="flex items-center justify-between rounded-md border border-border/60 px-3 py-2.5"
+            >
+              <Label htmlFor={`quiz-${key}`}>{label}</Label>
+              <Switch
+                id={`quiz-${key}`}
+                size="sm"
+                checked={settings[key]}
+                onCheckedChange={(checked) =>
+                  setSettings((current) => ({ ...current, [key]: checked }))
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+          ))}
+
+          {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
         </div>
       }
-      footer={
-        <LessonFormFooter
-          onCancel={onCancel}
-          onSubmit={handleSubmit}
-          submitLabel="Create Quiz"
-          isSubmitting={isSubmitting}
-        />
-      }
-    >
-      <div className="space-y-4">
-        <div>
-          <h3 className="text-[15px] font-semibold text-foreground">Questions</h3>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Add and configure all questions before saving. Your progress stays on this page until
-            you create the quiz.
-          </p>
-        </div>
-        <QuizQuestionBuilder questions={questions} onChange={setQuestions} />
-        {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
-        {isSubmitting ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Saving quiz...
-          </div>
-        ) : null}
-      </div>
-    </BuilderLessonShell>
+    />
   );
 }

@@ -1,28 +1,34 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { FileEdit, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import {
   ContentVisibilityToggle,
   LessonSettingsGroup,
+  getContentTitleError,
 } from '@/components/course-builder/lesson-form-ui';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { DateTimePicker, toDatetimeLocalValue } from '@/components/ui/date-time-picker';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import TiptapEditor from '@/components/editor/TiptapEditor';
 import {
   AssessmentAcademicRules,
   defaultAssessmentAcademicRules,
+  type AcademicRulesSaveStatus,
 } from '@/components/academic/assessment-academic-rules';
+import { AcademicRulesImpactDialog } from '@/components/academic/academic-rules-impact-dialog';
 import { AssessmentSettingsTabs } from '@/components/academic/assessment-settings-tabs';
 import { AcademicRuleBadges } from '@/components/academic/academic-rule-badge';
 import { useAssignmentDetail, useUpdateAssignment } from '@/hooks/use-assignment';
+import { useCourseDetail } from '@/hooks/use-courses';
 import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
 import type { ModuleContentItem } from '@/types/content';
 import type { UpdateAssignmentPayload } from '@/types/assignment.types';
 import { AssignmentSubmissionType } from '@/types/assignment.types';
+import { CourseLifecycleStatus } from '@/types/course-status';
 
 interface AssignmentLessonEditorProps {
   item: ModuleContentItem;
@@ -36,14 +42,6 @@ const SUBMISSION_TYPE_OPTIONS = [
   { value: AssignmentSubmissionType.FILE, label: 'File upload' },
   { value: AssignmentSubmissionType.LINK, label: 'Link' },
 ];
-
-function toDateTimeLocalValue(value: string | null | undefined) {
-  if (!value) return '';
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60_000);
-  return local.toISOString().slice(0, 16);
-}
 
 function normalizeInstructions(html: string) {
   const trimmed = html.trim();
@@ -73,6 +71,19 @@ function toFormState(
   return { ...source, ...overrides };
 }
 
+function academicRulesEqual(
+  a: AssessmentAcademicRulesFormValues,
+  b: AssessmentAcademicRulesFormValues,
+) {
+  return (
+    a.required === b.required &&
+    a.countsTowardCertificate === b.countsTowardCertificate &&
+    a.blockProgressUntilPassed === b.blockProgressUntilPassed &&
+    a.passingScore === b.passingScore &&
+    a.maxAttempts === b.maxAttempts
+  );
+}
+
 function formStatesEqual(a: AssignmentFormState, b: AssignmentFormState) {
   return (
     a.title.trim() === b.title.trim() &&
@@ -95,13 +106,18 @@ export function AssignmentLessonEditor({
   onDelete,
   readOnly = false,
 }: AssignmentLessonEditorProps) {
+  const params = useParams<{ slug?: string }>();
+  const courseSlug = params.slug ?? '';
+  const { data: course } = useCourseDetail(courseSlug, Boolean(courseSlug));
   const assignmentId = item.content.assessment?.assignment?.id ?? null;
   const { data: assignment, isPending } = useAssignmentDetail(
     assignmentId ?? '',
     Boolean(assignmentId),
   );
+  const isPublishedCourse = course?.status === CourseLifecycleStatus.PUBLISHED;
 
   const [title, setTitle] = useState(item.content.title);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [instructions, setInstructions] = useState('<p></p>');
   const [passingScore, setPassingScore] = useState(70);
@@ -119,6 +135,12 @@ export function AssignmentLessonEditor({
 
   const updateAssignmentMutation = useUpdateAssignment(assignmentId ?? '', moduleId);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedRulesRef = useRef<AssessmentAcademicRulesFormValues | null>(null);
+  const [rulesSaveStatus, setRulesSaveStatus] = useState<AcademicRulesSaveStatus>('idle');
+  const [pendingRules, setPendingRules] = useState<AssessmentAcademicRulesFormValues | null>(
+    null,
+  );
+  const [impactOpen, setImpactOpen] = useState(false);
   const pendingSaveRef = useRef<{
     overrides: Partial<AssignmentFormState>;
     includeInstructions: boolean;
@@ -184,27 +206,28 @@ export function AssignmentLessonEditor({
     setInstructions(assignment.instructions?.trim() ? assignment.instructions : '<p></p>');
     setPassingScore(assignment.passingScore);
     setMaxAttempts(assignment.maxAttempts);
-    setDueDate(toDateTimeLocalValue(assignment.dueDate));
+    setDueDate(toDatetimeLocalValue(assignment.dueDate));
     setAllowLateSubmission(assignment.allowLateSubmission);
     setShowFeedbackAfterGrading(assignment.showFeedbackAfterGrading);
     setSubmissionTypes(assignment.submissionTypes);
     setIsVisible(assignment.isPublished);
-    setAcademicRules(
-      defaultAssessmentAcademicRules({
-        required: assignment.required ?? true,
-        countsTowardCertificate: assignment.countsTowardCertificate ?? true,
-        blockProgressUntilPassed: assignment.blockProgressUntilPassed ?? false,
-        passingScore: assignment.passingScore,
-        maxAttempts: assignment.maxAttempts,
-      }),
-    );
+    const nextRules = defaultAssessmentAcademicRules({
+      required: assignment.required ?? true,
+      countsTowardCertificate: assignment.countsTowardCertificate ?? false,
+      blockProgressUntilPassed: assignment.blockProgressUntilPassed ?? false,
+      passingScore: assignment.passingScore,
+      maxAttempts: assignment.maxAttempts,
+    });
+    setAcademicRules(nextRules);
+    lastSavedRulesRef.current = nextRules;
+    setRulesSaveStatus('idle');
     lastSavedRef.current = {
       title: assignment.title,
       description: assignment.description ?? '',
       instructions: assignment.instructions?.trim() ? assignment.instructions : '<p></p>',
       passingScore: assignment.passingScore,
       maxAttempts: assignment.maxAttempts,
-      dueDate: toDateTimeLocalValue(assignment.dueDate),
+      dueDate: toDatetimeLocalValue(assignment.dueDate),
       allowLateSubmission: assignment.allowLateSubmission,
       showFeedbackAfterGrading: assignment.showFeedbackAfterGrading,
       submissionTypes: assignment.submissionTypes,
@@ -220,6 +243,10 @@ export function AssignmentLessonEditor({
     if (readOnly || !assignmentId) return;
 
     const current = toFormState(formRef.current, overrides);
+    const error = getContentTitleError(current.title);
+    setTitleError(error);
+    if (error) return;
+
     if (lastSavedRef.current && formStatesEqual(lastSavedRef.current, current)) {
       return;
     }
@@ -235,7 +262,7 @@ export function AssignmentLessonEditor({
       showFeedbackAfterGrading: current.showFeedbackAfterGrading,
       submissionTypes: current.submissionTypes,
       isPublished: current.isVisible,
-      ...academicRules,
+      ...(lastSavedRulesRef.current ?? academicRules),
     };
 
     if (includeInstructions) {
@@ -247,11 +274,71 @@ export function AssignmentLessonEditor({
     lastSavedRef.current = current;
   };
 
+  const persistAcademicRules = async (nextRules: AssessmentAcademicRulesFormValues) => {
+    if (readOnly || !assignmentId) return;
+    if (lastSavedRulesRef.current && academicRulesEqual(lastSavedRulesRef.current, nextRules)) {
+      setRulesSaveStatus('saved');
+      return;
+    }
+
+    setRulesSaveStatus('saving');
+    try {
+      await updateAssignmentMutation.mutateAsync(nextRules);
+      lastSavedRulesRef.current = nextRules;
+      setAcademicRules(nextRules);
+      setPassingScore(nextRules.passingScore);
+      setMaxAttempts(nextRules.maxAttempts);
+      formRef.current.passingScore = nextRules.passingScore;
+      formRef.current.maxAttempts = nextRules.maxAttempts;
+      if (lastSavedRef.current) {
+        lastSavedRef.current = {
+          ...lastSavedRef.current,
+          passingScore: nextRules.passingScore,
+          maxAttempts: nextRules.maxAttempts,
+        };
+      }
+      setRulesSaveStatus('saved');
+    } catch {
+      if (lastSavedRulesRef.current) {
+        setAcademicRules(lastSavedRulesRef.current);
+      }
+      setRulesSaveStatus('error');
+    }
+  };
+
+  const requestAcademicRulesSave = (patch: Partial<AssessmentAcademicRulesFormValues>) => {
+    if (readOnly) return;
+    const nextRules = { ...academicRules, ...patch };
+    if (lastSavedRulesRef.current && academicRulesEqual(lastSavedRulesRef.current, nextRules)) {
+      setRulesSaveStatus('saved');
+      return;
+    }
+
+    if (isPublishedCourse) {
+      setPendingRules(nextRules);
+      setImpactOpen(true);
+      return;
+    }
+
+    void persistAcademicRules(nextRules);
+  };
+
   const scheduleSave = (
     overrides: Partial<AssignmentFormState> = {},
     options: { includeInstructions?: boolean } = {},
   ) => {
     if (readOnly) return;
+
+    const nextTitle = overrides.title ?? formRef.current.title;
+    if (getContentTitleError(nextTitle)) {
+      setTitleError(getContentTitleError(nextTitle));
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      pendingSaveRef.current = null;
+      return;
+    }
 
     const includeInstructions =
       options.includeInstructions === true || overrides.instructions !== undefined;
@@ -343,8 +430,24 @@ export function AssignmentLessonEditor({
     <BuilderLessonShell
       readOnly={readOnly}
       title={title}
-      onTitleChange={setTitle}
-      onTitleBlur={readOnly ? undefined : () => scheduleSave()}
+      titleError={titleError}
+      onTitleChange={(value) => {
+        if (readOnly) return;
+        setTitle(value);
+        setTitleError(getContentTitleError(value));
+        if (!getContentTitleError(value)) {
+          scheduleSave({ title: value });
+        }
+      }}
+      onTitleBlur={
+        readOnly
+          ? undefined
+          : () => {
+              const error = getContentTitleError(title);
+              setTitleError(error);
+              if (!error) scheduleSave();
+            }
+      }
       description={description}
       onDescriptionChange={setDescription}
       onDescriptionBlur={readOnly ? undefined : () => scheduleSave()}
@@ -379,17 +482,18 @@ export function AssignmentLessonEditor({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label>Due date</Label>
-                    <Input
-                      type="datetime-local"
+                    <DateTimePicker
                       value={dueDate}
                       disabled={readOnly}
-                      onChange={(event) => setDueDate(event.target.value)}
+                      placeholder="Pick due date & time"
+                      onChange={setDueDate}
                       onBlur={readOnly ? undefined : () => scheduleSave()}
                     />
                   </div>
                   <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
                     <Label>Allow late submission</Label>
                     <Switch
+                      size="sm"
                       checked={allowLateSubmission}
                       disabled={readOnly}
                       onCheckedChange={(checked) => {
@@ -404,6 +508,7 @@ export function AssignmentLessonEditor({
                   <div className="flex items-center justify-between rounded-md border px-3 py-2 sm:col-span-2">
                     <Label>Show feedback after grading</Label>
                     <Switch
+                      size="sm"
                       checked={showFeedbackAfterGrading}
                       disabled={readOnly}
                       onCheckedChange={(checked) => {
@@ -440,15 +545,11 @@ export function AssignmentLessonEditor({
                 values={academicRules}
                 readOnly={readOnly}
                 disabled={updateAssignmentMutation.isPending}
+                saveStatus={rulesSaveStatus}
                 onChange={(values) =>
                   setAcademicRules((current) => ({ ...current, ...values }))
                 }
-                onBlur={() => {
-                  if (readOnly) return;
-                  void updateAssignmentMutation
-                    .mutateAsync(academicRules)
-                    .then(syncLastSavedFromForm);
-                }}
+                onCommit={requestAcademicRulesSave}
               />
             }
           />
@@ -477,6 +578,36 @@ export function AssignmentLessonEditor({
           <div className="min-h-[400px] rounded-xl border border-border bg-muted/30 animate-pulse" />
         )}
       </div>
+      <AcademicRulesImpactDialog
+        open={impactOpen}
+        onOpenChange={(open) => {
+          setImpactOpen(open);
+          if (!open && pendingRules) {
+            if (lastSavedRulesRef.current) {
+              setAcademicRules(lastSavedRulesRef.current);
+            }
+            setPendingRules(null);
+            setRulesSaveStatus('idle');
+          }
+        }}
+        learnerCountHint={
+          assignment?.submissionsCount
+            ? `${assignment.submissionsCount} learner submission${assignment.submissionsCount === 1 ? '' : 's'} already exist.`
+            : null
+        }
+        onConfirm={async () => {
+          if (!pendingRules) return;
+          await persistAcademicRules(pendingRules);
+          setPendingRules(null);
+        }}
+        onCancel={() => {
+          if (lastSavedRulesRef.current) {
+            setAcademicRules(lastSavedRulesRef.current);
+          }
+          setPendingRules(null);
+          setRulesSaveStatus('idle');
+        }}
+      />
     </BuilderLessonShell>
   );
 }

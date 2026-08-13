@@ -20,9 +20,9 @@ const sizeMap = {
   xl: 'h-7 w-7',
 };
 
-/** Udemy-like gold star color */
-const STAR_FILL = 'fill-[#f69c08] text-[#f69c08]';
-const STAR_EMPTY = 'fill-transparent text-[#d1d2e0]';
+/** Rating star colors — accent gold from brand palette */
+const STAR_FILL = 'fill-[var(--accent)] text-[var(--accent)]';
+const STAR_EMPTY = 'fill-transparent text-border-muted';
 
 export function RatingStars({
   value,
@@ -53,7 +53,7 @@ export function RatingStars({
                 type="button"
                 role="radio"
                 aria-checked={starValue === Math.round(clamped)}
-                className="rounded-sm p-0.5 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a435f0]"
+                className="rounded-sm p-0.5 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/40"
                 onClick={() => onChange?.(starValue)}
               >
                 <Star
@@ -80,7 +80,7 @@ export function RatingStars({
         })}
       </div>
       {showValue ? (
-        <span className="text-sm font-bold tabular-nums text-[#b4690e]">
+        <span className="text-sm font-bold tabular-nums text-[var(--accent)]">
           {clamped.toFixed(1)}
         </span>
       ) : null}

@@ -1,46 +1,33 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { ClipboardList, Loader2, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { ClipboardList, Loader2 } from 'lucide-react';
 import { BuilderLessonShell } from '@/components/course-builder/builder-lesson-shell';
 import {
   ContentVisibilityToggle,
   LessonSettingsGroup,
+  getContentTitleError,
 } from '@/components/course-builder/lesson-form-ui';
-import { Button } from '@/components/ui/button';
+import { ExamManagedQuestionBuilder } from '@/components/exam/exam-managed-question-builder';
+import { DateTimePicker, toDatetimeLocalValue } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  useCreateExamQuestion,
-  useCreateExamQuestionOption,
-  useDeleteExamQuestion,
-  useExamDetail,
-  useUpdateExam,
-  useUpdateExamQuestion,
-} from '@/hooks/use-exam';
+import { useExamDetail, useUpdateExam } from '@/hooks/use-exam';
+import { useCourseDetail } from '@/hooks/use-courses';
 import type { ModuleContentItem } from '@/types/content';
-import { QuestionType, type Question } from '@/types/question';
 import {
   AssessmentAcademicRules,
   defaultAssessmentAcademicRules,
+  type AcademicRulesSaveStatus,
 } from '@/components/academic/assessment-academic-rules';
+import { AcademicRulesImpactDialog } from '@/components/academic/academic-rules-impact-dialog';
 import { AssessmentSettingsTabs } from '@/components/academic/assessment-settings-tabs';
 import { AcademicRuleBadges } from '@/components/academic/academic-rule-badge';
 import type { AssessmentAcademicRulesFormValues } from '@/schema/academic.schema';
-import {
-  createEmptyDraftQuestion,
-  defaultQuizSettings,
-  questionTypeLabel,
-} from '@/lib/quiz-utils';
+import { defaultQuizSettings } from '@/lib/quiz-utils';
+import { CourseLifecycleStatus } from '@/types/course-status';
 
 interface ExamLessonEditorProps {
   item: ModuleContentItem;
@@ -49,16 +36,33 @@ interface ExamLessonEditorProps {
   readOnly?: boolean;
 }
 
+function academicRulesEqual(
+  a: AssessmentAcademicRulesFormValues,
+  b: AssessmentAcademicRulesFormValues,
+) {
+  return (
+    a.required === b.required &&
+    a.countsTowardCertificate === b.countsTowardCertificate &&
+    a.blockProgressUntilPassed === b.blockProgressUntilPassed &&
+    a.passingScore === b.passingScore &&
+    a.maxAttempts === b.maxAttempts
+  );
+}
+
 export function ExamLessonEditor({
   item,
   moduleId,
   onDelete,
   readOnly = false,
 }: ExamLessonEditorProps) {
+  const params = useParams<{ slug?: string }>();
+  const { data: course } = useCourseDetail(params.slug ?? '', Boolean(params.slug));
   const examId = item.content.assessment?.exam?.id ?? null;
   const { data: exam, isPending } = useExamDetail(examId ?? '', Boolean(examId));
+  const isPublishedCourse = course?.status === CourseLifecycleStatus.PUBLISHED;
 
   const [title, setTitle] = useState(item.content.title);
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [description, setDescription] = useState(item.content.description ?? '');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState('');
   const [availableFrom, setAvailableFrom] = useState('');
@@ -68,44 +72,42 @@ export function ExamLessonEditor({
   const [academicRules, setAcademicRules] = useState<AssessmentAcademicRulesFormValues>(
     defaultAssessmentAcademicRules(),
   );
-  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
 
   const updateExamMutation = useUpdateExam(examId ?? '', moduleId);
-  const createQuestion = useCreateExamQuestion(examId ?? '', moduleId);
-  const updateQuestion = useUpdateExamQuestion(examId ?? '', moduleId);
-  const deleteQuestion = useDeleteExamQuestion(examId ?? '', moduleId);
-  const createOption = useCreateExamQuestionOption(examId ?? '', moduleId);
+  const lastSavedRulesRef = useRef<AssessmentAcademicRulesFormValues | null>(null);
+  const [rulesSaveStatus, setRulesSaveStatus] = useState<AcademicRulesSaveStatus>('idle');
+  const [pendingRules, setPendingRules] = useState<AssessmentAcademicRulesFormValues | null>(
+    null,
+  );
+  const [impactOpen, setImpactOpen] = useState(false);
 
   useEffect(() => {
     if (!exam) return;
     setTitle(exam.assessment.title);
     setDescription(exam.assessment.description ?? '');
     setTimeLimitMinutes(exam.timeLimitMinutes ? String(exam.timeLimitMinutes) : '');
-    setAvailableFrom(
-      exam.availableFrom ? new Date(exam.availableFrom).toISOString().slice(0, 16) : '',
-    );
-    setAvailableTo(exam.availableTo ? new Date(exam.availableTo).toISOString().slice(0, 16) : '');
+    setAvailableFrom(toDatetimeLocalValue(exam.availableFrom));
+    setAvailableTo(toDatetimeLocalValue(exam.availableTo));
     setIsVisible(exam.assessment.content.isPublished);
     setSettings(exam.assessment.settings ?? defaultQuizSettings());
-    setAcademicRules(
-      defaultAssessmentAcademicRules({
-        required: exam.required ?? true,
-        countsTowardCertificate: exam.countsTowardCertificate ?? true,
-        blockProgressUntilPassed: exam.blockProgressUntilPassed ?? false,
-        passingScore: exam.passingScore,
-        maxAttempts: exam.maxAttempts,
-      }),
-    );
+    const nextRules = defaultAssessmentAcademicRules({
+      required: exam.required ?? true,
+      countsTowardCertificate: exam.countsTowardCertificate ?? false,
+      blockProgressUntilPassed: exam.blockProgressUntilPassed ?? false,
+      passingScore: exam.passingScore,
+      maxAttempts: exam.maxAttempts,
+    });
+    setAcademicRules(nextRules);
+    lastSavedRulesRef.current = nextRules;
+    setRulesSaveStatus('idle');
   }, [exam]);
-
-  const questions: Question[] = exam?.questions ?? [];
-  const activeQuestion = useMemo(
-    () => questions.find((question) => question.id === activeQuestionId) ?? questions[0] ?? null,
-    [activeQuestionId, questions],
-  );
 
   const persistExamMeta = async () => {
     if (readOnly || !examId) return;
+    const error = getContentTitleError(title);
+    setTitleError(error);
+    if (error) return;
+
     await updateExamMutation.mutateAsync({
       title: title.trim(),
       description: description.trim() || undefined,
@@ -114,39 +116,46 @@ export function ExamLessonEditor({
       availableTo: availableTo ? new Date(availableTo).toISOString() : null,
       isPublished: isVisible,
       settings,
-      ...academicRules,
+      ...(lastSavedRulesRef.current ?? academicRules),
     });
   };
 
   const persistAcademicRules = async (nextRules: AssessmentAcademicRulesFormValues) => {
     if (readOnly || !examId) return;
-    await updateExamMutation.mutateAsync(nextRules);
-  };
-
-  const handleAddQuestion = async (type: QuestionType) => {
-    if (readOnly) return;
-    const draft = createEmptyDraftQuestion(type);
-    const response = await createQuestion.mutateAsync({
-      title: 'New question',
-      type: draft.type,
-      points: draft.points,
-    });
-
-    if (type !== QuestionType.ESSAY) {
-      for (let index = 0; index < draft.options.length; index += 1) {
-        const option = draft.options[index];
-        await createOption.mutateAsync({
-          questionId: response.data.id,
-          payload: {
-            text: option.text,
-            isCorrect: option.isCorrect,
-            order: index + 1,
-          },
-        });
-      }
+    if (lastSavedRulesRef.current && academicRulesEqual(lastSavedRulesRef.current, nextRules)) {
+      setRulesSaveStatus('saved');
+      return;
     }
 
-    setActiveQuestionId(response.data.id);
+    setRulesSaveStatus('saving');
+    try {
+      await updateExamMutation.mutateAsync(nextRules);
+      lastSavedRulesRef.current = nextRules;
+      setAcademicRules(nextRules);
+      setRulesSaveStatus('saved');
+    } catch {
+      if (lastSavedRulesRef.current) {
+        setAcademicRules(lastSavedRulesRef.current);
+      }
+      setRulesSaveStatus('error');
+    }
+  };
+
+  const requestAcademicRulesSave = (patch: Partial<AssessmentAcademicRulesFormValues>) => {
+    if (readOnly) return;
+    const nextRules = { ...academicRules, ...patch };
+    if (lastSavedRulesRef.current && academicRulesEqual(lastSavedRulesRef.current, nextRules)) {
+      setRulesSaveStatus('saved');
+      return;
+    }
+
+    if (isPublishedCourse) {
+      setPendingRules(nextRules);
+      setImpactOpen(true);
+      return;
+    }
+
+    void persistAcademicRules(nextRules);
   };
 
   if (!examId) {
@@ -169,7 +178,12 @@ export function ExamLessonEditor({
     <BuilderLessonShell
       readOnly={readOnly}
       title={title}
-      onTitleChange={setTitle}
+      titleError={titleError}
+      onTitleChange={(value) => {
+        if (readOnly) return;
+        setTitle(value);
+        setTitleError(getContentTitleError(value));
+      }}
       onTitleBlur={readOnly ? undefined : persistExamMeta}
       description={description}
       onDescriptionChange={setDescription}
@@ -216,24 +230,24 @@ export function ExamLessonEditor({
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor={`exam-from-${item.contentId}`}>Available from</Label>
-                    <Input
+                    <DateTimePicker
                       id={`exam-from-${item.contentId}`}
-                      type="datetime-local"
                       value={availableFrom}
-                      onChange={(event) => setAvailableFrom(event.target.value)}
+                      onChange={setAvailableFrom}
                       onBlur={readOnly ? undefined : persistExamMeta}
                       disabled={readOnly}
+                      placeholder="Start date & time"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor={`exam-to-${item.contentId}`}>Available to</Label>
-                    <Input
+                    <DateTimePicker
                       id={`exam-to-${item.contentId}`}
-                      type="datetime-local"
                       value={availableTo}
-                      onChange={(event) => setAvailableTo(event.target.value)}
+                      onChange={setAvailableTo}
                       onBlur={readOnly ? undefined : persistExamMeta}
                       disabled={readOnly}
+                      placeholder="End date & time"
                     />
                   </div>
                   {(
@@ -251,14 +265,14 @@ export function ExamLessonEditor({
                       <Label htmlFor={`exam-${key}-${item.contentId}`}>{label}</Label>
                       <Switch
                         id={`exam-${key}-${item.contentId}`}
+                        size="sm"
                         checked={settings[key]}
                         disabled={readOnly}
                         onCheckedChange={(checked) => {
                           if (readOnly) return;
-                          setSettings((current) => ({ ...current, [key]: checked }));
-                          void updateExamMutation.mutateAsync({
-                            settings: { ...settings, [key]: checked },
-                          });
+                          const next = { ...settings, [key]: checked };
+                          setSettings(next);
+                          void updateExamMutation.mutateAsync({ settings: next });
                         }}
                       />
                     </div>
@@ -272,151 +286,43 @@ export function ExamLessonEditor({
                 values={academicRules}
                 readOnly={readOnly}
                 disabled={updateExamMutation.isPending}
+                saveStatus={rulesSaveStatus}
                 onChange={(values) =>
                   setAcademicRules((current) => ({ ...current, ...values }))
                 }
-                onBlur={() => void persistAcademicRules(academicRules)}
+                onCommit={requestAcademicRulesSave}
               />
             }
           />
         </div>
       }
     >
-      <div className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold">Questions</p>
-            {!readOnly ? (
-            <Select onValueChange={(value) => void handleAddQuestion(value as QuestionType)} value="">
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue placeholder="Add" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={QuestionType.SINGLE_CHOICE}>Single Choice</SelectItem>
-                <SelectItem value={QuestionType.MULTIPLE_CHOICE}>Multiple Choice</SelectItem>
-                <SelectItem value={QuestionType.TRUE_FALSE}>True/False</SelectItem>
-                <SelectItem value={QuestionType.ESSAY}>Essay</SelectItem>
-              </SelectContent>
-            </Select>
-            ) : null}
-          </div>
-          <div className="space-y-2">
-            {questions.map((question, index) => (
-              <button
-                key={question.id}
-                type="button"
-                onClick={() => setActiveQuestionId(question.id)}
-                className={`w-full rounded-md border px-3 py-2 text-left text-sm ${
-                  activeQuestion?.id === question.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border'
-                }`}
-              >
-                <span className="block text-[11px] uppercase text-muted-foreground">
-                  Q{index + 1} · {questionTypeLabel(question.type)}
-                </span>
-                <span className="block truncate font-medium">{question.title}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {activeQuestion ? (
-          <div className="space-y-4 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">{questionTypeLabel(activeQuestion.type)}</p>
-              {!readOnly ? (
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={async () => {
-                  await deleteQuestion.mutateAsync(activeQuestion.id);
-                  setActiveQuestionId(null);
-                }}
-              >
-                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                Delete
-              </Button>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <Label>Title</Label>
-              <Input
-                defaultValue={activeQuestion.title}
-                readOnly={readOnly}
-                onBlur={
-                  readOnly
-                    ? undefined
-                    : (event) =>
-                        updateQuestion.mutate({
-                          questionId: activeQuestion.id,
-                          payload: { title: event.target.value.trim() },
-                        })
-                }
-              />
-            </div>
-            {activeQuestion.type === QuestionType.ESSAY ? (
-              <div className="space-y-2">
-                <Label>Instructions (optional)</Label>
-                <Textarea
-                  defaultValue={activeQuestion.instructions ?? ''}
-                  readOnly={readOnly}
-                  onBlur={
-                    readOnly
-                      ? undefined
-                      : (event) =>
-                          updateQuestion.mutate({
-                            questionId: activeQuestion.id,
-                            payload: { instructions: event.target.value.trim() || undefined },
-                          })
-                  }
-                  rows={3}
-                />
-              </div>
-            ) : null}
-            <div className="space-y-2">
-              <Label>Points</Label>
-              <Input
-                type="number"
-                min={1}
-                defaultValue={activeQuestion.points}
-                className="w-28"
-                readOnly={readOnly}
-                onBlur={
-                  readOnly
-                    ? undefined
-                    : (event) =>
-                        updateQuestion.mutate({
-                          questionId: activeQuestion.id,
-                          payload: { points: Number(event.target.value) || 1 },
-                        })
-                }
-              />
-            </div>
-            {activeQuestion.type !== QuestionType.ESSAY ? (
-              <p className="text-xs text-muted-foreground">
-                Edit options in the full question builder via Assessments → Exams if needed.
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
-            {questions.length === 0 ? (
-              !readOnly ? (
-              <Button type="button" variant="outline" onClick={() => void handleAddQuestion(QuestionType.SINGLE_CHOICE)}>
-                <Plus className="mr-1 h-4 w-4" />
-                Add first question
-              </Button>
-              ) : (
-                'No questions'
-              )
-            ) : (
-              'Select a question'
-            )}
-          </div>
-        )}
-      </div>
+      <ExamManagedQuestionBuilder examId={examId} moduleId={moduleId} readOnly={readOnly} />
+      <AcademicRulesImpactDialog
+        open={impactOpen}
+        onOpenChange={(open) => {
+          setImpactOpen(open);
+          if (!open && pendingRules) {
+            if (lastSavedRulesRef.current) {
+              setAcademicRules(lastSavedRulesRef.current);
+            }
+            setPendingRules(null);
+            setRulesSaveStatus('idle');
+          }
+        }}
+        onConfirm={async () => {
+          if (!pendingRules) return;
+          await persistAcademicRules(pendingRules);
+          setPendingRules(null);
+        }}
+        onCancel={() => {
+          if (lastSavedRulesRef.current) {
+            setAcademicRules(lastSavedRulesRef.current);
+          }
+          setPendingRules(null);
+          setRulesSaveStatus('idle');
+        }}
+      />
     </BuilderLessonShell>
   );
 }

@@ -145,7 +145,17 @@ async function waitForImages(container: HTMLElement) {
     await document.fonts.ready;
   }
 
-  await new Promise((resolve) => setTimeout(resolve, 250));
+  // Wait for auto-fit text (course titles, etc.) to finish shrinking into their boxes.
+  const deadline = Date.now() + 2000;
+  while (Date.now() < deadline) {
+    const pending = container.querySelectorAll(
+      '[data-certificate-text-content="true"]:not([data-certificate-text-fitted="true"])',
+    );
+    if (pending.length === 0) break;
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
 function fixCertificateCloneForCapture(root: HTMLElement) {
@@ -161,21 +171,46 @@ function fixCertificateCloneForCapture(root: HTMLElement) {
   });
 }
 
+/** Cross-origin stylesheets (fonts CDN, etc.) throw on cssRules — disable them during capture. */
+function disableInaccessibleStylesheets(): () => void {
+  const restored: Array<{
+    el: HTMLLinkElement | HTMLStyleElement;
+    disabled?: boolean;
+    media?: string;
+  }> = [];
+
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      void sheet.cssRules;
+    } catch {
+      const owner = sheet.ownerNode;
+      if (owner instanceof HTMLLinkElement) {
+        restored.push({ el: owner, disabled: owner.disabled });
+        owner.disabled = true;
+      } else if (owner instanceof HTMLStyleElement) {
+        restored.push({ el: owner, media: owner.media });
+        owner.media = 'not all';
+      }
+    }
+  }
+
+  return () => {
+    for (const entry of restored) {
+      if (entry.el instanceof HTMLLinkElement && entry.disabled !== undefined) {
+        entry.el.disabled = entry.disabled;
+      } else if (entry.el instanceof HTMLStyleElement && entry.media !== undefined) {
+        entry.el.media = entry.media;
+      }
+    }
+  };
+}
+
 async function captureElementToCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
+  const restoreStylesheets = disableInaccessibleStylesheets();
+
   try {
-    const htmlToImageModule = await import(
-      /* webpackIgnore: true */
-      'https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/+esm'
-    );
-    return await htmlToImageModule.toCanvas(element, {
-      pixelRatio: 2,
-      cacheBust: true,
-      skipAutoScale: true,
-      backgroundColor: '#ffffff',
-    });
-  } catch {
     const { html2canvas } = await loadPdfLibraries();
-    return html2canvas(element, {
+    return await html2canvas(element, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
@@ -183,13 +218,14 @@ async function captureElementToCanvas(element: HTMLElement): Promise<HTMLCanvasE
       logging: false,
       scrollX: 0,
       scrollY: -window.scrollY,
-      letterRendering: true,
       onclone: (_doc: Document, clonedNode: Node) => {
         if (clonedNode instanceof HTMLElement) {
           fixCertificateCloneForCapture(clonedNode);
         }
       },
     });
+  } finally {
+    restoreStylesheets();
   }
 }
 

@@ -80,7 +80,7 @@ function InstitutionSettingsPanel() {
           </div>
           <Switch
             id="require-course-approval"
-            size="default"
+            size="sm"
             checked={data.requireCourseApproval}
             disabled={!canUpdate || updateSettings.isPending}
             onCheckedChange={(checked) =>

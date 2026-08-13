@@ -44,7 +44,9 @@ function assessmentProgressLabel(item: AssessmentSummaryItem) {
         ? 'Attempts Exhausted'
         : item.status === 'FAILED'
           ? 'Failed'
-          : 'Pending';
+          : item.status === 'AWAITING_REVIEW' || item.status === 'SUBMITTED'
+            ? 'Awaiting grading'
+            : 'Pending';
   return `${typeLabel}: ${item.title} ${statusSuffix}`;
 }
 
@@ -100,9 +102,8 @@ export function CertificateProgressContent({
   courseTitle?: string;
   className?: string;
 }) {
-  const certificateAssessments = data.requiredAssessments.filter(
-    (item) => item.countsTowardCertificate,
-  );
+  const certificateAssessments = data.requiredAssessments;
+  const isEligible = data.eligibilityStatus === 'ELIGIBLE';
 
   return (
     <div className={cn('rounded-xl border border-border/60 bg-card p-5 shadow-sm', className)}>
@@ -115,12 +116,12 @@ export function CertificateProgressContent({
         </div>
         <Badge
           className={cn(
-            data.eligibilityStatus === 'ELIGIBLE'
+            isEligible
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50'
               : 'border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-50',
           )}
         >
-          {data.eligibilityStatus === 'ELIGIBLE' ? 'Eligible' : 'Not Eligible'}
+          {isEligible ? 'Eligible' : 'Not Eligible'}
         </Badge>
       </div>
 
@@ -130,27 +131,32 @@ export function CertificateProgressContent({
           passed={data.courseCompleted}
           pending={!data.courseCompleted}
         />
-        {certificateAssessments.map((item) => (
-          <ProgressRow
-            key={item.assessmentId}
-            label={assessmentProgressLabel(item)}
-            passed={item.status === 'PASSED'}
-            pending={
-              !['PASSED', 'FAILED', 'ATTEMPTS_EXHAUSTED'].includes(item.status)
-            }
-          />
-        ))}
+        {certificateAssessments.map((item) => {
+          const isPassed = item.status === 'PASSED';
+          const isFailed = item.status === 'FAILED' || item.status === 'ATTEMPTS_EXHAUSTED';
+          return (
+            <ProgressRow
+              key={item.assessmentId}
+              label={assessmentProgressLabel(item)}
+              passed={isPassed}
+              pending={!isPassed && !isFailed}
+            />
+          );
+        })}
       </div>
 
       <div className="mt-5 grid gap-3 border-t pt-4 sm:grid-cols-2">
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall Grade</p>
           <p className="mt-1 text-lg font-semibold">{formatPercent(data.overallGrade)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Certificate uses overall grade; individual fails are allowed when overall is passing.
+          </p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Certificate Status</p>
           <p className="mt-1 text-sm font-medium">
-            {data.eligibilityStatus === 'ELIGIBLE' ? 'Ready for certificate' : 'Not eligible yet'}
+            {isEligible ? 'Ready for certificate' : 'Not eligible yet'}
           </p>
         </div>
       </div>

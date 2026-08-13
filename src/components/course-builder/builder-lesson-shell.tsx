@@ -5,11 +5,16 @@ import { Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+/** Shared outer spacing for every course-builder content panel. */
+export const BUILDER_CONTENT_OUTER_CLASS =
+  'mx-auto w-full max-w-none px-3 py-4 sm:px-4 md:px-5 md:py-5';
+
 interface BuilderLessonShellProps {
   title: string;
   onTitleChange?: (value: string) => void;
   onTitleBlur?: () => void;
   titlePlaceholder?: string;
+  titleError?: string | null;
   description: string;
   onDescriptionChange?: (value: string) => void;
   onDescriptionBlur?: () => void;
@@ -27,6 +32,7 @@ export function BuilderLessonShell({
   onTitleChange,
   onTitleBlur,
   titlePlaceholder = 'Lesson title',
+  titleError = null,
   description,
   onDescriptionChange,
   onDescriptionBlur,
@@ -39,9 +45,9 @@ export function BuilderLessonShell({
   className,
 }: BuilderLessonShellProps) {
   return (
-    <div className={cn('mx-auto w-full max-w-4xl px-6 py-6', className)}>
+    <div className={cn(BUILDER_CONTENT_OUTER_CLASS, className)}>
       <article className="flex flex-col overflow-hidden rounded-xl border-2 border-primary/20 bg-white shadow-sm">
-        <div className="border-b border-border/50 px-8 pb-5 pt-8">
+        <div className="border-b border-border/50 px-5 pb-5 pt-6 sm:px-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-1 items-start gap-3">
               <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -54,11 +60,18 @@ export function BuilderLessonShell({
                   onChange={readOnly ? undefined : (event) => onTitleChange?.(event.target.value)}
                   onBlur={onTitleBlur}
                   placeholder={titlePlaceholder}
+                  aria-invalid={Boolean(titleError)}
                   className={cn(
-                    'w-full border-none bg-transparent text-xl font-semibold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50',
+                    'w-full border-0 border-b-2 bg-transparent pb-1 text-xl font-semibold tracking-tight text-foreground outline-none transition-colors placeholder:text-muted-foreground/50 focus:outline-none focus:ring-0',
+                    titleError
+                      ? 'border-destructive focus:border-destructive'
+                      : 'border-transparent focus:border-primary/70',
                     readOnly && 'cursor-default',
                   )}
                 />
+                {titleError ? (
+                  <p className="text-[12px] font-medium text-destructive">{titleError}</p>
+                ) : null}
                 <input
                   value={description}
                   readOnly={readOnly}
@@ -68,7 +81,7 @@ export function BuilderLessonShell({
                   onBlur={onDescriptionBlur}
                   placeholder="Click to add description..."
                   className={cn(
-                    'w-full border-none bg-transparent text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground/60',
+                    'w-full border-none bg-transparent text-[13px] text-muted-foreground outline-none placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0',
                     readOnly && 'cursor-default',
                   )}
                 />
@@ -89,9 +102,11 @@ export function BuilderLessonShell({
           </div>
         </div>
 
-        {settings ? <div className="border-b border-border/50 px-8 py-5">{settings}</div> : null}
+        {settings ? (
+          <div className="border-b border-border/50 px-5 py-5 sm:px-6">{settings}</div>
+        ) : null}
 
-        <div className="flex-1 px-8 py-6">{children}</div>
+        <div className="flex-1 px-5 py-5 sm:px-6">{children}</div>
 
         {footer}
       </article>

@@ -10,6 +10,7 @@ import {
   deleteQuizQuestionOption,
   getQuiz,
   persistQuizQuestions,
+  reorderQuizQuestions,
   updateQuiz,
   updateQuizQuestion,
   updateQuizQuestionOption,
@@ -21,6 +22,7 @@ import type {
   UpdateQuestionPayload,
 } from '@/types/question';
 import type { CreateQuizPayload, UpdateQuizPayload } from '@/types/quiz';
+import type { ModuleContentItem } from '@/types/content';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
 import { moduleContentQueryKeys } from '@/hooks/use-module-contents';
@@ -58,9 +60,13 @@ export function useCreateQuiz() {
   });
 }
 
-export function useUpdateQuiz(quizId: string, options?: { silent?: boolean }) {
+export function useUpdateQuiz(
+  quizId: string,
+  options?: { silent?: boolean; moduleId?: string },
+) {
   const queryClient = useQueryClient();
   const silent = options?.silent === true;
+  const moduleId = options?.moduleId;
 
   return useMutation({
     mutationFn: (payload: UpdateQuizPayload) => updateQuiz(quizId, payload),
@@ -72,7 +78,34 @@ export function useUpdateQuiz(quizId: string, options?: { silent?: boolean }) {
       // instead of invalidating (invalidation re-hydrates form state and re-saves).
       queryClient.setQueryData(quizQueryKeys.detail(quizId), response);
       if (!silent) {
-        queryClient.invalidateQueries({ queryKey: quizListQueryKeys.all });
+        void queryClient.invalidateQueries({ queryKey: quizListQueryKeys.all });
+      }
+      // Patch sidebar cache in-place. Do not await invalidateQueries here —
+      // mutateAsync waits for onSuccess, so a refetch would leave the builder
+      // header stuck on "Saving...".
+      if (moduleId) {
+        const quiz = response.data;
+        queryClient.setQueryData(
+          moduleContentQueryKeys.list(moduleId),
+          (current: ModuleContentItem[] | undefined) => {
+            if (!current || !quiz) return current;
+            return current.map((item) => {
+              const matchesQuiz =
+                item.content.assessment?.quiz?.id === quizId ||
+                item.contentId === quiz.assessment.contentId;
+              if (!matchesQuiz) return item;
+              return {
+                ...item,
+                content: {
+                  ...item.content,
+                  title: quiz.assessment.title,
+                  description: quiz.assessment.description,
+                  isPublished: quiz.assessment.content.isPublished,
+                },
+              };
+            });
+          },
+        );
       }
     },
     onError: (error) => {
@@ -113,6 +146,24 @@ export function useCreateQuizQuestion(quizId: string, moduleId?: string) {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to add question.'));
+    },
+  });
+}
+
+export function useReorderQuizQuestions(quizId: string, moduleId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (questionIds: string[]) => reorderQuizQuestions(quizId, questionIds),
+    onSuccess: (response) => {
+      queryClient.setQueryData(quizQueryKeys.detail(quizId), response);
+      if (moduleId) {
+        queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+      }
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to reorder questions.'));
+      queryClient.invalidateQueries({ queryKey: quizQueryKeys.detail(quizId) });
     },
   });
 }

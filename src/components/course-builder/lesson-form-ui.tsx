@@ -62,7 +62,7 @@ export function LessonSettingRow({
         </div>
       </div>
       <Switch
-        size="xs"
+        size="sm"
         checked={checked}
         onCheckedChange={onCheckedChange}
         disabled={disabled}
@@ -127,7 +127,7 @@ export function LessonFormFooter({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 border-t border-border/50 px-8 py-4">
+    <div className="flex items-center justify-end gap-2 border-t border-border/50 px-5 py-4 sm:px-6">
       <Button
         type="button"
         variant="ghost"
@@ -343,6 +343,12 @@ export function defaultUntitledTitle(type: 'text' | 'video' | 'document'): strin
     default:
       return 'Untitled Lesson';
   }
+}
+
+export const CONTENT_TITLE_REQUIRED_MESSAGE = 'Title is required';
+
+export function getContentTitleError(title: string): string | null {
+  return title.trim() ? null : CONTENT_TITLE_REQUIRED_MESSAGE;
 }
 
 export function resolveLessonTitle(title: string, type: 'text' | 'video' | 'document'): string {

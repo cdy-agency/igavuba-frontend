@@ -15,6 +15,7 @@ import {
   persistExamQuestions,
   publishAllExamResults,
   publishExamResult,
+  reorderExamQuestions,
   updateExam,
   updateExamQuestion,
   updateExamQuestionOption,
@@ -69,10 +70,10 @@ export function useUpdateExam(examId: string, moduleId?: string) {
     mutationFn: (payload: UpdateExamPayload) => updateExam(examId, payload),
     onSuccess: (response) => {
       toast.success(response.message || 'Exam updated successfully');
-      queryClient.invalidateQueries({ queryKey: examQueryKeys.detail(examId) });
-      queryClient.invalidateQueries({ queryKey: examListQueryKeys.all });
+      void queryClient.invalidateQueries({ queryKey: examQueryKeys.detail(examId) });
+      void queryClient.invalidateQueries({ queryKey: examListQueryKeys.all });
       if (moduleId) {
-        queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+        void queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
       }
     },
     onError: (error) => {
@@ -125,6 +126,24 @@ export function useCreateExamQuestion(examId: string, moduleId?: string) {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to add question.'));
+    },
+  });
+}
+
+export function useReorderExamQuestions(examId: string, moduleId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (questionIds: string[]) => reorderExamQuestions(examId, questionIds),
+    onSuccess: (response) => {
+      queryClient.setQueryData(examQueryKeys.detail(examId), response);
+      if (moduleId) {
+        queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+      }
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to reorder questions.'));
+      queryClient.invalidateQueries({ queryKey: examQueryKeys.detail(examId) });
     },
   });
 }

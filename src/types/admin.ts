@@ -60,6 +60,9 @@ export interface UserListItem {
     id: string;
     name: string;
   } | null;
+  /** Present for learners; null for staff roles */
+  isInternalStudent?: boolean | null;
+  learnerType?: 'internal' | 'public' | null;
 }
 
 export interface ListQueryParams {
@@ -68,6 +71,7 @@ export interface ListQueryParams {
   searchq?: string;
   role?: UserRole;
   status?: UserStatus;
+  learnerType?: 'internal' | 'public';
   /** Server sort: `field:asc|desc` e.g. `createdAt:desc` */
   sort?: string;
 }

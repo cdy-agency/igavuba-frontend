@@ -12,6 +12,8 @@ import {
   submitAssignment,
 } from '@/api/assignment.api';
 import type {
+  AssignmentSubmission,
+  AssignmentSubmissionHistory,
   GradeAssignmentSubmissionPayload,
   SubmitAssignmentPayload,
 } from '@/types/assignment-submission.types';
@@ -71,14 +73,55 @@ export function useSubmitAssignment(
       submitAssignment(assignmentId, payload, courseId),
     onSuccess: (response) => {
       toast.success(response.message || 'Submission received');
-      queryClient.invalidateQueries({
+
+      const submitted = response.data;
+      queryClient.setQueryData(
+        assignmentSubmissionQueryKeys.mine(assignmentId, courseId),
+        (current: { success?: boolean; message?: string; data?: AssignmentSubmissionHistory } | undefined) => {
+          if (!current?.data) {
+            return current;
+          }
+
+          const mappedSubmission: AssignmentSubmission = {
+            id: submitted.id,
+            attemptNumber: submitted.attemptNumber,
+            status: submitted.status,
+            textAnswer: submitted.textAnswer,
+            fileUrl: submitted.fileUrl,
+            linkUrl: submitted.linkUrl,
+            submittedAt: submitted.submittedAt,
+            createdAt: submitted.createdAt,
+            updatedAt: submitted.updatedAt,
+            deletable: submitted.deletable,
+            grade: submitted.grade,
+          };
+
+          return {
+            ...current,
+            data: {
+              ...current.data,
+              attemptsUsed: submitted.attemptsUsed,
+              attemptsRemaining: submitted.attemptsRemaining,
+              contentCompleted:
+                submitted.markedComplete || current.data.contentCompleted,
+              courseProgress: submitted.courseProgress ?? current.data.courseProgress,
+              submissions: [
+                mappedSubmission,
+                ...current.data.submissions.filter((entry) => entry.id !== mappedSubmission.id),
+              ],
+            },
+          };
+        },
+      );
+
+      void queryClient.invalidateQueries({
         queryKey: assignmentSubmissionQueryKeys.mine(assignmentId, courseId),
       });
       if (courseSlug) {
-        queryClient.invalidateQueries({ queryKey: learningQueryKeys.course(courseSlug) });
+        void queryClient.invalidateQueries({ queryKey: learningQueryKeys.course(courseSlug) });
       }
       if (courseId) {
-        queryClient.invalidateQueries({ queryKey: progressQueryKeys.course(courseId) });
+        void queryClient.invalidateQueries({ queryKey: progressQueryKeys.course(courseId) });
       }
     },
     onError: (error) => {

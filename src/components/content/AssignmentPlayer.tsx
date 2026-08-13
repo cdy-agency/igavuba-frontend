@@ -104,16 +104,49 @@ export function AssignmentPlayer({
   const canSubmit = attemptsRemaining > 0;
   const latestGrade = history?.latestGrade?.grade;
   const maxScore = history?.maxScore ?? assignmentMeta.maxScore ?? 100;
-  const hasPendingReview = history?.submissions?.some(
-    (entry: AssignmentSubmission) =>
-      entry.status === AssignmentSubmissionStatus.SUBMITTED ||
-      entry.status === AssignmentSubmissionStatus.GRADED,
+  const isUnderReview = Boolean(
+    history?.submissions?.some(
+      (entry: AssignmentSubmission) =>
+        entry.status === AssignmentSubmissionStatus.SUBMITTED ||
+        entry.status === AssignmentSubmissionStatus.GRADED,
+    ),
   );
-  const awaitingReview = hasPendingReview && !latestGrade;
+  const hasPassed =
+    latestGrade?.passed === true ||
+    Boolean(
+      history?.submissions?.some(
+        (entry: AssignmentSubmission) =>
+          entry.status === AssignmentSubmissionStatus.PUBLISHED &&
+          entry.grade?.passed === true,
+      ),
+    );
+  const hasFailedPublished = latestGrade?.passed === false;
   const contentCompleted = isCompleted || history?.contentCompleted === true;
-  const hasPassed = latestGrade?.passed === true;
   const hasSubmitted = (history?.submissions?.length ?? 0) > 0;
-  const showSubmissionForm = canSubmit && !hasPendingReview && !hasPassed;
+  // Re-attempt only after a published fail (or first attempt). Never while under review or after pass.
+  const showSubmissionForm = canSubmit && !isUnderReview && !hasPassed;
+  const gradedSubmissions = useMemo(
+    () =>
+      (history?.submissions ?? []).filter(
+        (entry: AssignmentSubmission) =>
+          entry.status === AssignmentSubmissionStatus.PUBLISHED &&
+          entry.grade?.score != null,
+      ),
+    [history?.submissions],
+  );
+  const bestSubmissionId = useMemo(() => {
+    if (!gradedSubmissions.length) return null;
+    return gradedSubmissions.reduce((best: AssignmentSubmission, entry: AssignmentSubmission) => {
+      const bestScore = best.grade?.score ?? -1;
+      const entryScore = entry.grade?.score ?? -1;
+      return entryScore > bestScore ? entry : best;
+    }).id;
+  }, [gradedSubmissions]);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+  const selectedSubmission =
+    (history?.submissions ?? []).find(
+      (entry: AssignmentSubmission) => entry.id === selectedSubmissionId,
+    ) ?? null;
   const lastReportedProgressRef = useRef<number | null>(null);
   const onProgressUpdatedRef = useRef(onProgressUpdated);
   onProgressUpdatedRef.current = onProgressUpdated;
@@ -277,9 +310,16 @@ export function AssignmentPlayer({
         </div>
       ) : null}
 
-      {awaitingReview ? (
+      {isUnderReview ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-          Your submission is under review.
+          Your submission is under review. You cannot submit another attempt until grading is
+          published.
+        </div>
+      ) : null}
+
+      {hasPassed ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-900">
+          You have already passed this assignment. No further attempts are needed.
         </div>
       ) : null}
 
@@ -293,10 +333,15 @@ export function AssignmentPlayer({
           )}
         >
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Published result
+            Your marks
           </p>
           <p className="mt-2 text-2xl font-semibold">
             {latestGrade.score}/{maxScore}
+            {latestGrade.score != null && maxScore > 0 ? (
+              <span className="ml-2 text-base font-medium text-muted-foreground">
+                ({Math.round((latestGrade.score / maxScore) * 100)}%)
+              </span>
+            ) : null}
           </p>
           <p className="mt-1 text-sm font-medium">
             {latestGrade.passed ? 'Passed' : 'Did not pass'} · {latestGrade.passingScore}% required
@@ -315,9 +360,100 @@ export function AssignmentPlayer({
         </div>
       ) : null}
 
+      {gradedSubmissions.length > 0 ? (
+        <div className="space-y-3 rounded-lg border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Attempt marks</h3>
+            {!canSubmit ? (
+              <p className="text-xs text-muted-foreground">
+                No attempts left · tap an attempt for details
+              </p>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            {gradedSubmissions.map((submission: AssignmentSubmission) => {
+              const score = submission.grade?.score ?? 0;
+              const submissionMax = submission.grade?.maxScore ?? maxScore;
+              const percentage =
+                submissionMax > 0 ? Math.round((score / submissionMax) * 100) : 0;
+              const isBest = submission.id === bestSubmissionId;
+              const isSelected = submission.id === selectedSubmissionId;
+
+              return (
+                <button
+                  key={submission.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedSubmissionId((current) =>
+                      current === submission.id ? null : submission.id,
+                    )
+                  }
+                  className={cn(
+                    'flex w-full items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-left transition-colors hover:bg-muted/40',
+                    isBest ? 'border-emerald-300 bg-emerald-50/60' : 'border-border',
+                    isSelected && 'ring-2 ring-primary/30',
+                  )}
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      Attempt {submission.attemptNumber}
+                      {isBest ? ' · Best' : ''}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {submission.submittedAt
+                        ? formatDueDate(submission.submittedAt)
+                        : 'Submitted'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className={cn(
+                        'text-sm font-semibold',
+                        submission.grade?.passed ? 'text-emerald-600' : 'text-destructive',
+                      )}
+                    >
+                      {score}/{submissionMax} · {percentage}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {submission.grade?.passed ? 'Passed' : 'Failed'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {selectedSubmission?.grade ? (
+            <div className="rounded-md border bg-muted/20 p-3 text-sm">
+              <p className="font-medium">
+                Attempt {selectedSubmission.attemptNumber} details
+                {selectedSubmission.id === bestSubmissionId ? ' · Highest mark' : ''}
+              </p>
+              <p className="mt-1">
+                Score: {selectedSubmission.grade.score}/{selectedSubmission.grade.maxScore ?? maxScore}
+              </p>
+              {selectedSubmission.grade.feedback ? (
+                <p className="mt-2 whitespace-pre-wrap text-muted-foreground">
+                  {selectedSubmission.grade.feedback}
+                </p>
+              ) : (
+                <p className="mt-2 text-muted-foreground">No written feedback for this attempt.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {showSubmissionForm ? (
         <div className="space-y-4 rounded-lg border p-5">
-          <h3 className="text-lg font-semibold">Submit your work</h3>
+          <h3 className="text-lg font-semibold">
+            {hasFailedPublished ? 'Try again' : 'Submit your work'}
+          </h3>
+
+          {hasFailedPublished ? (
+            <p className="text-sm text-muted-foreground">
+              Your previous attempt did not pass. Submit a new attempt ({attemptsRemaining} remaining).
+            </p>
+          ) : null}
 
           {enabledTypes.includes(AssignmentSubmissionType.TEXT) ? (
             <div className="space-y-1.5">
@@ -376,10 +512,10 @@ export function AssignmentPlayer({
             {submitAssignment.isPending ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
-            Submit Assignment
+            Submit {hasFailedPublished ? 'new attempt' : 'Assignment'}
           </Button>
         </div>
-      ) : !canSubmit && !hasPassed ? (
+      ) : !canSubmit && !hasPassed && !isUnderReview ? (
         <div className="rounded-lg border border-dashed px-6 py-8 text-center text-sm text-muted-foreground">
           You have used all available attempts for this assignment.
         </div>
@@ -414,6 +550,17 @@ export function AssignmentPlayer({
               <p className="mt-1 text-muted-foreground">
                 Submitted {submission.submittedAt ? formatDueDate(submission.submittedAt) : '—'}
               </p>
+              {submission.grade?.score != null ? (
+                <p
+                  className={cn(
+                    'mt-2 text-sm font-semibold',
+                    submission.grade.passed ? 'text-emerald-600' : 'text-destructive',
+                  )}
+                >
+                  Mark: {submission.grade.score}/{submission.grade.maxScore ?? maxScore}
+                  {submission.id === bestSubmissionId ? ' · Best' : ''}
+                </p>
+              ) : null}
               {submission.textAnswer ? (
                 <div className="mt-3 rounded-md border p-3">
                   <TiptapContent

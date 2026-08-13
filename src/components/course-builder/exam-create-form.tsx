@@ -14,6 +14,7 @@ import {
   mapDraftQuestionsToPayload,
   validateDraftQuestions,
 } from '@/components/quiz/quiz-question-builder';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -167,22 +168,22 @@ export function ExamCreateForm({ moduleId, onCreated, onCancel }: ExamCreateForm
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="exam-available-from">Available from</Label>
-              <Input
+              <DateTimePicker
                 id="exam-available-from"
-                type="datetime-local"
                 value={availableFrom}
-                onChange={(event) => setAvailableFrom(event.target.value)}
+                onChange={setAvailableFrom}
                 disabled={isSubmitting}
+                placeholder="Start date & time"
               />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="exam-available-to">Available to</Label>
-              <Input
+              <DateTimePicker
                 id="exam-available-to"
-                type="datetime-local"
                 value={availableTo}
-                onChange={(event) => setAvailableTo(event.target.value)}
+                onChange={setAvailableTo}
                 disabled={isSubmitting}
+                placeholder="End date & time"
               />
             </div>
             {(
@@ -200,6 +201,7 @@ export function ExamCreateForm({ moduleId, onCreated, onCancel }: ExamCreateForm
                 <Label htmlFor={`exam-${key}`}>{label}</Label>
                 <Switch
                   id={`exam-${key}`}
+                  size="sm"
                   checked={settings[key]}
                   onCheckedChange={(checked) =>
                     setSettings((current) => ({ ...current, [key]: checked }))
