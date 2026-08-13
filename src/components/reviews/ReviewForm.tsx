@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RatingStars } from '@/components/reviews/RatingStars';
@@ -43,7 +42,6 @@ export function ReviewForm({
     resolver: zodResolver(reviewFormSchema),
     defaultValues: {
       rating: initialReview?.rating ?? 0,
-      title: initialReview?.title ?? '',
       comment: initialReview?.comment ?? '',
     },
   });
@@ -51,20 +49,22 @@ export function ReviewForm({
   useEffect(() => {
     form.reset({
       rating: initialReview?.rating ?? 0,
-      title: initialReview?.title ?? '',
       comment: initialReview?.comment ?? '',
     });
   }, [initialReview, form]);
 
   const rating = form.watch('rating');
-  const comment = form.watch('comment');
+  const comment = form.watch('comment') ?? '';
   const ratingLabel = useMemo(() => getRatingLabel(rating), [rating]);
 
   return (
     <form
       className="space-y-5"
       onSubmit={form.handleSubmit(async (values) => {
-        await onSubmit(values);
+        await onSubmit({
+          rating: values.rating,
+          comment: values.comment?.trim() ?? '',
+        });
       })}
     >
       <div
@@ -104,31 +104,16 @@ export function ReviewForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="review-title" className="text-sm font-semibold text-foreground">
-          Review title
-        </Label>
-        <Input
-          id="review-title"
-          placeholder="Sum up your experience in a few words"
-          className="h-11 rounded-lg border-border bg-background text-base shadow-none focus-visible:border-[var(--primary)] focus-visible:ring-[var(--primary)]/20"
-          {...form.register('title')}
-        />
-        {form.formState.errors.title ? (
-          <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
-        ) : null}
-      </div>
-
-      <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <Label htmlFor="review-comment" className="text-sm font-semibold text-foreground">
-            Review content
+            Comment <span className="font-normal text-muted-foreground">(optional)</span>
           </Label>
           <span className="text-xs text-muted-foreground">{comment.length} characters</span>
         </div>
         <Textarea
           id="review-comment"
           rows={5}
-          placeholder="What did you learn? What stood out? Would you recommend this course?"
+          placeholder="Share what you thought about the course (optional)"
           className="min-h-[120px] resize-y rounded-lg border-border bg-background text-base shadow-none focus-visible:border-[var(--primary)] focus-visible:ring-[var(--primary)]/20"
           {...form.register('comment')}
         />

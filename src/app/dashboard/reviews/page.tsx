@@ -142,7 +142,7 @@ function ReviewsDashboardContent() {
                       <RatingStars value={review.rating} size="sm" />
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {review.title} — {review.comment}
+                      {review.comment?.trim() || 'Rated without a comment'}
                     </p>
                   </div>
                 ))

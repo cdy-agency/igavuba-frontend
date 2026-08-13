@@ -123,12 +123,16 @@ export function ReviewCard({
         </div>
 
         <div className="space-y-1.5">
-          <h3 className="text-[15px] font-bold leading-snug text-[#1c1d1f]">
-            {review.title}
-          </h3>
-          <p className="whitespace-pre-wrap text-[15px] leading-7 text-[#2d2f31]">
-            {review.comment}
-          </p>
+          {review.title?.trim() ? (
+            <h3 className="text-[15px] font-bold leading-snug text-[#1c1d1f]">
+              {review.title}
+            </h3>
+          ) : null}
+          {review.comment?.trim() ? (
+            <p className="whitespace-pre-wrap text-[15px] leading-7 text-[#2d2f31]">
+              {review.comment}
+            </p>
+          ) : null}
         </div>
       </div>
     </article>

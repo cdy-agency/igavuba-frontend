@@ -6,16 +6,7 @@ export const reviewFormSchema = z.object({
     .int()
     .min(1, 'Select at least 1 star')
     .max(5, 'Rating cannot exceed 5 stars'),
-  title: z
-    .string()
-    .trim()
-    .min(3, 'Title must be at least 3 characters')
-    .max(120, 'Title is too long'),
-  comment: z
-    .string()
-    .trim()
-    .min(10, 'Please share a bit more detail (at least 10 characters)')
-    .max(5000, 'Comment is too long'),
+  comment: z.string().trim().max(5000, 'Comment is too long').optional(),
 });
 
 export type ReviewFormValues = z.infer<typeof reviewFormSchema>;
