@@ -85,6 +85,7 @@ export interface CertificateEligibilityResult {
   pendingAssessments: AssessmentSummaryItem[];
   failedAssessments: AssessmentSummaryItem[];
   reasons: string[];
+  hasCertificateTemplate?: boolean;
 }
 
 export interface CourseCompletionResult {

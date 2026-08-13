@@ -71,8 +71,8 @@ export interface ReviewEligibility {
 
 export interface CreateReviewPayload {
   rating: number;
-  title: string;
-  comment: string;
+  title?: string;
+  comment?: string;
 }
 
 export interface ReviewAnalytics {

@@ -64,14 +64,14 @@ export function ReviewModal({
             <DialogDescription className="!text-white/90 text-sm leading-relaxed [&_span]:!text-white">
               {isEditing ? (
                 <>
-                  Update your feedback for{' '}
-                  <span className="font-semibold">{courseTitle}</span>.
+                  Update your rating for{' '}
+                  <span className="font-semibold">{courseTitle}</span>. A comment is optional.
                 </>
               ) : (
                 <>
-                  Share your experience with{' '}
-                  <span className="font-semibold">{courseTitle}</span>. Your review helps other
-                  learners choose the right course.
+                  Rate{' '}
+                  <span className="font-semibold">{courseTitle}</span>. You can add a comment if you
+                  want — it is optional.
                 </>
               )}
             </DialogDescription>

@@ -8,7 +8,10 @@ import {
   Copy,
   Download,
   ExternalLink,
+  Headphones,
   Loader2,
+  Mail,
+  Phone,
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -47,6 +50,46 @@ function formatDate(value: string) {
 function formatPercent(value: number | null) {
   if (value === null || value === undefined) return '—';
   return `${Math.round(value)}%`;
+}
+
+const CERTIFICATE_SUPPORT_EMAIL = 'info@cdyagency.com';
+const CERTIFICATE_SUPPORT_PHONE = '+250 790 147 808';
+
+function NoCertificateAssignedNotice() {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl border border-border bg-muted/30 px-4 py-4">
+        <div className="flex items-start gap-3">
+          <Headphones className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">
+              This course has no certificate yet
+            </p>
+            <p className="text-sm text-muted-foreground">
+              A certificate has not been assigned to this course, so we cannot generate one.
+              Please contact support if you need a certificate for this course.
+            </p>
+            <div className="flex flex-col gap-1.5 pt-1 text-sm">
+              <a
+                href={`mailto:${CERTIFICATE_SUPPORT_EMAIL}`}
+                className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+              >
+                <Mail className="h-4 w-4" />
+                {CERTIFICATE_SUPPORT_EMAIL}
+              </a>
+              <a
+                href={`tel:${CERTIFICATE_SUPPORT_PHONE.replace(/\s/g, '')}`}
+                className="inline-flex items-center gap-2 font-medium text-primary hover:underline"
+              >
+                <Phone className="h-4 w-4" />
+                {CERTIFICATE_SUPPORT_PHONE}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function IssuedCertificateCard({ certificate }: { certificate: IssuedCertificate }) {
@@ -198,11 +241,20 @@ function CertificateClaimSection({
   }
 
   const issuedCertificate = certificate ?? issueCertificate.data ?? null;
+  const hasCertificateTemplate = Boolean(
+    eligibility.hasCertificateTemplate || issuedCertificate?.template,
+  );
   const canClaimCertificate =
-    eligibility.eligibilityStatus === 'ELIGIBLE' && eligibility.pendingAssessments.length === 0;
+    hasCertificateTemplate &&
+    eligibility.eligibilityStatus === 'ELIGIBLE' &&
+    eligibility.pendingAssessments.length === 0;
 
-  if (issuedCertificate) {
+  if (issuedCertificate?.template) {
     return <IssuedCertificateCard certificate={issuedCertificate} />;
+  }
+
+  if (!hasCertificateTemplate) {
+    return <NoCertificateAssignedNotice />;
   }
 
   if (canClaimCertificate) {
@@ -352,10 +404,13 @@ export function CourseCompletionPage({
                   {myReview ? (
                     <div className="space-y-2 rounded-xl border border-border bg-muted/40 p-4">
                       <RatingStars value={myReview.rating} size="md" />
-                      <p className="text-[15px] font-semibold text-foreground">{myReview.title}</p>
-                      <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-                        {myReview.comment}
-                      </p>
+                      {myReview.comment ? (
+                        <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+                          {myReview.comment}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No comment added.</p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex justify-center rounded-xl border border-dashed border-border bg-[var(--primary-subtle)] py-4">
@@ -390,7 +445,7 @@ export function CourseCompletionPage({
                 <div>
                   <h2 className="text-lg font-semibold text-foreground">Certificate</h2>
                   <p className="text-sm text-muted-foreground">
-                    Claim and download your official course certificate.
+                    Your official course certificate, if one has been assigned.
                   </p>
                 </div>
               </div>
@@ -407,7 +462,11 @@ export function CourseCompletionPage({
         initialReview={myReview}
         submitting={saveReview.isPending}
         onSubmit={async (values) => {
-          await saveReview.mutateAsync(values);
+          await saveReview.mutateAsync({
+            rating: values.rating,
+            title: '',
+            comment: values.comment?.trim() ?? '',
+          });
         }}
       />
     </div>
