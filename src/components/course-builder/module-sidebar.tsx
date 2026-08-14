@@ -57,6 +57,7 @@ import {
   useDetachContentWithUndo,
   useModuleContents,
   useReorderModuleContents,
+  useResetModuleContentChange,
 } from '@/hooks/use-module-contents';
 import type { CourseModule } from '@/types/module';
 import type { ContentRecord, ModuleContentItem } from '@/types/content';
@@ -134,6 +135,19 @@ function lessonTypeMeta(type: ModuleContentItem['content']['type']) {
   }
 }
 
+function changeStatusMeta(status: ModuleContentItem['changeStatus']) {
+  switch (status) {
+    case 'ADDED':
+      return { label: 'Added', tone: 'success' as const };
+    case 'DELETED':
+      return { label: 'Deleted', tone: 'danger' as const };
+    case 'CHANGED':
+      return { label: 'Changed', tone: 'warning' as const };
+    default:
+      return null;
+  }
+}
+
 function SortableLessonItem({
   item,
   isSelected,
@@ -153,6 +167,7 @@ function SortableLessonItem({
     id: item.contentId,
   });
   const { Icon, iconClass, label } = lessonTypeMeta(item.content.type);
+  const status = changeStatusMeta(item.changeStatus);
 
   return (
     <div
@@ -192,6 +207,18 @@ function SortableLessonItem({
               Hidden
             </span>
           ) : null}
+          {status ? (
+            <span
+              className={cn(
+                'shrink-0 rounded-full border px-1.5 py-px text-[8px] font-bold uppercase tracking-wide',
+                status.tone === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                status.tone === 'warning' && 'border-amber-200 bg-amber-50 text-amber-700',
+                status.tone === 'danger' && 'border-red-200 bg-red-50 text-red-700',
+              )}
+            >
+              {status.label}
+            </span>
+          ) : null}
         </span>
         <span className="mt-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-400">
           {label}
@@ -206,14 +233,17 @@ function SortableLessonItem({
         ) : null}
       </button>
       {!readOnly ? (
-      <button
-        type="button"
-        className="shrink-0 rounded p-1 text-slate-300 hover:bg-red-50 hover:text-destructive"
-        onClick={onDelete}
-        aria-label="Remove lesson"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </button>
+        <button
+          type="button"
+          className="shrink-0 rounded p-1 text-slate-300 hover:bg-red-50 hover:text-destructive"
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete();
+          }}
+          aria-label="Remove lesson"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
       ) : null}
     </div>
   );
@@ -294,6 +324,7 @@ function ModuleLessons({
   const { data: contentsData, isPending } = useModuleContents(moduleId);
   const reorderMutation = useReorderModuleContents(moduleId);
   const detachWithUndo = useDetachContentWithUndo(moduleId);
+  const resetMutation = useResetModuleContentChange(moduleId);
   const [localContents, setLocalContents] = useState<ModuleContentItem[]>([]);
   const [lessonToDetach, setLessonToDetach] = useState<ModuleContentItem | null>(null);
 
@@ -375,7 +406,7 @@ function ModuleLessons({
         }
         confirmText="Remove lesson"
         onConfirm={async () => {
-          if (!lessonToDetach) return;
+          if (!lessonToDetach || lessonToDetach.changeStatus) return;
           detachWithUndo(lessonToDetach);
           setLessonToDetach(null);
         }}

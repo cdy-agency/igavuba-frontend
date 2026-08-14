@@ -11,6 +11,7 @@ import {
   detachContent,
   getModuleContents,
   reorderModuleContents,
+  resetModuleContentChange,
   updateDocumentContent,
   updateTextContent,
   updateVideoContent,
@@ -155,9 +156,26 @@ export function useDetachContent(moduleId: string) {
   });
 }
 
+/** Undoes a single add/edit/delete that hasn't been published yet. */
+export function useResetModuleContentChange(moduleId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (contentId: string) => resetModuleContentChange(moduleId, contentId),
+    onSuccess: (response) => {
+      toast.success(response.message || 'Change reset.');
+      queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Unable to reset this change.'));
+    },
+  });
+}
+
 /**
- * Removes a lesson from the module optimistically with an "Undo" toast
- * window before the detach API call actually commits.
+ * Starts the detach flow without hiding the item immediately.
+ * In revision drafts, deleted lessons should stay visible with a Deleted badge
+ * until the server responds and refreshes the list state.
  */
 export function useDetachContentWithUndo(moduleId: string) {
   const queryClient = useQueryClient();
@@ -165,18 +183,11 @@ export function useDetachContentWithUndo(moduleId: string) {
   return (item: ModuleContentItem) => {
     const queryKey = moduleContentQueryKeys.list(moduleId);
 
-    queryClient.setQueryData<ModuleContentItem[]>(queryKey, (prev: ModuleContentItem[] | undefined) =>
-      prev?.filter((existing: ModuleContentItem) => existing.contentId !== item.contentId),
-    );
-
     toast.undoable({
       title: `"${item.content.title}" removed`,
       description: 'This lesson will be detached from the module.',
       onUndo: () => {
-        queryClient.setQueryData<ModuleContentItem[]>(queryKey, (prev: ModuleContentItem[] | undefined) => {
-          const next = prev ? [...prev, item] : [item];
-          return next.sort((a, b) => a.order - b.order);
-        });
+        queryClient.invalidateQueries({ queryKey });
       },
       onExpire: () => {
         detachContent(moduleId, item.contentId)

@@ -19,6 +19,11 @@ interface BuilderLessonShellProps {
   onDescriptionChange?: (value: string) => void;
   onDescriptionBlur?: () => void;
   onDelete?: () => void;
+  statusBadge?: {
+    label: string;
+    tone?: 'success' | 'warning' | 'danger' | 'neutral';
+  };
+  onReset?: () => void;
   readOnly?: boolean;
   icon: ReactNode;
   settings?: ReactNode;
@@ -37,6 +42,8 @@ export function BuilderLessonShell({
   onDescriptionChange,
   onDescriptionBlur,
   onDelete,
+  statusBadge,
+  onReset,
   readOnly = false,
   icon,
   settings,
@@ -87,18 +94,46 @@ export function BuilderLessonShell({
                 />
               </div>
             </div>
-            {onDelete && !readOnly ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={onDelete}
-                aria-label="Delete lesson"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            ) : null}
+            <div className="flex shrink-0 items-center gap-2">
+              {statusBadge ? (
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-wide',
+                      statusBadge.tone === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                      statusBadge.tone === 'warning' && 'border-amber-200 bg-amber-50 text-amber-700',
+                      statusBadge.tone === 'danger' && 'border-red-200 bg-red-50 text-red-700',
+                      !statusBadge.tone && 'border-slate-200 bg-slate-100 text-slate-700',
+                    )}
+                  >
+                    {statusBadge.label}
+                  </span>
+                  {onReset ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 rounded-md border-slate-200 px-2 text-[10px] font-medium uppercase tracking-wide"
+                      onClick={onReset}
+                    >
+                      reset
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
+                {onDelete && !readOnly && !statusBadge ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                  onClick={onDelete}
+                  aria-label="Delete lesson"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
 
