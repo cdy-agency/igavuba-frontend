@@ -10,6 +10,7 @@ import {
   Pencil,
   RefreshCw,
   Send,
+  Undo2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DeleteDialog } from '@/components/dialog/delete-dialog';
+import { useState } from 'react';
 import { getCourseLifecycleLabel } from '@/lib/status-utils';
 import { getCourseStatusClassName } from '@/lib/course-utils';
 import type { CourseReviewFeedbackBadgeTone } from '@/lib/course-review-feedback-context';
@@ -59,6 +62,8 @@ interface BuilderHeaderProps {
   feedbackBadgeCount?: number | null;
   feedbackBadgeTone?: CourseReviewFeedbackBadgeTone;
   showResubmit?: boolean;
+  canDiscardRevision?: boolean;
+  onDiscardRevision?: () => void;
 }
 
 export function BuilderHeader({
@@ -88,8 +93,11 @@ export function BuilderHeader({
   feedbackBadgeCount = null,
   feedbackBadgeTone = 'action',
   showResubmit = false,
+  canDiscardRevision = false,
+  onDiscardRevision,
 }: BuilderHeaderProps) {
   const statusLabel = getCourseLifecycleLabel(course.status).toUpperCase();
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
 
   const feedbackButtonClasses = {
     action:
@@ -565,6 +573,21 @@ export function BuilderHeader({
                 Edit course details
               </Link>
             </DropdownMenuItem>
+            {canDiscardRevision ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    setDiscardConfirmOpen(true);
+                  }}
+                >
+                  <Undo2 className="mr-2 h-4 w-4" />
+                  Discard draft changes
+                </DropdownMenuItem>
+              </>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/dashboard/courses">Back to courses</Link>
@@ -572,6 +595,18 @@ export function BuilderHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <DeleteDialog
+        isOpen={discardConfirmOpen}
+        onOpenChange={setDiscardConfirmOpen}
+        title="Discard draft changes"
+        description="This permanently deletes every edit made since the last publish (added/removed modules and lessons, content changes). Learners keep seeing the published version. This cannot be undone."
+        confirmText="Discard changes"
+        onConfirm={() => {
+          onDiscardRevision?.();
+          setDiscardConfirmOpen(false);
+        }}
+      />
     </header>
   );
 }

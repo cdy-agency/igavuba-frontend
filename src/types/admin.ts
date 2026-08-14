@@ -51,6 +51,8 @@ export interface UserListItem {
   id: string;
   name: string | null;
   email: string;
+  phoneNumber?: string | null;
+  profileImage?: string | null;
   role: UserRole;
   status: UserStatus;
   emailVerified: boolean;
@@ -60,6 +62,7 @@ export interface UserListItem {
     id: string;
     name: string;
   } | null;
+  studentId?: string | null;
   /** Present for learners; null for staff roles */
   isInternalStudent?: boolean | null;
   learnerType?: 'internal' | 'public' | null;

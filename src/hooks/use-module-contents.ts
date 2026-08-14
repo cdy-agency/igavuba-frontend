@@ -155,6 +155,43 @@ export function useDetachContent(moduleId: string) {
   });
 }
 
+/**
+ * Removes a lesson from the module optimistically with an "Undo" toast
+ * window before the detach API call actually commits.
+ */
+export function useDetachContentWithUndo(moduleId: string) {
+  const queryClient = useQueryClient();
+
+  return (item: ModuleContentItem) => {
+    const queryKey = moduleContentQueryKeys.list(moduleId);
+
+    queryClient.setQueryData<ModuleContentItem[]>(queryKey, (prev: ModuleContentItem[] | undefined) =>
+      prev?.filter((existing: ModuleContentItem) => existing.contentId !== item.contentId),
+    );
+
+    toast.undoable({
+      title: `"${item.content.title}" removed`,
+      description: 'This lesson will be detached from the module.',
+      onUndo: () => {
+        queryClient.setQueryData<ModuleContentItem[]>(queryKey, (prev: ModuleContentItem[] | undefined) => {
+          const next = prev ? [...prev, item] : [item];
+          return next.sort((a, b) => a.order - b.order);
+        });
+      },
+      onExpire: () => {
+        detachContent(moduleId, item.contentId)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey });
+          })
+          .catch((error) => {
+            toast.error(getApiErrorMessage(error, 'Unable to remove lesson.'));
+            queryClient.invalidateQueries({ queryKey });
+          });
+      },
+    });
+  };
+}
+
 export function useReorderModuleContents(moduleId: string) {
   const queryClient = useQueryClient();
 

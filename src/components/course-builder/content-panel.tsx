@@ -25,7 +25,7 @@ import {
   useCreateDocumentContent,
   useCreateTextContent,
   useCreateVideoContent,
-  useDetachContent,
+  useDetachContentWithUndo,
   useModuleContents,
   useUpdateDocumentContent,
   useUpdateTextContent,
@@ -739,7 +739,7 @@ export function ContentPanel({
   if (contentsData) {
     contentsDataRef.current = contentsData;
   }
-  const detachMutation = useDetachContent(moduleId ?? '');
+  const detachWithUndo = useDetachContentWithUndo(moduleId ?? '');
   const [contentToDetach, setContentToDetach] = useState<ModuleContentItem | null>(null);
 
   const selectedItem = contents.find((item) => item.contentId === selectedContentId) ?? null;
@@ -898,7 +898,7 @@ export function ContentPanel({
         confirmText="Remove lesson"
         onConfirm={async () => {
           if (!contentToDetach || !moduleId) return;
-          await detachMutation.mutateAsync(contentToDetach.contentId);
+          detachWithUndo(contentToDetach);
           if (selectedContentId === contentToDetach.contentId) {
             setSelectedContentId(null);
           }
