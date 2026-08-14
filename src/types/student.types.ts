@@ -145,6 +145,8 @@ export interface CourseStudentRow {
   studentId: string | null;
   name: string | null;
   email: string;
+  phoneNumber?: string | null;
+  profileImage?: string | null;
   status: string;
   department: StudentDepartment | null;
   progress: number;

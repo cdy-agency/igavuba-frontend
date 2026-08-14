@@ -72,6 +72,18 @@ export async function resubmitCourseRevision(courseId: string) {
   return response.data;
 }
 
+export async function discardCourseRevision(courseId: string) {
+  const response = await apiClient.post<
+    CourseMutationResponse<{
+      id: string;
+      status: string;
+      hasUnpublishedChanges: boolean;
+      revisionStatus: null;
+    }>
+  >(`/courses/${courseId}/discard-revision`);
+  return response.data;
+}
+
 export async function approveCourseRevision(courseId: string) {
   const response = await apiClient.patch<
     CourseMutationResponse<{

@@ -50,11 +50,11 @@ import {
   useCourseBuilder,
   type LessonCreateType,
 } from '@/components/course-builder/course-builder-context';
-import { useCourseModules, useCreateModule, useDeleteModule, useReorderModules, useUpdateModule } from '@/hooks/use-course-modules';
+import { useCourseModules, useCreateModule, useDeleteModuleWithUndo, useReorderModules, useUpdateModule } from '@/hooks/use-course-modules';
 import { useCourseAcademicPolicy } from '@/hooks/use-academic';
 import type { CourseAcademicPolicyAssessment } from '@/types/academic.types';
 import {
-  useDetachContent,
+  useDetachContentWithUndo,
   useModuleContents,
   useReorderModuleContents,
 } from '@/hooks/use-module-contents';
@@ -293,7 +293,7 @@ function ModuleLessons({
 }) {
   const { data: contentsData, isPending } = useModuleContents(moduleId);
   const reorderMutation = useReorderModuleContents(moduleId);
-  const detachMutation = useDetachContent(moduleId);
+  const detachWithUndo = useDetachContentWithUndo(moduleId);
   const [localContents, setLocalContents] = useState<ModuleContentItem[]>([]);
   const [lessonToDetach, setLessonToDetach] = useState<ModuleContentItem | null>(null);
 
@@ -376,7 +376,7 @@ function ModuleLessons({
         confirmText="Remove lesson"
         onConfirm={async () => {
           if (!lessonToDetach) return;
-          await detachMutation.mutateAsync(lessonToDetach.contentId);
+          detachWithUndo(lessonToDetach);
           setLessonToDetach(null);
         }}
       />
@@ -588,7 +588,7 @@ export function ModuleSidebar({
   }, [academicPolicy?.assessments]);
   const createModuleMutation = useCreateModule(courseId);
   const updateModuleMutation = useUpdateModule(courseId);
-  const deleteModuleMutation = useDeleteModule(courseId);
+  const deleteModuleWithUndo = useDeleteModuleWithUndo(courseId);
   const reorderModulesMutation = useReorderModules(courseId);
 
   const [localModules, setLocalModules] = useState<CourseModule[]>([]);
@@ -675,10 +675,7 @@ export function ModuleSidebar({
     }
   };
 
-  const isSaving =
-    updateModuleMutation.isPending ||
-    createModuleMutation.isPending ||
-    deleteModuleMutation.isPending;
+  const isSaving = updateModuleMutation.isPending || createModuleMutation.isPending;
 
   const sortedModuleIds = useMemo(
     () => localModules.map((module) => module.id),
@@ -840,7 +837,7 @@ export function ModuleSidebar({
         confirmText="Delete module"
         onConfirm={async () => {
           if (!moduleToDelete) return;
-          await deleteModuleMutation.mutateAsync(moduleToDelete.id);
+          deleteModuleWithUndo(moduleToDelete);
           if (selectedModuleId === moduleToDelete.id) {
             setSelectedModuleId(null);
             setSelectedContentId(null);

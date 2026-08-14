@@ -81,6 +81,43 @@ export function useDeleteModule(courseId: string) {
   });
 }
 
+/**
+ * Deletes a module optimistically with an "Undo" toast window before the
+ * API call actually commits, so accidental/regretted deletes are reversible.
+ */
+export function useDeleteModuleWithUndo(courseId: string) {
+  const queryClient = useQueryClient();
+
+  return (module: CourseModule) => {
+    const queryKey = moduleQueryKeys.list(courseId);
+
+    queryClient.setQueryData<CourseModule[]>(queryKey, (prev: CourseModule[] | undefined) =>
+      prev?.filter((item: CourseModule) => item.id !== module.id),
+    );
+
+    toast.undoable({
+      title: `"${module.title}" deleted`,
+      description: 'This module and its lessons will be permanently removed.',
+      onUndo: () => {
+        queryClient.setQueryData<CourseModule[]>(queryKey, (prev: CourseModule[] | undefined) => {
+          const next = prev ? [...prev, module] : [module];
+          return next.sort((a, b) => a.order - b.order);
+        });
+      },
+      onExpire: () => {
+        deleteModule(module.id)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey });
+          })
+          .catch((error) => {
+            toast.error(getApiErrorMessage(error, 'Unable to delete module.'));
+            queryClient.invalidateQueries({ queryKey });
+          });
+      },
+    });
+  };
+}
+
 export function useReorderModules(courseId: string) {
   const queryClient = useQueryClient();
 
