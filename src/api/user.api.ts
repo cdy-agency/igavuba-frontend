@@ -8,7 +8,9 @@ export interface UpdateUserActiveResponse {
   data: UserListItem;
 }
 
-export async function listUsers(params?: Record<string, string | number>) {
+export async function listUsers(
+  params?: Record<string, string | number>,
+): Promise<PaginatedResponse<UserListItem>> {
   const response = await apiClient.get<PaginatedResponse<UserListItem>>('/users', {
     params,
   });

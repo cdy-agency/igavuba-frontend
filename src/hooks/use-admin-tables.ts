@@ -18,7 +18,9 @@ import type {
   UpdateInstitutionPayload,
   InstitutionDetail,
   InviteInstitutionAdminPayload,
+  UserListItem,
 } from '@/types/admin';
+import type { PaginatedResponse } from '@/types/pagination';
 import { UserRole } from '@/types/enum';
 import { getApiErrorMessage } from '@/lib/auth';
 import { toast } from '@/lib/toast';
@@ -64,7 +66,7 @@ export function useInstitutionDetail(id: string, enabled = true) {
 }
 
 export function useUsersList(params: ListQueryParams) {
-  return useQuery({
+  return useQuery<PaginatedResponse<UserListItem>>({
     queryKey: adminQueryKeys.users(params),
     queryFn: () => listUsers(toQueryRecord(params)),
     ...listQueryOptions,
@@ -73,7 +75,7 @@ export function useUsersList(params: ListQueryParams) {
 
 export function useInstitutionAdminsList(params: ListQueryParams) {
   const withRole = { ...params, role: UserRole.INSTITUTION_ADMIN };
-  return useQuery({
+  return useQuery<PaginatedResponse<UserListItem>>({
     queryKey: adminQueryKeys.institutionAdmins(params),
     queryFn: () => listUsers(toQueryRecord(withRole)),
     ...listQueryOptions,

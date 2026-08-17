@@ -79,7 +79,7 @@ export async function activateStudent(payload: ActivateStudentPayload) {
   return response.data;
 }
 
-export async function listStudents(params?: ListStudentsQuery) {
+export async function listStudents(params?: ListStudentsQuery): Promise<StudentListItem[]> {
   const response = await apiClient.get<StudentMutationResponse<StudentListItem[]>>(
     '/students',
     { params },

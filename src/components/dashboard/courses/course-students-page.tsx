@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -12,17 +12,17 @@ import {
   Loader2,
   MoreHorizontal,
   Shield,
-} from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { CourseSubNav } from '@/components/dashboard/courses/course-sub-nav';
-import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
+} from "@/components/ui/dropdown-menu";
+import { CourseSubNav } from "@/components/dashboard/courses/course-sub-nav";
+import { DashboardActionIconButton } from "@/components/dashboard/dashboard-action-icon-button";
 import {
   ModernFilterSelect,
   ModernPersonCell,
@@ -37,36 +37,40 @@ import {
   ModernTableRow,
   ModernTableShell,
   ModernTableToolbar,
-} from '@/components/dashboard/shared/modern-table';
+} from "@/components/dashboard/shared/modern-table";
 import {
   formatDetailDate,
   PersonDetailModal,
-} from '@/components/dashboard/shared/person-detail-modal';
-import { useCourseStudents } from '@/hooks/use-internal-enrollment';
-import type { CourseStudentRow } from '@/types/student.types';
-import { getUserStatusLabel } from '@/lib/status-utils';
-import { UserStatus } from '@/types/enum';
+} from "@/components/dashboard/shared/person-detail-modal";
+import { useCourseStudents } from "@/hooks/use-internal-enrollment";
+import type { CourseStudentRow } from "@/types/student.types";
+import { getUserStatusLabel } from "@/lib/status-utils";
+import { UserStatus } from "@/types/enum";
 
-function getEnrollmentStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
-  if (status === 'COMPLETED') return 'success';
-  if (status === 'ACTIVE') return 'info';
-  if (status === 'PENDING_PAYMENT') return 'warning';
-  return 'neutral';
+function getEnrollmentStatusTone(
+  status: string,
+): "success" | "warning" | "info" | "danger" | "neutral" {
+  if (status === "COMPLETED") return "success";
+  if (status === "ACTIVE") return "info";
+  if (status === "PENDING_PAYMENT") return "warning";
+  return "neutral";
 }
 
 function getEnrollmentStatusIcon(status: string) {
-  if (status === 'COMPLETED') return CheckCircle2;
-  if (status === 'ACTIVE') return Eye;
-  if (status === 'PENDING_PAYMENT') return Clock;
+  if (status === "COMPLETED") return CheckCircle2;
+  if (status === "ACTIVE") return Eye;
+  if (status === "PENDING_PAYMENT") return Clock;
   return AlertTriangle;
 }
 
-function getAccountStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
-  if (status === UserStatus.ACTIVE) return 'success';
-  if (status === UserStatus.PENDING) return 'info';
-  if (status === UserStatus.SUSPENDED) return 'warning';
-  if (status === UserStatus.BANNED) return 'danger';
-  return 'neutral';
+function getAccountStatusTone(
+  status: string,
+): "success" | "warning" | "info" | "danger" | "neutral" {
+  if (status === UserStatus.ACTIVE) return "success";
+  if (status === UserStatus.PENDING) return "info";
+  if (status === UserStatus.SUSPENDED) return "warning";
+  if (status === UserStatus.BANNED) return "danger";
+  return "neutral";
 }
 
 export function CourseStudentsPage({
@@ -77,26 +81,28 @@ export function CourseStudentsPage({
   courseTitle?: string;
 }) {
   const { data: studentsData, isPending } = useCourseStudents(courseSlug);
-  const students = studentsData ?? [];
+  const students: CourseStudentRow[] = studentsData ?? [];
 
-  const [searchInput, setSearchInput] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedStudent, setSelectedStudent] = useState<CourseStudentRow | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedStudent, setSelectedStudent] =
+    useState<CourseStudentRow | null>(null);
 
   const filterCount = useMemo(() => {
     let count = 0;
-    if (typeFilter !== 'all') count += 1;
-    if (statusFilter !== 'all') count += 1;
+    if (typeFilter !== "all") count += 1;
+    if (statusFilter !== "all") count += 1;
     return count;
   }, [typeFilter, statusFilter]);
 
   const filteredStudents = useMemo(() => {
     const query = searchInput.trim().toLowerCase();
     return students.filter((row) => {
-      if (typeFilter === 'internal' && !row.isInternalStudent) return false;
-      if (typeFilter === 'public' && row.isInternalStudent) return false;
-      if (statusFilter !== 'all' && row.enrollmentStatus !== statusFilter) return false;
+      if (typeFilter === "internal" && !row.isInternalStudent) return false;
+      if (typeFilter === "public" && row.isInternalStudent) return false;
+      if (statusFilter !== "all" && row.enrollmentStatus !== statusFilter)
+        return false;
       if (!query) return true;
       return (
         row.name?.toLowerCase().includes(query) ||
@@ -108,12 +114,14 @@ export function CourseStudentsPage({
   }, [students, searchInput, typeFilter, statusFilter]);
 
   const enrollmentStatusOptions = useMemo(() => {
-    const values = Array.from(new Set(students.map((row) => row.enrollmentStatus)));
+    const values = Array.from(
+      new Set(students.map((row) => row.enrollmentStatus)),
+    );
     return [
-      { value: 'all', label: 'All statuses' },
+      { value: "all", label: "All statuses" },
       ...values.map((value) => ({
         value,
-        label: value.replaceAll('_', ' '),
+        label: value.replaceAll("_", " "),
       })),
     ];
   }, [students]);
@@ -130,7 +138,7 @@ export function CourseStudentsPage({
         <div>
           <h1 className="text-2xl font-semibold">Students</h1>
           <p className="text-sm text-muted-foreground">
-            {courseTitle ? `${courseTitle} — ` : ''}
+            {courseTitle ? `${courseTitle} — ` : ""}
             all enrolled students (internal and public)
           </p>
         </div>
@@ -143,8 +151,8 @@ export function CourseStudentsPage({
           searchPlaceholder="Search by name, email, or student ID..."
           filterCount={filterCount}
           onClearFilters={() => {
-            setTypeFilter('all');
-            setStatusFilter('all');
+            setTypeFilter("all");
+            setStatusFilter("all");
           }}
           filters={
             <>
@@ -154,9 +162,9 @@ export function CourseStudentsPage({
                 value={typeFilter}
                 onValueChange={setTypeFilter}
                 options={[
-                  { value: 'all', label: 'All types' },
-                  { value: 'internal', label: 'Internal' },
-                  { value: 'public', label: 'Public' },
+                  { value: "all", label: "All types" },
+                  { value: "internal", label: "Internal" },
+                  { value: "public", label: "Public" },
                 ]}
               />
               <ModernFilterSelect
@@ -178,8 +186,8 @@ export function CourseStudentsPage({
           <ModernTableEmpty
             message={
               students.length === 0
-                ? 'No students enrolled in this course yet.'
-                : 'No students match your filters.'
+                ? "No students enrolled in this course yet."
+                : "No students match your filters."
             }
           />
         ) : (
@@ -191,7 +199,9 @@ export function CourseStudentsPage({
               <ModernTableHeaderCell>Enrollment</ModernTableHeaderCell>
               <ModernTableHeaderCell>Progress</ModernTableHeaderCell>
               <ModernTableHeaderCell>Enrolled</ModernTableHeaderCell>
-              <ModernTableHeaderCell className="text-right">Actions</ModernTableHeaderCell>
+              <ModernTableHeaderCell className="text-right">
+                Actions
+              </ModernTableHeaderCell>
             </ModernTableHead>
             <ModernTableBody>
               {filteredStudents.map((row) => (
@@ -203,24 +213,24 @@ export function CourseStudentsPage({
                       profileImage={row.profileImage}
                       subtitle={
                         row.studentId
-                          ? `ID ${row.studentId}${row.department?.name ? ` · ${row.department.name}` : ''}`
-                          : row.department?.name ?? row.email
+                          ? `ID ${row.studentId}${row.department?.name ? ` · ${row.department.name}` : ""}`
+                          : (row.department?.name ?? row.email)
                       }
                       onClick={() => setSelectedStudent(row)}
                     />
                   </ModernTableCell>
                   <ModernTableCell>
                     <ModernStatusBadge
-                      label={row.isInternalStudent ? 'Internal' : 'Public'}
-                      tone={row.isInternalStudent ? 'info' : 'warning'}
+                      label={row.isInternalStudent ? "Internal" : "Public"}
+                      tone={row.isInternalStudent ? "info" : "warning"}
                     />
                   </ModernTableCell>
                   <ModernTableCell className="text-muted-foreground">
-                    {row.department?.name ?? '—'}
+                    {row.department?.name ?? "—"}
                   </ModernTableCell>
                   <ModernTableCell>
                     <ModernStatusBadge
-                      label={row.enrollmentStatus.replaceAll('_', ' ')}
+                      label={row.enrollmentStatus.replaceAll("_", " ")}
                       tone={getEnrollmentStatusTone(row.enrollmentStatus)}
                       icon={getEnrollmentStatusIcon(row.enrollmentStatus)}
                     />
@@ -230,13 +240,13 @@ export function CourseStudentsPage({
                       value={row.progress}
                       label={
                         row.completedAt
-                          ? `Completed ${format(new Date(row.completedAt), 'MMM d, yyyy')}`
+                          ? `Completed ${format(new Date(row.completedAt), "MMM d, yyyy")}`
                           : `${Math.round(row.progress)}% complete`
                       }
                     />
                   </ModernTableCell>
                   <ModernTableCell className="whitespace-nowrap text-muted-foreground">
-                    {format(new Date(row.enrolledAt), 'MMM d, yyyy')}
+                    {format(new Date(row.enrolledAt), "MMM d, yyyy")}
                   </ModernTableCell>
                   <ModernTableCell
                     className="text-right"
@@ -244,17 +254,26 @@ export function CourseStudentsPage({
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">Open menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setSelectedStudent(row)}>
+                        <DropdownMenuItem
+                          onClick={() => setSelectedStudent(row)}
+                        >
                           View details
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href={`/dashboard/students/${row.learnerProfileId}`}>
+                          <Link
+                            href={`/dashboard/students/${row.learnerProfileId}`}
+                          >
                             Open profile
                           </Link>
                         </DropdownMenuItem>
@@ -275,20 +294,22 @@ export function CourseStudentsPage({
         }}
         title="Student details"
         name={selectedStudent?.name ?? null}
-        email={selectedStudent?.email ?? ''}
+        email={selectedStudent?.email ?? ""}
         phoneNumber={selectedStudent?.phoneNumber}
         profileImage={selectedStudent?.profileImage}
         subtitle={
           selectedStudent
-            ? `${selectedStudent.isInternalStudent ? 'Internal' : 'Public'} learner${
-                selectedStudent.department?.name ? ` · ${selectedStudent.department.name}` : ''
+            ? `${selectedStudent.isInternalStudent ? "Internal" : "Public"} learner${
+                selectedStudent.department?.name
+                  ? ` · ${selectedStudent.department.name}`
+                  : ""
               }`
             : undefined
         }
         statusBadge={
           selectedStudent ? (
             <ModernStatusBadge
-              label={selectedStudent.enrollmentStatus.replaceAll('_', ' ')}
+              label={selectedStudent.enrollmentStatus.replaceAll("_", " ")}
               tone={getEnrollmentStatusTone(selectedStudent.enrollmentStatus)}
               icon={getEnrollmentStatusIcon(selectedStudent.enrollmentStatus)}
             />
@@ -298,41 +319,61 @@ export function CourseStudentsPage({
           selectedStudent
             ? [
                 {
-                  title: 'Enrollment',
+                  title: "Enrollment",
                   rows: [
                     {
-                      label: 'Status',
-                      value: selectedStudent.enrollmentStatus.replaceAll('_', ' '),
+                      label: "Status",
+                      value: selectedStudent.enrollmentStatus.replaceAll(
+                        "_",
+                        " ",
+                      ),
                     },
-                    { label: 'Progress', value: `${Math.round(selectedStudent.progress)}%` },
-                    { label: 'Enrolled', value: formatDetailDate(selectedStudent.enrolledAt) },
                     {
-                      label: 'Completed',
+                      label: "Progress",
+                      value: `${Math.round(selectedStudent.progress)}%`,
+                    },
+                    {
+                      label: "Enrolled",
+                      value: formatDetailDate(selectedStudent.enrolledAt),
+                    },
+                    {
+                      label: "Completed",
                       value: formatDetailDate(selectedStudent.completedAt),
                     },
                     {
-                      label: 'Source',
-                      value: selectedStudent.enrollmentSource?.replaceAll('_', ' ') ?? '—',
+                      label: "Source",
+                      value:
+                        selectedStudent.enrollmentSource?.replaceAll(
+                          "_",
+                          " ",
+                        ) ?? "—",
                     },
                   ],
                 },
                 {
-                  title: 'Profile',
+                  title: "Profile",
                   rows: [
-                    { label: 'Student ID', value: selectedStudent.studentId ?? '—' },
                     {
-                      label: 'Type',
-                      value: selectedStudent.isInternalStudent ? 'Internal' : 'Public',
+                      label: "Student ID",
+                      value: selectedStudent.studentId ?? "—",
                     },
                     {
-                      label: 'Department',
-                      value: selectedStudent.department?.name ?? '—',
+                      label: "Type",
+                      value: selectedStudent.isInternalStudent
+                        ? "Internal"
+                        : "Public",
                     },
                     {
-                      label: 'Account status',
+                      label: "Department",
+                      value: selectedStudent.department?.name ?? "—",
+                    },
+                    {
+                      label: "Account status",
                       value: (
                         <ModernStatusBadge
-                          label={getUserStatusLabel(selectedStudent.status as UserStatus)}
+                          label={getUserStatusLabel(
+                            selectedStudent.status as UserStatus,
+                          )}
                           tone={getAccountStatusTone(selectedStudent.status)}
                         />
                       ),

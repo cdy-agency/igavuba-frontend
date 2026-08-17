@@ -62,6 +62,7 @@ export interface ContentRecord {
   createdById: string;
   createdAt: string;
   updatedAt: string;
+  clonedFromContentId?: string | null;
   textContent: TextContentDetail | null;
   videoContent: VideoContentDetail | null;
   documentContent: DocumentContentDetail | null;
@@ -78,6 +79,10 @@ export interface ModuleContentItem {
   unlockDate: string | null;
   createdAt: string;
   content: ContentRecord;
+  /** Set while this lesson is staged for removal in an active draft revision. */
+  deletedAt?: string | null;
+  /** Only present while editing a draft revision of a published course. */
+  changeStatus?: 'ADDED' | 'DELETED' | 'CHANGED' | null;
 }
 
 export interface CreateTextContentPayload {

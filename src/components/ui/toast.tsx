@@ -8,12 +8,19 @@ import { cn } from '@/lib/utils';
 const MAX_TOASTS = 4;
 const DEFAULT_DURATION = 4000;
 
+interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 interface Toast {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info' | 'loading';
   title: string;
   description?: string;
   duration?: number;
+  action?: ToastAction;
+  onExpire?: () => void;
 }
 
 interface ToastContextType {
@@ -123,12 +130,20 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   const remainingMs = useRef(duration);
   const pausedAt = useRef<number | null>(null);
 
-  const handleRemove = useCallback(() => {
-    if (isLeaving) return;
-    setIsLeaving(true);
-    if (dismissTimer.current) clearTimeout(dismissTimer.current);
-    setTimeout(() => onRemove(toast.id), 220);
-  }, [isLeaving, onRemove, toast.id]);
+  const handleRemove = useCallback(
+    (options?: { skipExpire?: boolean }) => {
+      if (isLeaving) return;
+      setIsLeaving(true);
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+      setTimeout(() => {
+        if (!options?.skipExpire) {
+          toast.onExpire?.();
+        }
+        onRemove(toast.id);
+      }, 220);
+    },
+    [isLeaving, onRemove, toast],
+  );
 
   const startDismissTimer = useCallback(
     (ms: number) => {
@@ -191,11 +206,23 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
           {toast.description ? (
             <p className="mt-1 text-[12px] leading-relaxed text-slate-500">{toast.description}</p>
           ) : null}
+          {toast.action ? (
+            <button
+              type="button"
+              onClick={() => {
+                toast.action?.onClick();
+                handleRemove({ skipExpire: true });
+              }}
+              className="mt-2 text-[12px] font-semibold text-primary hover:underline"
+            >
+              {toast.action.label}
+            </button>
+          ) : null}
         </div>
 
         <button
           type="button"
-          onClick={handleRemove}
+          onClick={() => handleRemove()}
           className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
           aria-label="Dismiss notification"
         >
