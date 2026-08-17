@@ -17,6 +17,7 @@ export interface StudentListItem {
   name: string | null;
   email: string;
   phoneNumber: string | null;
+  profileImage?: string | null;
   status: UserStatus;
   department: StudentDepartment | null;
   institution: StudentInstitution | null;

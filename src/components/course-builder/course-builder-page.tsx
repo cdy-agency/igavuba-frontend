@@ -14,7 +14,6 @@ import {
 import {
   useApproveCourseRevision,
   useCourseRevisionComments,
-  useDiscardCourseRevision,
   useRequestCourseRevisionChanges,
   useResubmitCourseRevision,
   useSubmitCourseRevision,
@@ -66,7 +65,6 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
   const resubmitRevisionMutation = useResubmitCourseRevision();
   const approveRevisionMutation = useApproveCourseRevision();
   const requestRevisionChangesMutation = useRequestCourseRevisionChanges();
-  const discardRevisionMutation = useDiscardCourseRevision();
 
   const isOwner = course ? course.ownerId === user?.id : false;
   const isInstitutionAdmin = role === UserRole.INSTITUTION_ADMIN;
@@ -74,11 +72,6 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
     course?.status === CourseLifecycleStatus.PUBLISHED &&
     course.hasUnpublishedChanges &&
     course.revisionStatus;
-  const canDiscardRevision =
-    Boolean(isPublishedWithRevision) &&
-    isOwner &&
-    (course?.revisionStatus === CourseRevisionStatus.DRAFT ||
-      course?.revisionStatus === CourseRevisionStatus.CHANGES_REQUESTED);
 
   const canReviewAsAdmin =
     isInstitutionAdmin && course?.status === CourseLifecycleStatus.UNDER_REVIEW;
@@ -175,8 +168,7 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
     submitRevisionMutation.isPending ||
     resubmitRevisionMutation.isPending ||
     approveRevisionMutation.isPending ||
-    requestRevisionChangesMutation.isPending ||
-    discardRevisionMutation.isPending;
+    requestRevisionChangesMutation.isPending;
 
   if (!authReady || isPending) {
     return (
@@ -223,10 +215,6 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
         feedbackBadgeCount={feedbackContext?.badgeCount}
         feedbackBadgeTone={feedbackContext?.badgeTone}
         showResubmit={feedbackContext?.showResubmit}
-        canDiscardRevision={canDiscardRevision}
-        onDiscardRevision={() =>
-          discardRevisionMutation.mutate(course.id, { onSuccess: () => refetch() })
-        }
         onSubmitForReview={() =>
           submitReviewMutation.mutate(course.id, { onSuccess: () => refetch() })
         }
@@ -280,17 +268,6 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
             : requireCourseApproval
               ? 'Edits are saved as a draft. Click “Submit revision” when ready — an institution admin must approve before learners see changes.'
               : 'Edits are saved as a draft. Click “Publish revision” when ready so learners can see your changes.'}
-        </div>
-      ) : null}
-
-      {isOwner &&
-      (course.status === CourseLifecycleStatus.DRAFT ||
-        course.status === CourseLifecycleStatus.CHANGES_REQUESTED) &&
-      !readOnly ? (
-        <div className="shrink-0 border-b border-amber-500/20 bg-amber-500/5 px-4 py-2 text-center text-xs text-amber-900 md:px-6">
-          This course has never been published — students can’t see it yet. Click
-          {requireCourseApproval && !canPublishDirectly ? ' “Submit for review” ' : ' “Publish” '}
-          when you’re ready to make it available.
         </div>
       ) : null}
 

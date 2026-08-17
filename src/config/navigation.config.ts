@@ -37,7 +37,7 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/departments',
   '/dashboard/courses',
   '/dashboard/course-reviews',
-  '/dashboard/reviews',
+  // '/dashboard/reviews',
   '/dashboard/assessments',
   '/dashboard/grades',
   '/dashboard/enrollments',
@@ -46,7 +46,7 @@ export const CANONICAL_NAV_ORDER = [
   '/dashboard/lecturers',
   '/dashboard/users',
   '/dashboard/students',
-  '/dashboard/reports',
+  // '/dashboard/reports',
   // '/dashboard/analytics',
   '/dashboard/live-sessions',
   '/dashboard/content-approval',
@@ -104,13 +104,13 @@ export const navigationConfig: NavigationItem[] = [
     ],
     section: 'main',
   },
-  {
-    title: 'Reviews',
-    href: '/dashboard/reviews',
-    icon: Star,
-    roles: [UserRole.LECTURER, UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
-    section: 'main',
-  },
+  // {
+  //   title: 'Reviews',
+  //   href: '/dashboard/reviews',
+  //   icon: Star,
+  //   roles: [UserRole.LECTURER, UserRole.INSTITUTION_ADMIN, UserRole.SUPER_ADMIN],
+  //   section: 'main',
+  // },
   {
     title: 'Assessments',
     href: '/dashboard/assessments',
@@ -123,13 +123,6 @@ export const navigationConfig: NavigationItem[] = [
     href: '/dashboard/grades',
     icon: FileCheck,
     roles: [UserRole.INSTITUTION_ADMIN, UserRole.LECTURER],
-    section: 'main',
-  },
-  {
-    title: 'Enrollments',
-    href: '/dashboard/enrollments',
-    icon: ClipboardCheck,
-    roles: [UserRole.INSTITUTION_ADMIN, UserRole.DATA_MANAGER],
     section: 'main',
   },
   {
@@ -160,18 +153,18 @@ export const navigationConfig: NavigationItem[] = [
     roles: [UserRole.LECTURER, UserRole.DATA_MANAGER],
     section: 'main',
   },
-  {
-    title: 'Reports',
-    href: '/dashboard/reports',
-    icon: BarChart3,
-    roles: [
-      UserRole.INSTITUTION_ADMIN,
-      UserRole.DATA_MANAGER,
-      UserRole.CONTENT_REVIEWER,
-      UserRole.SUPPORT_AGENT,
-    ],
-    section: 'main',
-  },
+  // {
+  //   title: 'Reports',
+  //   href: '/dashboard/reports',
+  //   icon: BarChart3,
+  //   roles: [
+  //     UserRole.INSTITUTION_ADMIN,
+  //     UserRole.DATA_MANAGER,
+  //     UserRole.CONTENT_REVIEWER,
+  //     UserRole.SUPPORT_AGENT,
+  //   ],
+  //   section: 'main',
+  // },
   // {
   //   title: 'Analytics',
   //   href: '/dashboard/analytics',
@@ -226,6 +219,13 @@ export const navigationConfig: NavigationItem[] = [
     href: '/dashboard/users',
     icon: Users,
     roles: [UserRole.SUPER_ADMIN, UserRole.INSTITUTION_ADMIN, UserRole.SUPPORT_AGENT],
+    section: 'main',
+  },
+  {
+    title: 'Enrollments',
+    href: '/dashboard/enrollments',
+    icon: ClipboardCheck,
+    roles: [UserRole.INSTITUTION_ADMIN, UserRole.DATA_MANAGER],
     section: 'main',
   },
   {
@@ -381,10 +381,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     title: 'Reviews',
     description: 'Review submitted courses for quality assurance.',
   },
-  '/dashboard/reviews': {
-    title: 'Reviews',
-    description: 'Ratings, feedback analytics, and review moderation.',
-  },
+  // '/dashboard/reviews': {
+  //   title: 'Reviews',
+  //   description: 'Ratings, feedback analytics, and review moderation.',
+  // },
   '/dashboard/assessments': {
     title: 'Assessments',
     description: 'Manage quizzes, exams, and assignments across your courses.',
@@ -395,7 +395,7 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
   },
   '/dashboard/enrollments': {
     title: 'Enrollments',
-    description: 'Track and manage course enrollments.',
+    description: 'Invite internal students, import rosters, and assign courses.',
   },
   '/dashboard/payments': {
     title: 'Payments',
@@ -413,10 +413,10 @@ export const dashboardPageMeta: Record<string, { title: string; description: str
     title: 'Students',
     description: 'Manage student records and enrollment data.',
   },
-  '/dashboard/reports': {
-    title: 'Reports',
-    description: 'Generate and review operational reports.',
-  },
+  // '/dashboard/reports': {
+  //   title: 'Reports',
+  //   description: 'Generate and review operational reports.',
+  // },
   // '/dashboard/analytics': {
   //   title: 'Analytics',
   //   description: 'Platform-wide analytics and insights.',

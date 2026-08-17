@@ -2,19 +2,47 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  AlertTriangle,
+  Ban,
+  CheckCircle2,
+  Clock,
+  Eye,
+  MoreHorizontal,
+  Shield,
+  UserCheck,
+  Users,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { StatusSwitchCell } from '@/components/data-table/status-switch-cell';
 import { DataTableSortSelect } from '@/components/data-table/data-table-sort-select';
+import {
+  ModernFilterSelect,
+  ModernPersonCell,
+  ModernStatusBadge,
+  ModernTable,
+  ModernTableBody,
+  ModernTableCell,
+  ModernTableEmpty,
+  ModernTableHead,
+  ModernTableHeaderCell,
+  ModernTablePagination,
+  ModernTableRow,
+  ModernTableShell,
+  ModernTableToolbar,
+} from '@/components/dashboard/shared/modern-table';
+import {
+  formatDetailDate,
+  PersonDetailModal,
+  VerifiedBadge,
+} from '@/components/dashboard/shared/person-detail-modal';
+import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { useUsersList, useUpdateUserActive } from '@/hooks/use-admin-tables';
 import type { UserListItem } from '@/types/admin';
 import { UserRole, UserStatus } from '@/types/enum';
@@ -24,21 +52,9 @@ import {
   INSTITUTION_ADMIN_SORT_OPTIONS,
   USER_SORT_OPTIONS,
 } from '@/lib/user-table-sort';
-import { DashboardTableLoadingSkeleton } from '@/components/dashboard/shared/dashboard-skeletons';
 import { useDashboard } from '@/contexts/dashboard-context';
-import { cn } from '@/lib/utils';
 
 const PAGE_SIZE = 10;
-
-const ROLE_CHIP_CLASS: Record<UserRole, string> = {
-  [UserRole.SUPER_ADMIN]: 'border-slate-200 bg-slate-50 text-slate-600',
-  [UserRole.INSTITUTION_ADMIN]: 'border-violet-200 bg-violet-50 text-violet-700',
-  [UserRole.LECTURER]: 'border-sky-200 bg-sky-50 text-sky-700',
-  [UserRole.LEARNER]: 'border-border bg-muted/50 text-muted-foreground',
-  [UserRole.DATA_MANAGER]: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  [UserRole.CONTENT_REVIEWER]: 'border-amber-200 bg-amber-50 text-amber-800',
-  [UserRole.SUPPORT_AGENT]: 'border-orange-200 bg-orange-50 text-orange-700',
-};
 
 const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   [UserRole.SUPER_ADMIN]: 'Super Admin',
@@ -50,7 +66,7 @@ const ROLE_SHORT_LABEL: Record<UserRole, string> = {
   [UserRole.SUPPORT_AGENT]: 'Support',
 };
 
-const SUPER_ADMIN_ROLE_FILTERS: Array<{ value: string; label: string }> = [
+const SUPER_ADMIN_ROLE_FILTERS = [
   { value: 'all', label: 'All roles' },
   { value: UserRole.SUPER_ADMIN, label: 'Super Admin' },
   { value: UserRole.INSTITUTION_ADMIN, label: 'Institution Admin' },
@@ -61,7 +77,7 @@ const SUPER_ADMIN_ROLE_FILTERS: Array<{ value: string; label: string }> = [
   { value: UserRole.SUPPORT_AGENT, label: 'Support Agent' },
 ];
 
-const INSTITUTION_ADMIN_ROLE_FILTERS: Array<{ value: string; label: string }> = [
+const INSTITUTION_ADMIN_ROLE_FILTERS = [
   { value: 'all', label: 'All roles' },
   { value: UserRole.INSTITUTION_ADMIN, label: 'Institution Admin' },
   { value: UserRole.LECTURER, label: 'Lecturer' },
@@ -76,44 +92,42 @@ function canToggleUser(row: UserListItem, viewerRole: UserRole | null): boolean 
     return false;
   }
   if (viewerRole === UserRole.SUPER_ADMIN) return true;
-  if (viewerRole === UserRole.INSTITUTION_ADMIN) {
-    return true;
-  }
+  if (viewerRole === UserRole.INSTITUTION_ADMIN) return true;
   return false;
+}
+
+function getUserStatusTone(status: UserStatus): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
+  if (status === UserStatus.ACTIVE) return 'success';
+  if (status === UserStatus.PENDING) return 'info';
+  if (status === UserStatus.SUSPENDED) return 'warning';
+  if (status === UserStatus.BANNED) return 'danger';
+  return 'neutral';
+}
+
+function getUserStatusIcon(status: UserStatus) {
+  if (status === UserStatus.ACTIVE) return CheckCircle2;
+  if (status === UserStatus.PENDING) return Eye;
+  if (status === UserStatus.SUSPENDED) return Clock;
+  if (status === UserStatus.BANNED) return Ban;
+  return AlertTriangle;
 }
 
 function RoleBadge({ role }: { role: UserRole }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium leading-none',
-        ROLE_CHIP_CLASS[role],
-      )}
-    >
-      {ROLE_SHORT_LABEL[role]}
-    </span>
+    <ModernStatusBadge
+      label={ROLE_SHORT_LABEL[role]}
+      tone={role === UserRole.LEARNER ? 'info' : 'neutral'}
+    />
   );
 }
 
-function LearnerTypeBadge({
-  learnerType,
-}: {
-  learnerType?: 'internal' | 'public' | null;
-}) {
+function LearnerTypeBadge({ learnerType }: { learnerType?: 'internal' | 'public' | null }) {
   if (!learnerType) return <span className="text-muted-foreground">—</span>;
-
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        'text-[10px] uppercase',
-        learnerType === 'internal'
-          ? 'border-sky-200 bg-sky-50 text-sky-800'
-          : 'border-amber-200 bg-amber-50 text-amber-800',
-      )}
-    >
-      {learnerType === 'internal' ? 'Internal' : 'Public'}
-    </Badge>
+    <ModernStatusBadge
+      label={learnerType === 'internal' ? 'Internal' : 'Public'}
+      tone={learnerType === 'internal' ? 'info' : 'warning'}
+    />
   );
 }
 
@@ -124,18 +138,17 @@ export function UsersTable() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [searchq, setSearchq] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [learnerTypeFilter, setLearnerTypeFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [learnerTypeFilter, setLearnerTypeFilter] = useState('all');
   const [sort, setSort] = useState(DEFAULT_USER_SORT);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
 
   const roleFilterOptions = isInstitutionScoped
     ? INSTITUTION_ADMIN_ROLE_FILTERS
     : SUPER_ADMIN_ROLE_FILTERS;
-  const sortOptions = isInstitutionScoped
-    ? INSTITUTION_ADMIN_SORT_OPTIONS
-    : USER_SORT_OPTIONS;
+  const sortOptions = isInstitutionScoped ? INSTITUTION_ADMIN_SORT_OPTIONS : USER_SORT_OPTIONS;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -144,6 +157,14 @@ export function UsersTable() {
     }, 300);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
+
+  const filterCount = useMemo(() => {
+    let count = 0;
+    if (roleFilter !== 'all') count += 1;
+    if (statusFilter !== 'all') count += 1;
+    if (learnerTypeFilter !== 'all') count += 1;
+    return count;
+  }, [roleFilter, statusFilter, learnerTypeFilter]);
 
   const queryParams = useMemo(
     () => ({
@@ -162,209 +183,257 @@ export function UsersTable() {
   );
 
   const { data, isPending, isFetching } = useUsersList(queryParams);
-
   const updateActive = useUpdateUserActive();
   const users = data?.data ?? [];
   const pagination = data?.pagination;
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-3">
-          <div className="relative w-full max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search by name or email..."
-              className="h-10 pl-9"
-            />
-          </div>
-          <Select
-            value={roleFilter}
-            onValueChange={(value) => {
-              setRoleFilter(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Role" />
-            </SelectTrigger>
-            <SelectContent>
-              {roleFilterOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={learnerTypeFilter}
-            onValueChange={(value) => {
-              setLearnerTypeFilter(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Learner type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All learner types</SelectItem>
-              <SelectItem value="internal">Internal learners</SelectItem>
-              <SelectItem value="public">Public learners</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value={UserStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={UserStatus.INACTIVE}>Inactive</SelectItem>
-              <SelectItem value={UserStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={UserStatus.SUSPENDED}>Suspended</SelectItem>
-              <SelectItem value={UserStatus.BANNED}>Banned</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <DataTableSortSelect
-          value={sort}
-          options={sortOptions}
-          onValueChange={(value) => {
-            setSort(value);
-            setPage(1);
-          }}
-        />
-      </div>
+  const clearFilters = () => {
+    setRoleFilter('all');
+    setStatusFilter('all');
+    setLearnerTypeFilter('all');
+    setPage(1);
+  };
 
-      <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
+  return (
+    <>
+      <ModernTableShell>
+        <ModernTableToolbar
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
+          searchPlaceholder="Search by name or email..."
+          filterCount={filterCount}
+          onClearFilters={clearFilters}
+          filters={
+            <>
+              <ModernFilterSelect
+                icon={Users}
+                label="Role"
+                value={roleFilter}
+                onValueChange={(value) => {
+                  setRoleFilter(value);
+                  setPage(1);
+                }}
+                options={roleFilterOptions}
+              />
+              <ModernFilterSelect
+                icon={UserCheck}
+                label="Type"
+                value={learnerTypeFilter}
+                onValueChange={(value) => {
+                  setLearnerTypeFilter(value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: 'all', label: 'All types' },
+                  { value: 'internal', label: 'Internal' },
+                  { value: 'public', label: 'Public' },
+                ]}
+              />
+              <ModernFilterSelect
+                icon={Shield}
+                label="Status"
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: 'all', label: 'All statuses' },
+                  { value: UserStatus.ACTIVE, label: 'Active' },
+                  { value: UserStatus.INACTIVE, label: 'Inactive' },
+                  { value: UserStatus.PENDING, label: 'Pending' },
+                  { value: UserStatus.SUSPENDED, label: 'Suspended' },
+                  { value: UserStatus.BANNED, label: 'Banned' },
+                ]}
+              />
+            </>
+          }
+          sort={
+            <DataTableSortSelect
+              value={sort}
+              options={sortOptions}
+              onValueChange={(value) => {
+                setSort(value);
+                setPage(1);
+              }}
+            />
+          }
+        />
+
         {isPending || isFetching ? (
           <DashboardTableLoadingSkeleton
-            columnCount={isInstitutionScoped ? 6 : 7}
+            columnCount={isInstitutionScoped ? 7 : 8}
             rowCount={4}
             showPagination={false}
           />
         ) : users.length === 0 ? (
-          <div className="px-6 py-16 text-center text-sm text-muted-foreground">
-            No users found.
-          </div>
+          <ModernTableEmpty message="No users found." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="border-b bg-muted/25 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">User</th>
-                  <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
+          <ModernTable>
+            <ModernTableHead>
+              <ModernTableHeaderCell>User</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Role</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Type</ModernTableHeaderCell>
+              {!isInstitutionScoped ? (
+                <ModernTableHeaderCell>Institution</ModernTableHeaderCell>
+              ) : null}
+              <ModernTableHeaderCell>Status</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Joined</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Active</ModernTableHeaderCell>
+              <ModernTableHeaderCell className="text-right">Actions</ModernTableHeaderCell>
+            </ModernTableHead>
+            <ModernTableBody>
+              {users.map((row) => (
+                <ModernTableRow key={row.id}>
+                  <ModernTableCell>
+                    <ModernPersonCell
+                      name={row.name}
+                      email={row.email}
+                      profileImage={row.profileImage}
+                      subtitle={`${ROLE_SHORT_LABEL[row.role]}${row.institution?.name ? ` · ${row.institution.name}` : ''}`}
+                      onClick={() => setSelectedUser(row)}
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell>
+                    <RoleBadge role={row.role} />
+                  </ModernTableCell>
+                  <ModernTableCell>
+                    <LearnerTypeBadge learnerType={row.learnerType} />
+                  </ModernTableCell>
                   {!isInstitutionScoped ? (
-                    <th className="px-4 py-3 font-medium">Institution</th>
+                    <ModernTableCell className="text-muted-foreground">
+                      {row.institution?.name ?? '—'}
+                    </ModernTableCell>
                   ) : null}
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Joined</th>
-                  <th className="px-4 py-3 text-right font-medium">Active</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((row: UserListItem, index: number) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      'border-b border-border/60 transition-colors last:border-b-0',
-                      index % 2 === 1 ? 'bg-primary/[0.03]' : 'bg-background',
-                    )}
+                  <ModernTableCell>
+                    <ModernStatusBadge
+                      label={getUserStatusLabel(row.status)}
+                      tone={getUserStatusTone(row.status)}
+                      icon={getUserStatusIcon(row.status)}
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell className="whitespace-nowrap text-muted-foreground">
+                    {format(new Date(row.createdAt), 'MMM d, yyyy')}
+                  </ModernTableCell>
+                  <ModernTableCell
+                    onClick={(event) => event.stopPropagation()}
                   >
-                    <td className="px-4 py-3">
-                      <div className="min-w-[12rem]">
-                        <p className="font-semibold text-foreground">{row.name ?? '—'}</p>
-                        <p className="truncate text-xs text-muted-foreground">{row.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <RoleBadge role={row.role} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <LearnerTypeBadge learnerType={row.learnerType} />
-                    </td>
-                    {!isInstitutionScoped ? (
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {row.institution?.name ?? '—'}
-                      </td>
-                    ) : null}
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          'text-xs font-medium',
-                          row.status === UserStatus.ACTIVE
-                            ? 'text-success'
-                            : 'text-muted-foreground',
-                        )}
-                      >
-                        {getUserStatusLabel(row.status)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
-                      {format(new Date(row.createdAt), 'MMM d, yyyy')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusSwitchCell
-                        checked={isUserActiveStatus(row.status)}
-                        disabled={!canToggleUser(row, viewerRole)}
-                        isPending={pendingId === row.id}
-                        onCheckedChange={(active) => {
-                          setPendingId(row.id);
-                          updateActive.mutate(
-                            { id: row.id, active },
-                            { onSettled: () => setPendingId(null) },
-                          );
-                        }}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    <StatusSwitchCell
+                      checked={isUserActiveStatus(row.status)}
+                      disabled={!canToggleUser(row, viewerRole)}
+                      isPending={pendingId === row.id}
+                      onCheckedChange={(active) => {
+                        setPendingId(row.id);
+                        updateActive.mutate(
+                          { id: row.id, active },
+                          { onSettled: () => setPendingId(null) },
+                        );
+                      }}
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell
+                    className="text-right"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSelectedUser(row)}>
+                          View details
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </ModernTableCell>
+                </ModernTableRow>
+              ))}
+            </ModernTableBody>
+          </ModernTable>
         )}
 
         {pagination && pagination.totalPages > 1 ? (
-          <div className="flex items-center justify-between border-t border-border/60 px-4 py-3 text-sm text-muted-foreground">
-            <p>
-              Showing {(pagination.page - 1) * pagination.limit + 1}–
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-              {pagination.total}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-xs"
-                disabled={pagination.page <= 1}
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
-              >
-                Previous
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-xs"
-                disabled={pagination.page >= pagination.totalPages}
-                onClick={() => setPage((current) => current + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+          <ModernTablePagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            limit={pagination.limit}
+            onPageChange={setPage}
+          />
         ) : null}
-      </div>
-    </div>
+      </ModernTableShell>
+
+      <PersonDetailModal
+        open={Boolean(selectedUser)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedUser(null);
+        }}
+        title="User details"
+        name={selectedUser?.name ?? null}
+        email={selectedUser?.email ?? ''}
+        phoneNumber={selectedUser?.phoneNumber}
+        profileImage={selectedUser?.profileImage}
+        subtitle={
+          selectedUser
+            ? `${ROLE_SHORT_LABEL[selectedUser.role]}${selectedUser.institution?.name ? ` · ${selectedUser.institution.name}` : ''}`
+            : undefined
+        }
+        statusBadge={
+          selectedUser ? (
+            <ModernStatusBadge
+              label={getUserStatusLabel(selectedUser.status)}
+              tone={getUserStatusTone(selectedUser.status)}
+              icon={getUserStatusIcon(selectedUser.status)}
+            />
+          ) : null
+        }
+        sections={
+          selectedUser
+            ? [
+                {
+                  title: 'Account',
+                  rows: [
+                    { label: 'Role', value: ROLE_SHORT_LABEL[selectedUser.role] },
+                    {
+                      label: 'Email verified',
+                      value: <VerifiedBadge verified={selectedUser.emailVerified} />,
+                    },
+                    { label: 'Joined', value: formatDetailDate(selectedUser.createdAt) },
+                  ],
+                },
+                ...(selectedUser.role === UserRole.LEARNER
+                  ? [
+                      {
+                        title: 'Learner',
+                        rows: [
+                          {
+                            label: 'Type',
+                            value: selectedUser.learnerType
+                              ? selectedUser.learnerType === 'internal'
+                                ? 'Internal'
+                                : 'Public'
+                              : '—',
+                          },
+                          { label: 'Student ID', value: selectedUser.studentId ?? '—' },
+                        ],
+                      },
+                    ]
+                  : []),
+                ...(selectedUser.institution
+                  ? [
+                      {
+                        title: 'Institution',
+                        rows: [{ label: 'Name', value: selectedUser.institution.name }],
+                      },
+                    ]
+                  : []),
+              ]
+            : []
+        }
+      />
+    </>
   );
 }

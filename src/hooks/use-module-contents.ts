@@ -11,7 +11,6 @@ import {
   detachContent,
   getModuleContents,
   reorderModuleContents,
-  resetModuleContentChange,
   updateDocumentContent,
   updateTextContent,
   updateVideoContent,
@@ -154,53 +153,6 @@ export function useDetachContent(moduleId: string) {
       toast.error(getApiErrorMessage(error, 'Unable to remove lesson.'));
     },
   });
-}
-
-/** Undoes a single add/edit/delete that hasn't been published yet. */
-export function useResetModuleContentChange(moduleId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (contentId: string) => resetModuleContentChange(moduleId, contentId),
-    onSuccess: (response) => {
-      toast.success(response.message || 'Change reset.');
-      queryClient.invalidateQueries({ queryKey: moduleContentQueryKeys.list(moduleId) });
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Unable to reset this change.'));
-    },
-  });
-}
-
-/**
- * Starts the detach flow without hiding the item immediately.
- * In revision drafts, deleted lessons should stay visible with a Deleted badge
- * until the server responds and refreshes the list state.
- */
-export function useDetachContentWithUndo(moduleId: string) {
-  const queryClient = useQueryClient();
-
-  return (item: ModuleContentItem) => {
-    const queryKey = moduleContentQueryKeys.list(moduleId);
-
-    toast.undoable({
-      title: `"${item.content.title}" removed`,
-      description: 'This lesson will be detached from the module.',
-      onUndo: () => {
-        queryClient.invalidateQueries({ queryKey });
-      },
-      onExpire: () => {
-        detachContent(moduleId, item.contentId)
-          .then(() => {
-            queryClient.invalidateQueries({ queryKey });
-          })
-          .catch((error) => {
-            toast.error(getApiErrorMessage(error, 'Unable to remove lesson.'));
-            queryClient.invalidateQueries({ queryKey });
-          });
-      },
-    });
-  };
 }
 
 export function useReorderModuleContents(moduleId: string) {

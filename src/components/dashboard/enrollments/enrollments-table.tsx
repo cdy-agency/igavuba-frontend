@@ -11,8 +11,14 @@ import {
   Loader2,
   MapPin,
   Shield,
+  Upload,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { StatusSwitchCell } from '@/components/data-table/status-switch-cell';
+import { InviteStudentModal } from '@/components/dashboard/students/invite-student-modal';
+import { ImportStudentsModal } from '@/components/dashboard/students/import-students-modal';
+import { AssignCoursesModal } from '@/components/dashboard/students/assign-courses-modal';
 import { StudentRowActionsMenu } from '@/components/dashboard/students/student-row-actions-menu';
 import {
   ModernFilterSelect,
@@ -32,13 +38,27 @@ import {
   formatDetailDate,
   PersonDetailModal,
 } from '@/components/dashboard/shared/person-detail-modal';
-import { useStudentsList } from '@/hooks/use-students';
+import {
+  useCancelStudentInvitation,
+  useResetStudentPassword,
+  useStudentsList,
+  useUpdateStudentStatus,
+} from '@/hooks/use-students';
 import { useDepartmentsList } from '@/hooks/use-departments';
+import { useDashboard } from '@/contexts/dashboard-context';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { getApiErrorMessage } from '@/lib/auth';
 import type { StudentListItem } from '@/types/student.types';
-import { UserStatus } from '@/types/enum';
-import { getUserStatusLabel } from '@/lib/status-utils';
+import { UserRole, UserStatus } from '@/types/enum';
+import { getUserStatusLabel, isUserActiveStatus } from '@/lib/status-utils';
+import {
+  dashboardActionGroupClass,
+  getDashboardLabeledActionButtonClass,
+} from '@/lib/dashboard-action-button';
+
+function canToggleStatus(row: StudentListItem) {
+  return row.status !== UserStatus.PENDING;
+}
 
 function getStudentStatusTone(status: UserStatus): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
   if (status === UserStatus.ACTIVE) return 'success';
@@ -56,13 +76,20 @@ function getStudentStatusIcon(status: UserStatus) {
   return AlertTriangle;
 }
 
-export function StudentsTable() {
+export function EnrollmentsTable() {
+  const { role } = useDashboard();
   const { isAuthenticated } = useAuth();
+  const canManage = role === UserRole.INSTITUTION_ADMIN;
 
   const [searchInput, setSearchInput] = useState('');
   const [searchq, setSearchq] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignTargets, setAssignTargets] = useState<StudentListItem[]>([]);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
 
   const { data: departmentData } = useDepartmentsList(undefined, isAuthenticated);
@@ -97,6 +124,9 @@ export function StudentsTable() {
     refetch,
   } = useStudentsList(queryParams, isAuthenticated);
   const students = studentsData ?? [];
+  const updateStatus = useUpdateStudentStatus();
+  const resetPassword = useResetStudentPassword();
+  const cancelInvitation = useCancelStudentInvitation();
 
   const departmentOptions = useMemo(
     () => [
@@ -146,6 +176,31 @@ export function StudentsTable() {
               />
             </>
           }
+          actions={
+            canManage ? (
+              <div className={dashboardActionGroupClass}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className={getDashboardLabeledActionButtonClass()}
+                  onClick={() => setImportOpen(true)}
+                >
+                  <Upload className="mr-1.5 h-3.5 w-3.5" />
+                  Bulk Invite
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => setInviteOpen(true)}
+                >
+                  <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                  Invite Student
+                </Button>
+              </div>
+            ) : null
+          }
         />
 
         {isLoading ? (
@@ -155,14 +210,20 @@ export function StudentsTable() {
         ) : isError ? (
           <div className="flex min-h-[240px] flex-col items-center justify-center gap-3 px-6 text-center">
             <p className="text-sm text-muted-foreground">
-              {getApiErrorMessage(error, 'Unable to load students.')}
+              {getApiErrorMessage(error, 'Unable to load internal students.')}
             </p>
             <Button type="button" size="sm" variant="outline" onClick={() => void refetch()}>
               Try again
             </Button>
           </div>
         ) : students.length === 0 ? (
-          <ModernTableEmpty message="No students found." />
+          <ModernTableEmpty
+            message={
+              canManage
+                ? 'No internal students yet. Invite a student or upload a roster to get started.'
+                : 'No internal students found.'
+            }
+          />
         ) : (
           <ModernTable>
             <ModernTableHead>
@@ -171,6 +232,7 @@ export function StudentsTable() {
               <ModernTableHeaderCell>Status</ModernTableHeaderCell>
               <ModernTableHeaderCell>Courses</ModernTableHeaderCell>
               <ModernTableHeaderCell>Joined</ModernTableHeaderCell>
+              {canManage ? <ModernTableHeaderCell>Active</ModernTableHeaderCell> : null}
               <ModernTableHeaderCell className="text-right">Actions</ModernTableHeaderCell>
             </ModernTableHead>
             <ModernTableBody>
@@ -210,13 +272,46 @@ export function StudentsTable() {
                   <ModernTableCell className="whitespace-nowrap text-muted-foreground">
                     {format(new Date(row.createdAt), 'MMM d, yyyy')}
                   </ModernTableCell>
+                  {canManage ? (
+                    <ModernTableCell onClick={(event) => event.stopPropagation()}>
+                      {canToggleStatus(row) ? (
+                        <StatusSwitchCell
+                          checked={isUserActiveStatus(row.status)}
+                          disabled={pendingId === row.id}
+                          isPending={pendingId === row.id}
+                          size="sm"
+                          onCheckedChange={async (checked) => {
+                            setPendingId(row.id);
+                            try {
+                              await updateStatus.mutateAsync({
+                                studentId: row.id,
+                                status: checked ? UserStatus.ACTIVE : UserStatus.INACTIVE,
+                              });
+                            } finally {
+                              setPendingId(null);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </ModernTableCell>
+                  ) : null}
                   <ModernTableCell
                     className="text-right"
                     onClick={(event) => event.stopPropagation()}
                   >
                     <StudentRowActionsMenu
                       student={row}
+                      canManage={canManage}
+                      resetPasswordPending={resetPassword.isPending}
                       onViewDetails={setSelectedStudent}
+                      onAssignCourses={(student) => {
+                        setAssignTargets([student]);
+                        setAssignOpen(true);
+                      }}
+                      onResetPassword={(studentId) => resetPassword.mutateAsync(studentId)}
+                      onCancelInvitation={(email) => cancelInvitation.mutateAsync(email)}
                     />
                   </ModernTableCell>
                 </ModernTableRow>
@@ -279,6 +374,18 @@ export function StudentsTable() {
             : []
         }
       />
+
+      {canManage ? (
+        <>
+          <InviteStudentModal open={inviteOpen} onOpenChange={setInviteOpen} />
+          <ImportStudentsModal open={importOpen} onOpenChange={setImportOpen} />
+          <AssignCoursesModal
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
+            students={assignTargets}
+          />
+        </>
+      ) : null}
     </>
   );
 }

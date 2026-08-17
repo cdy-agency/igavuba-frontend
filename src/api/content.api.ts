@@ -125,13 +125,6 @@ export async function detachContent(moduleId: string, contentId: string) {
   return response.data;
 }
 
-export async function resetModuleContentChange(moduleId: string, contentId: string) {
-  const response = await apiClient.post<ModuleContentMutationResponse>(
-    `/modules/${moduleId}/contents/${contentId}/reset`,
-  );
-  return response.data;
-}
-
 export async function reorderModuleContents(
   moduleId: string,
   payload: ReorderModuleContentsPayload,

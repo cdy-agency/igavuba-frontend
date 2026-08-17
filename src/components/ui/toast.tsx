@@ -14,9 +14,6 @@ interface Toast {
   title: string;
   description?: string;
   duration?: number;
-  action?: { label: string; onClick: () => void };
-  /** Called when the toast is dismissed without the action being used (timeout or manual close). */
-  onExpire?: () => void;
 }
 
 interface ToastContextType {
@@ -126,21 +123,12 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   const remainingMs = useRef(duration);
   const pausedAt = useRef<number | null>(null);
 
-  const handleRemove = useCallback(
-    (skipExpire = false) => {
-      if (isLeaving) return;
-      setIsLeaving(true);
-      if (dismissTimer.current) clearTimeout(dismissTimer.current);
-      if (!skipExpire) toast.onExpire?.();
-      setTimeout(() => onRemove(toast.id), 220);
-    },
-    [isLeaving, onRemove, toast],
-  );
-
-  const handleActionClick = useCallback(() => {
-    toast.action?.onClick();
-    handleRemove(true);
-  }, [handleRemove, toast]);
+  const handleRemove = useCallback(() => {
+    if (isLeaving) return;
+    setIsLeaving(true);
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    setTimeout(() => onRemove(toast.id), 220);
+  }, [isLeaving, onRemove, toast.id]);
 
   const startDismissTimer = useCallback(
     (ms: number) => {
@@ -203,20 +191,11 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
           {toast.description ? (
             <p className="mt-1 text-[12px] leading-relaxed text-slate-500">{toast.description}</p>
           ) : null}
-          {toast.action ? (
-            <button
-              type="button"
-              onClick={handleActionClick}
-              className="mt-2 text-[12px] font-semibold text-primary underline-offset-2 hover:underline"
-            >
-              {toast.action.label}
-            </button>
-          ) : null}
         </div>
 
         <button
           type="button"
-          onClick={() => handleRemove()}
+          onClick={handleRemove}
           className="shrink-0 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
           aria-label="Dismiss notification"
         >

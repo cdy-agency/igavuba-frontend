@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   approveCourseRevision,
-  discardCourseRevision,
   getCourseRevisionComments,
   getCourseRevisionCompare,
   getCourseRevisionQueue,
@@ -108,21 +107,6 @@ export function useResubmitCourseRevision() {
     },
     onError: (error) => {
       toast.error(getApiErrorMessage(error, 'Unable to resubmit revision.'));
-    },
-  });
-}
-
-export function useDiscardCourseRevision() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (courseId: string) => discardCourseRevision(courseId),
-    onSuccess: (response, courseId) => {
-      toast.success(response.message || 'Draft changes discarded.');
-      invalidateRevisionQueries(queryClient, courseId);
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Unable to discard draft changes.'));
     },
   });
 }
