@@ -20,7 +20,7 @@ export function StudentsPage() {
           description={
             isReadOnly
               ? 'View internal students and their course progress.'
-              : 'Invite students, import rosters, and assign courses without payment.'
+              : 'Browse internal student records and enrollment progress.'
           }
         />
         <StudentsTable />

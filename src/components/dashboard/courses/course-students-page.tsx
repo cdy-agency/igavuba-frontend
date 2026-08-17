@@ -1,16 +1,73 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
-import { ArrowLeft, Eye, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { CourseSubNav } from '@/components/dashboard/courses/course-sub-nav';
 import {
-  DashboardActionGroup,
-  DashboardActionIconButton,
-} from '@/components/dashboard/dashboard-action-icon-button';
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Clock,
+  Eye,
+  GraduationCap,
+  Loader2,
+  MoreHorizontal,
+  Shield,
+} from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { CourseSubNav } from '@/components/dashboard/courses/course-sub-nav';
+import { DashboardActionIconButton } from '@/components/dashboard/dashboard-action-icon-button';
+import {
+  ModernFilterSelect,
+  ModernPersonCell,
+  ModernProgressCell,
+  ModernStatusBadge,
+  ModernTable,
+  ModernTableBody,
+  ModernTableCell,
+  ModernTableEmpty,
+  ModernTableHead,
+  ModernTableHeaderCell,
+  ModernTableRow,
+  ModernTableShell,
+  ModernTableToolbar,
+} from '@/components/dashboard/shared/modern-table';
+import {
+  formatDetailDate,
+  PersonDetailModal,
+} from '@/components/dashboard/shared/person-detail-modal';
 import { useCourseStudents } from '@/hooks/use-internal-enrollment';
 import type { CourseStudentRow } from '@/types/student.types';
-import { getUserStatusClassName, getUserStatusLabel } from '@/lib/status-utils';
+import { getUserStatusLabel } from '@/lib/status-utils';
+import { UserStatus } from '@/types/enum';
+
+function getEnrollmentStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
+  if (status === 'COMPLETED') return 'success';
+  if (status === 'ACTIVE') return 'info';
+  if (status === 'PENDING_PAYMENT') return 'warning';
+  return 'neutral';
+}
+
+function getEnrollmentStatusIcon(status: string) {
+  if (status === 'COMPLETED') return CheckCircle2;
+  if (status === 'ACTIVE') return Eye;
+  if (status === 'PENDING_PAYMENT') return Clock;
+  return AlertTriangle;
+}
+
+function getAccountStatusTone(status: string): 'success' | 'warning' | 'info' | 'danger' | 'neutral' {
+  if (status === UserStatus.ACTIVE) return 'success';
+  if (status === UserStatus.PENDING) return 'info';
+  if (status === UserStatus.SUSPENDED) return 'warning';
+  if (status === UserStatus.BANNED) return 'danger';
+  return 'neutral';
+}
 
 export function CourseStudentsPage({
   courseSlug,
@@ -21,6 +78,45 @@ export function CourseStudentsPage({
 }) {
   const { data: studentsData, isPending } = useCourseStudents(courseSlug);
   const students = studentsData ?? [];
+
+  const [searchInput, setSearchInput] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedStudent, setSelectedStudent] = useState<CourseStudentRow | null>(null);
+
+  const filterCount = useMemo(() => {
+    let count = 0;
+    if (typeFilter !== 'all') count += 1;
+    if (statusFilter !== 'all') count += 1;
+    return count;
+  }, [typeFilter, statusFilter]);
+
+  const filteredStudents = useMemo(() => {
+    const query = searchInput.trim().toLowerCase();
+    return students.filter((row) => {
+      if (typeFilter === 'internal' && !row.isInternalStudent) return false;
+      if (typeFilter === 'public' && row.isInternalStudent) return false;
+      if (statusFilter !== 'all' && row.enrollmentStatus !== statusFilter) return false;
+      if (!query) return true;
+      return (
+        row.name?.toLowerCase().includes(query) ||
+        row.email.toLowerCase().includes(query) ||
+        row.studentId?.toLowerCase().includes(query) ||
+        row.department?.name.toLowerCase().includes(query)
+      );
+    });
+  }, [students, searchInput, typeFilter, statusFilter]);
+
+  const enrollmentStatusOptions = useMemo(() => {
+    const values = Array.from(new Set(students.map((row) => row.enrollmentStatus)));
+    return [
+      { value: 'all', label: 'All statuses' },
+      ...values.map((value) => ({
+        value,
+        label: value.replaceAll('_', ' '),
+      })),
+    ];
+  }, [students]);
 
   return (
     <div className="space-y-6">
@@ -40,80 +136,213 @@ export function CourseStudentsPage({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+      <ModernTableShell>
+        <ModernTableToolbar
+          searchValue={searchInput}
+          onSearchChange={setSearchInput}
+          searchPlaceholder="Search by name, email, or student ID..."
+          filterCount={filterCount}
+          onClearFilters={() => {
+            setTypeFilter('all');
+            setStatusFilter('all');
+          }}
+          filters={
+            <>
+              <ModernFilterSelect
+                icon={GraduationCap}
+                label="Type"
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+                options={[
+                  { value: 'all', label: 'All types' },
+                  { value: 'internal', label: 'Internal' },
+                  { value: 'public', label: 'Public' },
+                ]}
+              />
+              <ModernFilterSelect
+                icon={Shield}
+                label="Enrollment"
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+                options={enrollmentStatusOptions}
+              />
+            </>
+          }
+        />
+
         {isPending ? (
           <div className="flex min-h-[240px] items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
-        ) : students.length === 0 ? (
-          <div className="px-6 py-12 text-center text-sm text-muted-foreground">
-            No students enrolled in this course yet.
-          </div>
+        ) : filteredStudents.length === 0 ? (
+          <ModernTableEmpty
+            message={
+              students.length === 0
+                ? 'No students enrolled in this course yet.'
+                : 'No students match your filters.'
+            }
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="border-b bg-muted/30 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Student ID</th>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Department</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium">Enrollment</th>
-                  <th className="px-4 py-3 font-medium">Progress</th>
-                  <th className="px-4 py-3 font-medium">Enrolled</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((row: CourseStudentRow) => (
-                  <tr key={row.enrollmentId} className="border-b last:border-b-0">
-                    <td className="px-4 py-3 font-mono text-xs">{row.studentId ?? '—'}</td>
-                    <td className="px-4 py-3">{row.name ?? '—'}</td>
-                    <td className="px-4 py-3">{row.email}</td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant="outline"
-                        className={
-                          row.isInternalStudent
-                            ? 'border-sky-200 bg-sky-50 text-[10px] uppercase text-sky-800'
-                            : 'border-amber-200 bg-amber-50 text-[10px] uppercase text-amber-800'
-                        }
-                      >
-                        {row.isInternalStudent ? 'Internal' : 'Public'}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">{row.department?.name ?? '—'}</td>
-                    <td className="px-4 py-3">
-                      <Badge className={getUserStatusClassName(row.status as never)}>
-                        {getUserStatusLabel(row.status as never)}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs uppercase text-muted-foreground">
-                      {row.enrollmentStatus.replaceAll('_', ' ')}
-                    </td>
-                    <td className="px-4 py-3">{Math.round(row.progress)}%</td>
-                    <td className="px-4 py-3">
-                      {format(new Date(row.enrolledAt), 'MMM d, yyyy')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <DashboardActionGroup className="justify-end">
-                        <DashboardActionIconButton
-                          label="View profile"
-                          icon={Eye}
-                          variant="primary"
-                          href={`/dashboard/students/${row.learnerProfileId}`}
-                        />
-                      </DashboardActionGroup>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ModernTable>
+            <ModernTableHead>
+              <ModernTableHeaderCell>Student</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Type</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Department</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Enrollment</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Progress</ModernTableHeaderCell>
+              <ModernTableHeaderCell>Enrolled</ModernTableHeaderCell>
+              <ModernTableHeaderCell className="text-right">Actions</ModernTableHeaderCell>
+            </ModernTableHead>
+            <ModernTableBody>
+              {filteredStudents.map((row) => (
+                <ModernTableRow key={row.enrollmentId}>
+                  <ModernTableCell>
+                    <ModernPersonCell
+                      name={row.name}
+                      email={row.email}
+                      profileImage={row.profileImage}
+                      subtitle={
+                        row.studentId
+                          ? `ID ${row.studentId}${row.department?.name ? ` · ${row.department.name}` : ''}`
+                          : row.department?.name ?? row.email
+                      }
+                      onClick={() => setSelectedStudent(row)}
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell>
+                    <ModernStatusBadge
+                      label={row.isInternalStudent ? 'Internal' : 'Public'}
+                      tone={row.isInternalStudent ? 'info' : 'warning'}
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell className="text-muted-foreground">
+                    {row.department?.name ?? '—'}
+                  </ModernTableCell>
+                  <ModernTableCell>
+                    <ModernStatusBadge
+                      label={row.enrollmentStatus.replaceAll('_', ' ')}
+                      tone={getEnrollmentStatusTone(row.enrollmentStatus)}
+                      icon={getEnrollmentStatusIcon(row.enrollmentStatus)}
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell>
+                    <ModernProgressCell
+                      value={row.progress}
+                      label={
+                        row.completedAt
+                          ? `Completed ${format(new Date(row.completedAt), 'MMM d, yyyy')}`
+                          : `${Math.round(row.progress)}% complete`
+                      }
+                    />
+                  </ModernTableCell>
+                  <ModernTableCell className="whitespace-nowrap text-muted-foreground">
+                    {format(new Date(row.enrolledAt), 'MMM d, yyyy')}
+                  </ModernTableCell>
+                  <ModernTableCell
+                    className="text-right"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Open menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setSelectedStudent(row)}>
+                          View details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/dashboard/students/${row.learnerProfileId}`}>
+                            Open profile
+                          </Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </ModernTableCell>
+                </ModernTableRow>
+              ))}
+            </ModernTableBody>
+          </ModernTable>
         )}
-      </div>
+      </ModernTableShell>
+
+      <PersonDetailModal
+        open={Boolean(selectedStudent)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedStudent(null);
+        }}
+        title="Student details"
+        name={selectedStudent?.name ?? null}
+        email={selectedStudent?.email ?? ''}
+        phoneNumber={selectedStudent?.phoneNumber}
+        profileImage={selectedStudent?.profileImage}
+        subtitle={
+          selectedStudent
+            ? `${selectedStudent.isInternalStudent ? 'Internal' : 'Public'} learner${
+                selectedStudent.department?.name ? ` · ${selectedStudent.department.name}` : ''
+              }`
+            : undefined
+        }
+        statusBadge={
+          selectedStudent ? (
+            <ModernStatusBadge
+              label={selectedStudent.enrollmentStatus.replaceAll('_', ' ')}
+              tone={getEnrollmentStatusTone(selectedStudent.enrollmentStatus)}
+              icon={getEnrollmentStatusIcon(selectedStudent.enrollmentStatus)}
+            />
+          ) : null
+        }
+        sections={
+          selectedStudent
+            ? [
+                {
+                  title: 'Enrollment',
+                  rows: [
+                    {
+                      label: 'Status',
+                      value: selectedStudent.enrollmentStatus.replaceAll('_', ' '),
+                    },
+                    { label: 'Progress', value: `${Math.round(selectedStudent.progress)}%` },
+                    { label: 'Enrolled', value: formatDetailDate(selectedStudent.enrolledAt) },
+                    {
+                      label: 'Completed',
+                      value: formatDetailDate(selectedStudent.completedAt),
+                    },
+                    {
+                      label: 'Source',
+                      value: selectedStudent.enrollmentSource?.replaceAll('_', ' ') ?? '—',
+                    },
+                  ],
+                },
+                {
+                  title: 'Profile',
+                  rows: [
+                    { label: 'Student ID', value: selectedStudent.studentId ?? '—' },
+                    {
+                      label: 'Type',
+                      value: selectedStudent.isInternalStudent ? 'Internal' : 'Public',
+                    },
+                    {
+                      label: 'Department',
+                      value: selectedStudent.department?.name ?? '—',
+                    },
+                    {
+                      label: 'Account status',
+                      value: (
+                        <ModernStatusBadge
+                          label={getUserStatusLabel(selectedStudent.status as UserStatus)}
+                          tone={getAccountStatusTone(selectedStudent.status)}
+                        />
+                      ),
+                    },
+                  ],
+                },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }

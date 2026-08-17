@@ -14,6 +14,7 @@ import { ProfileSettingsPage } from '@/components/dashboard/profile/profile-sett
 import { InstitutionPaymentsPage } from '@/components/dashboard/payments/institution-payments-page';
 import { StudentPaymentsPage } from '@/components/dashboard/payments/student-payments-page';
 import { AssessmentsPage } from '@/components/dashboard/assessments/assessments-page';
+import { EnrollmentsPage } from '@/components/dashboard/enrollments/enrollments-page';
 import { StudentsPage } from '@/components/dashboard/students/students-page';
 import { AuditLogsPage } from '@/components/dashboard/audit-logs/audit-logs-page';
 import { useDashboard } from '@/contexts/dashboard-context';
@@ -88,6 +89,10 @@ export default function DashboardSectionPage() {
 
   if (section === 'students') {
     return <StudentsPage />;
+  }
+
+  if (section === 'enrollments') {
+    return <EnrollmentsPage />;
   }
 
   if (section === 'audit-logs') {

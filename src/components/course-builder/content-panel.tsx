@@ -25,9 +25,8 @@ import {
   useCreateDocumentContent,
   useCreateTextContent,
   useCreateVideoContent,
-  useDetachContentWithUndo,
+  useDetachContent,
   useModuleContents,
-  useResetModuleContentChange,
   useUpdateDocumentContent,
   useUpdateTextContent,
   useUpdateVideoContent,
@@ -58,33 +57,6 @@ function EmptyState({ title, description }: { title: string; description: string
       </div>
     </div>
   );
-}
-
-function getContentStatusBadge(item: ModuleContentItem) {
-  switch (item.changeStatus) {
-    case 'ADDED':
-      return { label: 'Added', tone: 'success' as const };
-    case 'DELETED':
-      return { label: 'Deleted', tone: 'danger' as const };
-    case 'CHANGED':
-      return { label: 'Changed', tone: 'warning' as const };
-    default:
-      return undefined;
-  }
-}
-
-function getStatusBadgeWithReset(
-  item: ModuleContentItem,
-  onReset: () => void,
-):
-  | {
-      label: string;
-      tone: 'success' | 'danger' | 'warning';
-    }
-  | undefined {
-  const badge = getContentStatusBadge(item);
-  if (!badge) return undefined;
-  return badge;
 }
 
 function LessonIcon({ type }: { type: 'text' | 'video' | 'document' }) {
@@ -277,13 +249,11 @@ function TextLessonEditor({
   item,
   moduleId,
   onDelete,
-  resetMutation,
   readOnly = false,
 }: {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
-  resetMutation: ReturnType<typeof useResetModuleContentChange>;
   readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
@@ -366,8 +336,6 @@ function TextLessonEditor({
         });
       }}
       onDelete={readOnly ? undefined : onDelete}
-      statusBadge={{ label: item.changeStatus ? 'Staged' : 'Published', tone: item.changeStatus ? 'warning' : 'success' }}
-      onReset={item.changeStatus ? () => resetMutation.mutate(item.contentId) : undefined}
       icon={<LessonIcon type="text" />}
       settings={
         <LessonSettingsGroup>
@@ -412,13 +380,11 @@ function VideoLessonEditor({
   item,
   moduleId,
   onDelete,
-  resetMutation,
   readOnly = false,
 }: {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
-  resetMutation: ReturnType<typeof useResetModuleContentChange>;
   readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
@@ -510,8 +476,6 @@ function VideoLessonEditor({
       }}
       onDescriptionBlur={readOnly ? undefined : () => save(buildPayload())}
       onDelete={readOnly ? undefined : onDelete}
-      statusBadge={{ label: item.changeStatus ? 'Staged' : 'Published', tone: item.changeStatus ? 'warning' : 'success' }}
-      onReset={item.changeStatus ? () => resetMutation.mutate(item.contentId) : undefined}
       icon={<LessonIcon type="video" />}
       settings={
         <LessonSettingsGroup>
@@ -555,13 +519,11 @@ function DocumentLessonEditor({
   item,
   moduleId,
   onDelete,
-  resetMutation,
   readOnly = false,
 }: {
   item: ModuleContentItem;
   moduleId: string;
   onDelete: () => void;
-  resetMutation: ReturnType<typeof useResetModuleContentChange>;
   readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(item.content.title);
@@ -677,8 +639,6 @@ function DocumentLessonEditor({
               })
       }
       onDelete={readOnly ? undefined : onDelete}
-      statusBadge={{ label: item.changeStatus ? 'Staged' : 'Published', tone: item.changeStatus ? 'warning' : 'success' }}
-      onReset={item.changeStatus ? () => resetMutation.mutate(item.contentId) : undefined}
       icon={<LessonIcon type="document" />}
       settings={
         <LessonSettingsGroup>
@@ -779,8 +739,7 @@ export function ContentPanel({
   if (contentsData) {
     contentsDataRef.current = contentsData;
   }
-  const detachWithUndo = useDetachContentWithUndo(moduleId ?? '');
-  const resetMutation = useResetModuleContentChange(moduleId ?? '');
+  const detachMutation = useDetachContent(moduleId ?? '');
   const [contentToDetach, setContentToDetach] = useState<ModuleContentItem | null>(null);
 
   const selectedItem = contents.find((item) => item.contentId === selectedContentId) ?? null;
@@ -885,7 +844,6 @@ export function ContentPanel({
           item={selectedItem}
           moduleId={moduleId}
           onDelete={handleDetach}
-          resetMutation={resetMutation}
           readOnly={readOnly}
         />
       ) : null}
@@ -894,7 +852,6 @@ export function ContentPanel({
           item={selectedItem}
           moduleId={moduleId}
           onDelete={handleDetach}
-          resetMutation={resetMutation}
           readOnly={readOnly}
         />
       ) : null}
@@ -903,7 +860,6 @@ export function ContentPanel({
           item={selectedItem}
           moduleId={moduleId}
           onDelete={handleDetach}
-          resetMutation={resetMutation}
           readOnly={readOnly}
         />
       ) : null}
@@ -942,7 +898,10 @@ export function ContentPanel({
         confirmText="Remove lesson"
         onConfirm={async () => {
           if (!contentToDetach || !moduleId) return;
-          detachWithUndo(contentToDetach);
+          await detachMutation.mutateAsync(contentToDetach.contentId);
+          if (selectedContentId === contentToDetach.contentId) {
+            setSelectedContentId(null);
+          }
           setContentToDetach(null);
         }}
       />
