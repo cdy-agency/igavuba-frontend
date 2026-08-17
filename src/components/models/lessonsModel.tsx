@@ -60,6 +60,8 @@ const CONTENT_TYPES: {
   { value: ContentType.TEXT, label: "Text", icon: FileText },
   { value: ContentType.VIDEO, label: "Video", icon: Video },
   { value: ContentType.DOCUMENT, label: "Document", icon: FileType },
+  { value: ContentType.QUIZ, label: "Quiz", icon: BookOpen },
+  { value: ContentType.ASSIGNMENT, label: "Assignment", icon: ClipboardList },
 ];
 
 const TYPE_ICON_CLASSES: Record<string, string> = {
@@ -123,11 +125,13 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
   const isSupportedTab =
     activeTab === ContentType.TEXT ||
     activeTab === ContentType.VIDEO ||
-    activeTab === ContentType.DOCUMENT;
+    activeTab === ContentType.DOCUMENT ||
+    activeTab === ContentType.QUIZ ||
+    activeTab === ContentType.ASSIGNMENT;
 
   const { data: allContent, isLoading } = useContentLibrary(
     {
-      type: isSupportedTab ? activeTab : undefined,
+      type: isSupportedTab ? (activeTab as ContentType) : undefined,
       search: debouncedSearch || undefined,
       page: currentPage,
       limit: itemsPerPage,
@@ -137,18 +141,16 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
   );
 
   const { data: moduleContent } = useModuleContents(moduleId, isOpen);
-  const moduleItems: ModuleContentItem[] = moduleContent ?? [];
 
   const addedContentIds = useMemo(
-    () => new Set(moduleItems.map((item) => item.contentId)),
-    [moduleItems],
+    () => new Set((moduleContent ?? []).map((item: ModuleContentItem) => item.contentId)),
+    [moduleContent],
   );
 
   const filteredContent = useMemo(() => {
     if (!isSupportedTab) return [] as ContentRecord[];
-    const items: ContentRecord[] = allContent?.data ?? [];
-    return items.filter((content) => !addedContentIds.has(content.id));
-  }, [allContent, addedContentIds, isSupportedTab]);
+    return allContent?.data ?? [];
+  }, [allContent, isSupportedTab]);
 
   const handleConfirmRemove = async () => {
     if (!contentToRemove) return;
@@ -164,10 +166,7 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
   };
 
   const handleSelectContent = async (content: ContentRecord) => {
-    if (addedContentIds.has(content.id)) {
-      toast.error("Already added");
-      return;
-    }
+    if (addedContentIds.has(content.id)) return;
     try {
       await attachMutation.mutateAsync(content.id);
       onSelectContent(content);
@@ -285,11 +284,17 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
               </div>
             ) : (
               <ul className="flex flex-col gap-1.5">
-                {filteredContent.map((content) => (
+                {filteredContent.map((content: ContentRecord) => {
+                  const alreadyAdded = addedContentIds.has(content.id);
+                  return (
                   <li
                     key={content.id}
-                    onClick={() => void handleSelectContent(content)}
-                    className="group flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 transition-all hover:border-primary/40 hover:bg-primary-subtle/30"
+                    onClick={() => !alreadyAdded && void handleSelectContent(content)}
+                    className={`group flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 transition-all ${
+                      alreadyAdded
+                        ? "cursor-not-allowed opacity-60"
+                        : "cursor-pointer hover:border-primary/40 hover:bg-primary-subtle/30"
+                    }`}
                   >
                     {/* Icon badge */}
                     <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted">
@@ -315,14 +320,21 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
                         >
                           {content.isPublished ? "Visible" : "Hidden"}
                         </span>
+                        {alreadyAdded && (
+                          <span className="rounded bg-blue-100 px-1.5 py-px text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                            Already in this module
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Actions */}
                     <div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                      <span className="flex items-center gap-1 text-[11px] font-medium text-primary">
-                        <Plus className="h-3 w-3" /> Add
-                      </span>
+                      {!alreadyAdded && (
+                        <span className="flex items-center gap-1 text-[11px] font-medium text-primary">
+                          <Plus className="h-3 w-3" /> Add
+                        </span>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -334,7 +346,8 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
                       </button>
                     </div>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </div>

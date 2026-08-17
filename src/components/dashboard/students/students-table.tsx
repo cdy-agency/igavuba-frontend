@@ -37,6 +37,7 @@ import { useDepartmentsList } from '@/hooks/use-departments';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { getApiErrorMessage } from '@/lib/auth';
 import type { StudentListItem } from '@/types/student.types';
+import type { Department } from '@/types/department.types';
 import { UserStatus } from '@/types/enum';
 import { getUserStatusLabel } from '@/lib/status-utils';
 
@@ -66,7 +67,7 @@ export function StudentsTable() {
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
 
   const { data: departmentData } = useDepartmentsList(undefined, isAuthenticated);
-  const departments = departmentData?.data ?? [];
+  const departments: Department[] = departmentData?.data ?? [];
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearchq(searchInput.trim()), 300);
@@ -96,7 +97,7 @@ export function StudentsTable() {
     error,
     refetch,
   } = useStudentsList(queryParams, isAuthenticated);
-  const students = studentsData ?? [];
+  const students: StudentListItem[] = studentsData ?? [];
 
   const departmentOptions = useMemo(
     () => [

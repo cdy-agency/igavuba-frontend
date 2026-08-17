@@ -18,8 +18,8 @@ type StudentRowActionsMenuProps = {
   resetPasswordPending?: boolean;
   onViewDetails?: (student: StudentListItem) => void;
   onAssignCourses?: (student: StudentListItem) => void;
-  onResetPassword?: (studentId: string) => void | Promise<void>;
-  onCancelInvitation?: (email: string) => void | Promise<void>;
+  onResetPassword?: (studentId: string) => void | Promise<unknown>;
+  onCancelInvitation?: (email: string) => void | Promise<unknown>;
 };
 
 export function StudentRowActionsMenu({

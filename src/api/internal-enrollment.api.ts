@@ -25,7 +25,7 @@ export async function bulkEnrollStudentsInternal(payload: BulkInternalEnrollment
   return response.data;
 }
 
-export async function listCourseStudents(courseId: string) {
+export async function listCourseStudents(courseId: string): Promise<CourseStudentRow[]> {
   const response = await apiClient.get<StudentMutationResponse<CourseStudentRow[]>>(
     `/courses/${courseId}/students`,
   );

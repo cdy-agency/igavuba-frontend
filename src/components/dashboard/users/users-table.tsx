@@ -184,7 +184,7 @@ export function UsersTable() {
 
   const { data, isPending, isFetching } = useUsersList(queryParams);
   const updateActive = useUpdateUserActive();
-  const users = data?.data ?? [];
+  const users: UserListItem[] = data?.data ?? [];
   const pagination = data?.pagination;
 
   const clearFilters = () => {

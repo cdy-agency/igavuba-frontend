@@ -49,6 +49,7 @@ import { useDashboard } from '@/contexts/dashboard-context';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { getApiErrorMessage } from '@/lib/auth';
 import type { StudentListItem } from '@/types/student.types';
+import type { Department } from '@/types/department.types';
 import { UserRole, UserStatus } from '@/types/enum';
 import { getUserStatusLabel, isUserActiveStatus } from '@/lib/status-utils';
 import {
@@ -93,7 +94,7 @@ export function EnrollmentsTable() {
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
 
   const { data: departmentData } = useDepartmentsList(undefined, isAuthenticated);
-  const departments = departmentData?.data ?? [];
+  const departments: Department[] = departmentData?.data ?? [];
 
   useEffect(() => {
     const timer = window.setTimeout(() => setSearchq(searchInput.trim()), 300);
@@ -123,7 +124,7 @@ export function EnrollmentsTable() {
     error,
     refetch,
   } = useStudentsList(queryParams, isAuthenticated);
-  const students = studentsData ?? [];
+  const students: StudentListItem[] = studentsData ?? [];
   const updateStatus = useUpdateStudentStatus();
   const resetPassword = useResetStudentPassword();
   const cancelInvitation = useCancelStudentInvitation();
