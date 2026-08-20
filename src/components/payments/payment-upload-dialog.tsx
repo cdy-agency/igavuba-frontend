@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { uploadFile } from '@/api/upload';
 import { useSubmitPayment } from '@/hooks/use-payments';
+import { CouponCodeField } from '@/components/payments/coupon-code-field';
+import type { CouponValidationResult } from '@/types/coupon';
 
 const PAYMENT_ACCOUNT_NAME =
   process.env.NEXT_PUBLIC_PAYMENT_ACCOUNT_NAME || 'CDY MARKETING COMPANY';
@@ -45,11 +47,17 @@ export function PaymentUploadDialog({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
+
+  const payableAmount = appliedCoupon?.valid
+    ? appliedCoupon.pricing?.finalPrice ?? amount
+    : amount;
 
   const resetForm = () => {
     setReferenceNumber('');
     setSelectedFile(null);
     setCopied(false);
+    setAppliedCoupon(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -82,6 +90,7 @@ export function PaymentUploadDialog({
         courseId,
         proofFile,
         referenceNumber: referenceNumber.trim() || undefined,
+        couponCode: appliedCoupon?.valid ? appliedCoupon.coupon?.code : undefined,
       });
       handleClose(false);
       onSubmitted?.();
@@ -101,10 +110,10 @@ export function PaymentUploadDialog({
           <DialogTitle>Upload Payment Proof</DialogTitle>
           <DialogDescription>
             Submit proof of payment for <strong>{courseTitle}</strong>
-            {amount != null && amount > 0 ? (
+            {payableAmount != null && payableAmount > 0 ? (
               <>
                 {' '}
-                — {amount.toLocaleString()} {currency ?? 'RWF'}
+                — {payableAmount.toLocaleString()} {currency ?? 'RWF'}
               </>
             ) : null}
             . Accepted formats: image or PDF.
@@ -112,6 +121,12 @@ export function PaymentUploadDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <CouponCodeField
+            courseId={courseId}
+            onApplied={setAppliedCoupon}
+            onCleared={() => setAppliedCoupon(null)}
+          />
+
           <div className="rounded-xl border border-primary/20 bg-[var(--primary-subtle)] p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
               <Building2 className="h-4 w-4 text-primary" />

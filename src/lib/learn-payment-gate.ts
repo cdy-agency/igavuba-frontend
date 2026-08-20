@@ -19,13 +19,14 @@ export function resolvePreviewAccessState(
   const coursePayments = payments?.filter((payment) => payment.courseId === courseId) ?? [];
   const hasApprovedPayment = coursePayments.some((payment) => payment.status === 'APPROVED');
   const hasPendingPayment = coursePayments.some((payment) => payment.status === 'PENDING');
-  const isInstitutionAssigned = course.enrollment.source === 'INSTITUTION_ASSIGNMENT';
 
+  // Trust backend access level: ACTIVE enrollment (e.g. 100% coupon) is FULL, not preview.
   const isPreviewAccess =
-    course.access.requiresPayment &&
-    !isInstitutionAssigned &&
-    !hasApprovedPayment &&
-    course.enrollment.status !== 'COMPLETED';
+    course.access.level === 'PREVIEW' ||
+    (course.enrollment.status === 'PENDING_PAYMENT' &&
+      course.access.requiresPayment &&
+      course.enrollment.source !== 'INSTITUTION_ASSIGNMENT' &&
+      !hasApprovedPayment);
 
   return { isPreviewAccess, hasPendingPayment, hasApprovedPayment };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import {
   BookOpen,
   Clock,
@@ -11,6 +12,7 @@ import {
 import { CoursePreviewMedia } from '@/components/public/course-detail/course-detail-preview-media';
 import { CourseDetailEnrollActions } from '@/components/public/course-detail/course-detail-enroll-actions';
 import { WishlistButton } from '@/components/wishlist/WishlistButton';
+import { CouponCodeField } from '@/components/payments/coupon-code-field';
 import type { CatalogCourseDetail } from '@/types/catalog';
 import {
   formatCatalogDuration,
@@ -22,16 +24,19 @@ import { CourseAccessType } from '@/types/course';
 import { getAccessToken, getRefreshToken } from '@/lib/auth';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useCourseEnrollmentStatus } from '@/hooks/use-enrollment';
+import { UserRole } from '@/types/enum';
+import type { CouponValidationResult } from '@/types/coupon';
 
 interface CourseDetailSidebarProps {
   course: CatalogCourseDetail;
 }
 
 export function CourseDetailSidebar({ course }: CourseDetailSidebarProps) {
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidationResult | null>(null);
   const priceLabel = formatCatalogPrice(course);
   const durationLabel = formatCatalogDuration(course.estimatedHours);
   const isFree = priceLabel === 'Free';
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const hasStoredSession = Boolean(getAccessToken() || getRefreshToken());
   const shouldCheckEnrollment = !authLoading && isAuthenticated;
   const { data: enrollmentStatus } = useCourseEnrollmentStatus(
@@ -41,6 +46,13 @@ export function CourseDetailSidebar({ course }: CourseDetailSidebarProps) {
   const isEnrolled = enrollmentStatus?.isEnrolled ?? false;
   const showWishlist =
     !isEnrolled && !(authLoading && hasStoredSession);
+  const showCouponField =
+    !isFree &&
+    !isEnrolled &&
+    isAuthenticated &&
+    user?.role === UserRole.LEARNER &&
+    (course.accessType === CourseAccessType.PUBLIC_PAID ||
+      course.accessType === CourseAccessType.HYBRID);
 
   return (
     <aside className="relative order-1 lg:order-2 lg:col-span-1">
@@ -61,7 +73,22 @@ export function CourseDetailSidebar({ course }: CourseDetailSidebarProps) {
             ) : null}
           </div>
 
-          <CourseDetailEnrollActions courseId={course.id} courseSlug={course.slug} />
+          {showCouponField ? (
+            <CouponCodeField
+              courseId={course.id}
+              onApplied={setAppliedCoupon}
+              onCleared={() => setAppliedCoupon(null)}
+            />
+          ) : null}
+
+          <CourseDetailEnrollActions
+            courseId={course.id}
+            courseSlug={course.slug}
+            couponCode={appliedCoupon?.valid ? appliedCoupon.coupon?.code : null}
+            isFreeWithCoupon={Boolean(
+              appliedCoupon?.valid && appliedCoupon.pricing?.finalPrice === 0,
+            )}
+          />
 
           {showWishlist ? (
             <div className="flex items-center justify-center">

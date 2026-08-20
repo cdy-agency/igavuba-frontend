@@ -22,7 +22,7 @@ const slides: SlideData[] = [
     subtitle:
       "Discover how our platform empowers learners through interactive content, expert guidance, and industry-aligned skills development.",
     industry: "Platform Overview",
-    bgImage: "/e-learning.jpg",
+    bgImage: "/ai-image-2.jpeg",
     consultationImage: "/images/consultation-intro.png",
     overlayClass: "hero-overlay-default",
   },
@@ -42,7 +42,7 @@ const slides: SlideData[] = [
     subtitle:
       "Understand how digital finance works, including blockchain, payment gateways, and compliance. Build your own secure and scalable financial apps.",
     industry: "Financial Technology",
-    bgImage: "/finance.webp",
+    bgImage: "/ai-image-1.jpeg",
     consultationImage: "/images/consultation-fintech.png",
     overlayClass: "hero-overlay-fintech",
   },
@@ -221,22 +221,6 @@ export default function HeroSection() {
                 >
                   {currentSlideData.subtitle}
                 </p>
-              </div>
-            </div>
-
-            {/* Awards Section */}
-            <div className="mt-auto">
-              <h3 className="text-primary-foreground text-base xl:text-lg mb-4 xl:mb-6">Awards</h3>
-              <div className="flex gap-3 xl:gap-4">
-                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/10">
-                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-primary-foreground/30 rounded-full" />
-                </div>
-                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/10">
-                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-primary-foreground/30 rounded-full" />
-                </div>
-                <div className="w-12 h-12 xl:w-16 xl:h-16 rounded-full bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center border border-primary-foreground/10">
-                  <div className="w-6 h-6 xl:w-8 xl:h-8 bg-primary-foreground/30 rounded-full" />
-                </div>
               </div>
             </div>
           </div>

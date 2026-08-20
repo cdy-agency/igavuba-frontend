@@ -15,8 +15,11 @@ import { InstitutionPaymentsPage } from '@/components/dashboard/payments/institu
 import { StudentPaymentsPage } from '@/components/dashboard/payments/student-payments-page';
 import { AssessmentsPage } from '@/components/dashboard/assessments/assessments-page';
 import { EnrollmentsPage } from '@/components/dashboard/enrollments/enrollments-page';
+import { CalendarPage } from '@/components/dashboard/calendar/calendar-page';
+import { EventsPage } from '@/components/dashboard/events/events-page';
 import { StudentsPage } from '@/components/dashboard/students/students-page';
 import { AuditLogsPage } from '@/components/dashboard/audit-logs/audit-logs-page';
+import { CouponsPage } from '@/components/dashboard/coupons/coupons-page';
 import { useDashboard } from '@/contexts/dashboard-context';
 import { UserRole } from '@/types/enum';
 import type { AssessmentTab } from '@/components/dashboard/assessments/assessments-page';
@@ -93,6 +96,18 @@ export default function DashboardSectionPage() {
 
   if (section === 'enrollments') {
     return <EnrollmentsPage />;
+  }
+
+  if (section === 'calendar') {
+    return <CalendarPage />;
+  }
+
+  if (section === 'events') {
+    return <EventsPage />;
+  }
+
+  if (section === 'coupons') {
+    return <CouponsPage />;
   }
 
   if (section === 'audit-logs') {

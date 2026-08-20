@@ -27,13 +27,16 @@ function getRailLabel(title: string): string {
 }
 
 export function SidebarNavLink({ href, title, icon: Icon, isActive, badge }: SidebarNavLinkProps) {
-  const { state, isMobile } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const collapsed = state === 'collapsed' && !isMobile;
   const railLabel = getRailLabel(title);
 
   const link = (
     <Link
       href={href}
+      onClick={() => {
+        if (isMobile) setOpenMobile(false);
+      }}
       className={cn(
         'dashboard-rail-nav-item',
         isMobile && 'dashboard-rail-nav-item--mobile',

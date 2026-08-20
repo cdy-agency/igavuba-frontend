@@ -846,6 +846,80 @@ html:has(.course-builder-layout-shell) body {
     background-color: rgba(100, 116, 139, 0.45);
   }
 
+  /* Calendar dashboard */
+  .calendar-shell {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 12px 40px rgba(37, 99, 235, 0.06);
+  }
+
+  .calendar-page {
+    @apply flex min-h-0 flex-col;
+    height: calc(100svh - 3.5rem - 3rem);
+  }
+
+  @media (min-width: 768px) {
+    .calendar-page {
+      height: calc(100svh - 3.5rem - 4rem);
+    }
+  }
+
+  .calendar-body {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row;
+  }
+
+  .calendar-sidebar {
+    @apply shrink-0 overscroll-contain;
+  }
+
+  .calendar-main {
+    @apply min-h-0 min-w-0 flex-1 overscroll-contain;
+  }
+
+  @media (min-width: 1024px) {
+    .calendar-sidebar,
+    .calendar-main {
+      @apply overflow-y-auto custom-scrollbar custom-scrollbar-light;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    .calendar-body {
+      @apply overflow-y-auto custom-scrollbar custom-scrollbar-light;
+    }
+
+    .calendar-sidebar,
+    .calendar-main {
+      @apply overflow-visible;
+    }
+  }
+
+  .calendar-view-toggle {
+    @apply inline-flex items-center gap-1 rounded-full bg-primary-subtle p-1;
+  }
+
+  .calendar-view-toggle__item {
+    @apply rounded-full px-4 py-2 text-sm font-medium text-primary transition-colors;
+  }
+
+  .calendar-view-toggle__item--active {
+    @apply bg-primary text-primary-foreground shadow-sm;
+  }
+
+  .calendar-event-pill {
+    @apply truncate rounded-md bg-primary px-2 py-1 text-left text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90;
+  }
+
+  .calendar-day-cell--selected {
+    box-shadow: inset 0 2px 0 0 var(--primary);
+  }
+
+  .calendar-mini-picker .rdp {
+    --rdp-cell-size: 2rem;
+    margin: 0;
+  }
+
 }
 
 @layer base {

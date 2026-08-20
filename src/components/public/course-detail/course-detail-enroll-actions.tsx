@@ -15,11 +15,15 @@ import { UserRole } from '@/types/enum';
 interface CourseDetailEnrollActionsProps {
   courseId: string;
   courseSlug: string;
+  couponCode?: string | null;
+  isFreeWithCoupon?: boolean;
 }
 
 export function CourseDetailEnrollActions({
   courseId,
   courseSlug,
+  couponCode,
+  isFreeWithCoupon = false,
 }: CourseDetailEnrollActionsProps) {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -49,7 +53,10 @@ export function CourseDetailEnrollActions({
       return;
     }
 
-    await createEnrollment.mutateAsync({ courseId });
+    await createEnrollment.mutateAsync({
+      courseId,
+      couponCode: couponCode?.trim() || undefined,
+    });
     router.push(learnHref);
   };
 
@@ -104,6 +111,8 @@ export function CourseDetailEnrollActions({
         </>
       ) : !isLearner ? (
         'Available for learners'
+      ) : isFreeWithCoupon ? (
+        'Enroll for free'
       ) : (
         'Enroll now'
       )}
