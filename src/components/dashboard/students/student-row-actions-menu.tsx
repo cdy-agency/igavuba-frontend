@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Eye, KeyRound, ListPlus, MoreHorizontal } from 'lucide-react';
+import { Edit, Eye, KeyRound, ListPlus, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ type StudentRowActionsMenuProps = {
   canManage?: boolean;
   resetPasswordPending?: boolean;
   onViewDetails?: (student: StudentListItem) => void;
+  onEdit?: (student: StudentListItem) => void;
   onAssignCourses?: (student: StudentListItem) => void;
   onResetPassword?: (studentId: string) => void | Promise<unknown>;
   onCancelInvitation?: (email: string) => void | Promise<unknown>;
@@ -27,6 +28,7 @@ export function StudentRowActionsMenu({
   canManage = false,
   resetPasswordPending,
   onViewDetails,
+  onEdit,
   onAssignCourses,
   onResetPassword,
   onCancelInvitation,
@@ -45,6 +47,12 @@ export function StudentRowActionsMenu({
         {onViewDetails ? (
           <DropdownMenuItem onClick={() => onViewDetails(student)}>
             View details
+          </DropdownMenuItem>
+        ) : null}
+        {canManage && onEdit ? (
+          <DropdownMenuItem onClick={() => onEdit(student)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit information
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem asChild>

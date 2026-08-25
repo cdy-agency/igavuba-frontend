@@ -19,6 +19,7 @@ import { StatusSwitchCell } from '@/components/data-table/status-switch-cell';
 import { InviteStudentModal } from '@/components/dashboard/students/invite-student-modal';
 import { ImportStudentsModal } from '@/components/dashboard/students/import-students-modal';
 import { AssignCoursesModal } from '@/components/dashboard/students/assign-courses-modal';
+import { EditStudentModal } from '@/components/dashboard/students/edit-student-modal';
 import { StudentRowActionsMenu } from '@/components/dashboard/students/student-row-actions-menu';
 import {
   ModernFilterSelect,
@@ -92,6 +93,7 @@ export function EnrollmentsTable() {
   const [assignTargets, setAssignTargets] = useState<StudentListItem[]>([]);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
+  const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null);
 
   const { data: departmentData } = useDepartmentsList(undefined, isAuthenticated);
   const departments: Department[] = departmentData?.data ?? [];
@@ -307,6 +309,7 @@ export function EnrollmentsTable() {
                       canManage={canManage}
                       resetPasswordPending={resetPassword.isPending}
                       onViewDetails={setSelectedStudent}
+                      onEdit={setEditingStudent}
                       onAssignCourses={(student) => {
                         setAssignTargets([student]);
                         setAssignOpen(true);
@@ -384,6 +387,13 @@ export function EnrollmentsTable() {
             open={assignOpen}
             onOpenChange={setAssignOpen}
             students={assignTargets}
+          />
+          <EditStudentModal
+            student={editingStudent}
+            open={Boolean(editingStudent)}
+            onOpenChange={(open) => {
+              if (!open) setEditingStudent(null);
+            }}
           />
         </>
       ) : null}
