@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Menu } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import Image from "next/image";
 import React, { useState } from 'react';
@@ -189,6 +188,11 @@ export default function LandingHeader() {
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link href="/profile" className="w-full block">
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   className="text-destructive"
                   onSelect={(event) => {
@@ -196,19 +200,11 @@ export default function LandingHeader() {
                     void logout();
                   }}
                 >
-                  Sign Out
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="p-2 hover:bg-muted rounded-md"
-          >
-            <Menu className="h-6 w-6 text-foreground-muted" />
-          </Button>
         </div>
       </div>
       {isOpen && <SearchModal open={isOpen} onClose={() => setIsOpen(false)} />}

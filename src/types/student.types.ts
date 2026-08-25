@@ -58,6 +58,7 @@ export interface InviteStudentPayload {
 export interface UpdateStudentPayload {
   firstName?: string;
   lastName?: string;
+  email?: string;
   phoneNumber?: string;
   studentId?: string;
   departmentId?: string;

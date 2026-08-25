@@ -66,6 +66,7 @@ export interface CourseLearnerItem {
 
 export interface CreateEnrollmentPayload {
   courseId: string;
+  couponCode?: string;
 }
 
 export interface AssignLearnersPayload {

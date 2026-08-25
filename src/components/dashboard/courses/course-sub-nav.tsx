@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, GraduationCap, Pencil, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, GraduationCap, Pencil, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type CourseSubNavTab = 'edit' | 'settings' | 'results' | 'students';
+type CourseSubNavTab = 'edit' | 'settings' | 'results' | 'students' | 'events';
 
 interface CourseSubNavProps {
   slug: string;
@@ -41,6 +41,12 @@ const TABS: {
     label: 'Students',
     href: (slug) => `/dashboard/courses/${slug}/students`,
     icon: Users,
+  },
+  {
+    id: 'events',
+    label: 'Events',
+    href: (slug) => `/dashboard/courses/${slug}/events`,
+    icon: CalendarDays,
   },
 ];
 

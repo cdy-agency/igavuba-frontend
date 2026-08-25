@@ -11,9 +11,9 @@ export function getDashboardLabeledActionButtonClass(
   return cn(
     '!h-7 shrink-0 !px-2.5 !text-xs font-medium',
     variant === 'default' &&
-      '!border-border/80 !text-foreground hover:!bg-muted/50 hover:!text-foreground',
+      '!border-border/80 !text-white hover:!bg-muted/50 hover:!text-foreground',
     variant === 'primary' &&
-      '!border-primary/30 !text-primary hover:!bg-primary/5 hover:!text-primary',
+      '!border-primary/30 !text-white hover:!bg-primary/5 hover:!text-primary',
     variant === 'destructive' &&
       '!border-destructive/30 !text-destructive hover:!bg-destructive/10 hover:!text-destructive',
   );

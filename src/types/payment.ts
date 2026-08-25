@@ -12,6 +12,10 @@ export interface PaymentRecord {
   paymentMethod: PaymentMethod;
   proofFile: string;
   referenceNumber: string | null;
+  couponId?: string | null;
+  couponCode?: string | null;
+  currentCoursePrice?: number | null;
+  couponDiscountAmount?: number | null;
   status: PaymentRecordStatus;
   reviewedBy: {
     id: string;
@@ -42,6 +46,7 @@ export interface SubmitPaymentPayload {
   courseId: string;
   proofFile: string;
   referenceNumber?: string;
+  couponCode?: string;
 }
 
 export interface RejectPaymentPayload {
