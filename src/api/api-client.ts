@@ -7,6 +7,13 @@ import {
 import { decryptResponse, encryptAESKeyOnly, encryptPayload } from '@/lib/crypto';
 import { ensureValidAccessToken, refreshSessionTokens } from '@/lib/session-token';
 
+class ApiClientError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ApiClientError';
+  }
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 const encryptionEnabled = !!process.env.NEXT_PUBLIC_RSA_PUBLIC_KEY;
 
@@ -85,27 +92,35 @@ apiClient.interceptors.request.use(
       return config;
     }
 
-    const isMultipart =
-      config.data instanceof FormData ||
-      config.headers['Content-Type']?.toString().includes('multipart/form-data');
+    try {
+      const isMultipart =
+        config.data instanceof FormData ||
+        config.headers['Content-Type']?.toString().includes('multipart/form-data');
 
-    const hasBody = config.data !== undefined && config.data !== null;
+      const hasBody = config.data !== undefined && config.data !== null;
 
-    if (isMultipart) {
-      const { encryptedKey, aesKey } = await encryptAESKeyOnly();
-      aesKeyMap.set(config, aesKey);
-      config.headers['X-Key'] = encryptedKey;
-    } else if (hasBody) {
-      const encrypted = await encryptPayload(config.data);
-      aesKeyMap.set(config, encrypted.aesKey);
-      config.headers['X-Key'] = encrypted.encryptedKey;
-      config.headers['X-IV'] = encrypted.iv;
-      config.headers['X-Tag'] = encrypted.tag;
-      config.data = { payload: encrypted.encryptedData };
-    } else {
-      const { encryptedKey, aesKey } = await encryptAESKeyOnly();
-      aesKeyMap.set(config, aesKey);
-      config.headers['X-Key'] = encryptedKey;
+      if (isMultipart) {
+        const { encryptedKey, aesKey } = await encryptAESKeyOnly();
+        aesKeyMap.set(config, aesKey);
+        config.headers['X-Key'] = encryptedKey;
+      } else if (hasBody) {
+        const encrypted = await encryptPayload(config.data);
+        aesKeyMap.set(config, encrypted.aesKey);
+        config.headers['X-Key'] = encrypted.encryptedKey;
+        config.headers['X-IV'] = encrypted.iv;
+        config.headers['X-Tag'] = encrypted.tag;
+        config.data = { payload: encrypted.encryptedData };
+      } else {
+        const { encryptedKey, aesKey } = await encryptAESKeyOnly();
+        aesKeyMap.set(config, aesKey);
+        config.headers['X-Key'] = encryptedKey;
+      }
+    } catch {
+      return Promise.reject(
+        new ApiClientError(
+          'We could not secure your request on this device. Please refresh the page and try again.',
+        ),
+      );
     }
 
     return config;
@@ -119,11 +134,19 @@ apiClient.interceptors.response.use(async (response) => {
   const tag = response.headers['x-tag'];
 
   if (aesKey && iv && tag && response.data?.payload) {
-    response.data = await decryptResponse(aesKey, {
-      encryptedData: response.data.payload,
-      iv,
-      tag,
-    });
+    try {
+      response.data = await decryptResponse(aesKey, {
+        encryptedData: response.data.payload,
+        iv,
+        tag,
+      });
+    } catch {
+      return Promise.reject(
+        new ApiClientError(
+          'We received an unreadable response from the server. Please refresh and try again.',
+        ),
+      );
+    }
   }
 
   return response;
