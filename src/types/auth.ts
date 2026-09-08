@@ -115,6 +115,8 @@ export interface ApiErrorResponse {
   message?: string | string[];
   error?: string;
   statusCode?: number;
+  code?: string;
+  details?: Record<string, string[]>;
 }
 
 export interface PendingVerificationState {

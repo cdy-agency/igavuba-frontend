@@ -1,4 +1,4 @@
-import type { ApiErrorResponse, AuthUser, PendingVerificationState } from '@/types';
+import type { AuthUser, PendingVerificationState } from '@/types';
 import { getAuthToken, removeAuthToken, setAuthToken } from './cookies';
 
 const AUTH_STORAGE_KEY = 'auth_state';
@@ -163,30 +163,7 @@ export function clearPendingVerification() {
   window.localStorage.removeItem(PENDING_VERIFICATION_KEY);
 }
 
-export function getApiErrorMessage(error: unknown, fallback = 'Request failed') {
-  const errorResponse = error as {
-    response?: {
-      data?: ApiErrorResponse;
-    };
-    message?: string;
-  };
-
-  const message = errorResponse.response?.data?.message;
-
-  if (Array.isArray(message)) {
-    return message[0] ?? fallback;
-  }
-
-  if (typeof message === 'string' && message.trim().length > 0) {
-    return message;
-  }
-
-  if (typeof errorResponse.message === 'string' && errorResponse.message.trim().length > 0) {
-    return errorResponse.message;
-  }
-
-  return fallback;
-}
+export { getApiErrorMessage } from './api-error';
 
 export function decodeBase64Url(value: string): string | null {
   try {

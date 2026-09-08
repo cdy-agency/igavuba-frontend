@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Mail } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,7 @@ export function LoginForm() {
   const { setSession, setPendingVerification } = useAuth();
   const loginMutation = useLoginMutation();
   const [showPassword, setShowPassword] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -34,6 +35,12 @@ export function LoginForm() {
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
+    if (isSubmittingRef.current || loginMutation.isPending) {
+      return;
+    }
+
+    isSubmittingRef.current = true;
+
     try {
       const response = await loginMutation.mutateAsync(values);
       setSession(response);
@@ -43,7 +50,9 @@ export function LoginForm() {
       const redirect = searchParams.get('redirect');
       router.push(redirect || PROTECTED_ROUTES.DASHBOARD);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Login failed'));
+      toast.error(getApiErrorMessage(error, 'Unable to sign in. Please check your details and try again.'));
+    } finally {
+      isSubmittingRef.current = false;
     }
   });
 
