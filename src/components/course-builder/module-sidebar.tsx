@@ -608,11 +608,11 @@ export function ModuleSidebar({
 
   useEffect(() => {
     if (!modulesData?.length || !selectedModuleId) return;
-    if (modulesData.some((module) => module.id === selectedModuleId)) return;
+    if (modulesData.some((module: CourseModule) => module.id === selectedModuleId)) return;
 
     const previousModule = localModules.find((module) => module.id === selectedModuleId);
     const matchedModule = previousModule
-      ? modulesData.find((module) => module.slug === previousModule.slug)
+      ? modulesData.find((module: CourseModule) => module.slug === previousModule.slug)
       : null;
 
     if (matchedModule) {

@@ -243,7 +243,7 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
     const query = debouncedSearch.toLowerCase();
     if (!query) return stagedContent;
     return stagedContent.filter(
-      (item) =>
+      (item: StagedContentItem) =>
         item.content.title.toLowerCase().includes(query) ||
         item.module.title.toLowerCase().includes(query),
     );
@@ -368,7 +368,7 @@ export const ContentSearchModal: React.FC<ContentSearchModalProps> = ({
                 </div>
               ) : (
                 <ul className="flex flex-col gap-1.5">
-                  {filteredStagedContent.map((item) => {
+                  {filteredStagedContent.map((item: StagedContentItem) => {
                     const isRestoreToSameModule = item.moduleId === moduleId;
                     const alreadyInThisModule =
                       !isRestoreToSameModule &&

@@ -298,15 +298,18 @@ export function ModernTableBody({ children }: { children: React.ReactNode }) {
 export function ModernTableRow({
   children,
   onClick,
+  className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
+  className?: string;
 }) {
   return (
     <tr
       className={cn(
         'border-b border-border/50 transition-colors last:border-b-0 hover:bg-muted/20',
         onClick && 'cursor-pointer',
+        className,
       )}
       onClick={onClick}
     >
