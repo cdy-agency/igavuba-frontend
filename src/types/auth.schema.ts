@@ -11,28 +11,40 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-export const signupSchema = z.object({
-  name: z
-    .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(100, "Name is too long")
-    .refine((val) => /[a-zA-Z]/.test(val), {
-      message: "Name must contain at least one letter",
-    })
-    .refine((val) => /^[a-zA-Z\s'-]+$/.test(val), {
-      message:
-        "Name can only contain letters, spaces, hyphens, and apostrophes",
-    }),
+const nameSchema = z
+  .string()
+  .min(2, "Name must be at least 2 characters")
+  .max(100, "Name is too long")
+  .refine((val) => /[a-zA-Z]/.test(val), {
+    message: "Name must contain at least one letter",
+  })
+  .refine((val) => /^[a-zA-Z\s'-]+$/.test(val), {
+    message: "Name can only contain letters, spaces, hyphens, and apostrophes",
+  });
+
+const signupPhoneNumberSchema = z
+  .string()
+  .min(1, "Phone number is required")
+  .refine((val) => isValidSignupPhoneNumber(val), {
+    message:
+      "Please enter a valid phone number (e.g. +250788888888 or 0788888888)",
+  });
+
+const signupFieldsSchema = z.object({
+  name: nameSchema,
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  phoneNumber: z
-    .string()
-    .min(1, "Phone number is required")
-    .refine((val) => isValidSignupPhoneNumber(val), {
-      message:
-        "Please enter a valid phone number (e.g. +250788888888 or 0788888888)",
-    }),
+  confirmPassword: z.string().min(1, "Please confirm your password"),
+  phoneNumber: signupPhoneNumberSchema,
 });
+
+export const signupSchema = signupFieldsSchema.refine(
+  (values) => values.password === values.confirmPassword,
+  {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  },
+);
 
 export const verifyEmailSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -78,7 +90,7 @@ export const confirmPasswordSchema = z.object({
 export type ConfirmPasswordFormData = z.infer<typeof confirmPasswordSchema>;
 
 export const profileSchema = z.object({
-  name: signupSchema.shape.name,
+  name: nameSchema,
   phoneNumber: z
     .string()
     .trim()

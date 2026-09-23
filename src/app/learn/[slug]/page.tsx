@@ -572,7 +572,6 @@ export default function LearningPlayerPage() {
     <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <CourseHeader
         courseTitle={courseTitle}
-        courseSlug={slug}
         courseId={courseId}
         progress={computedProgress}
         sidebarOpen={sidebarOpen}

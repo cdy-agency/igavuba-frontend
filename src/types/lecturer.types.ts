@@ -40,11 +40,8 @@ export interface LecturerDetail extends Omit<LecturerListItem, 'coursesCount'> {
 }
 
 export interface InviteLecturerPayload {
-  firstName: string;
-  lastName: string;
   email: string;
   departmentId?: string;
-  phoneNumber?: string;
 }
 
 export interface ActivateLecturerPayload {
@@ -52,6 +49,7 @@ export interface ActivateLecturerPayload {
   firstName: string;
   lastName: string;
   password: string;
+  phoneNumber?: string;
 }
 
 export interface LecturerMutationResponse<T> {
@@ -63,6 +61,7 @@ export interface LecturerMutationResponse<T> {
 export interface VerifyLecturerInvitationData {
   email: string;
   institutionName: string;
+  department: { id: string; name: string } | null;
 }
 
 export interface ActivateLecturerData {

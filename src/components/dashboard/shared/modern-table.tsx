@@ -70,7 +70,7 @@ export function ModernTableToolbar({
   return (
     <div className="border-b border-border/70 px-4 py-3">
       <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           {hasSearch ? (
             <div className="relative w-[220px] shrink-0 sm:w-[260px]">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -129,7 +129,8 @@ export function ModernFilterSelect({
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger
         className={cn(
-          'h-9 w-auto min-w-[9.5rem] max-w-[11.5rem] shrink-0 gap-1.5 border-border/80 bg-background px-2.5 text-sm font-normal shadow-none [&>span]:line-clamp-none',
+          'h-9 w-auto min-w-[9.5rem] max-w-[11.5rem] shrink-0 gap-1.5 border-border/80 bg-background px-2.5 text-sm font-normal shadow-none focus:ring-0 focus:ring-offset-0 focus-visible:border-border/80 focus-visible:ring-0 data-[state=open]:border-border/80 data-[state=open]:ring-0 [&>span]:line-clamp-none',
+          value !== 'all' && 'border-border bg-muted/30',
           className,
         )}
       >

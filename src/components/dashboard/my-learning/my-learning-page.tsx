@@ -49,7 +49,7 @@ function MyLearningContent() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {progressItems.map((item: MyCourseProgressItem) => (
         <EnrolledCourseCard key={item.enrollmentId} item={item} />
       ))}
@@ -59,7 +59,7 @@ function MyLearningContent() {
 
 function EnrolledCourseCard({ item }: { item: MyCourseProgressItem }) {
   const durationLabel = formatCatalogDuration(item.estimatedHours);
-  const progress = Math.round(item.percentage ?? 0);
+  const progress = Math.min(100, Math.round(item.percentage ?? 0));
   const continueHref = item.resumeContentId
     ? `/learn/${item.courseSlug}?contentId=${item.resumeContentId}`
     : `/learn/${item.courseSlug}`;
@@ -68,63 +68,65 @@ function EnrolledCourseCard({ item }: { item: MyCourseProgressItem }) {
   return (
     <Link
       href={continueHref}
-      className="group flex gap-3 rounded-xl border border-border/60 bg-card p-3 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+      className="group overflow-hidden border border-border/60 bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
     >
-      <div className="relative h-[72px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-muted">
+      <div className="relative h-32 w-full overflow-hidden bg-muted">
         {item.thumbnail ? (
           <Image
             src={item.thumbnail}
             alt={item.courseTitle}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="96px"
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/25 to-muted" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-primary/10 to-muted" />
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
         {isCompleted ? (
-          <span className="absolute bottom-1 left-1 rounded bg-emerald-600/90 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-            Done
+          <span className="absolute left-0 top-0 bg-emerald-600/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+            Completed
           </span>
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <p className="truncate text-[11px] font-medium text-muted-foreground">
-          {item.institution.name}
-        </p>
-        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground group-hover:text-primary">
-          {item.courseTitle}
-        </h3>
+      <div className="space-y-2.5 p-3">
+        <div>
+          <p className="truncate text-[10px] font-medium text-muted-foreground">
+            {item.institution.name}
+          </p>
+          <h3 className="line-clamp-2 min-h-[2.5rem] text-sm font-semibold leading-snug text-foreground group-hover:text-primary">
+            {item.courseTitle}
+          </h3>
+        </div>
 
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+        <p className="text-[11px] text-muted-foreground">
           <span className="inline-flex items-center gap-0.5">
             <Clock className="h-3 w-3" />
             {durationLabel}
           </span>
-          <span>
-            {item.completedLessons}/{item.totalLessons} lessons
-          </span>
-        </div>
+          {' · '}
+          {item.completedLessons}/{item.totalLessons} lessons
+        </p>
 
-        <div className="mt-auto pt-2">
+        <div>
           <div className="mb-1 flex items-center justify-between text-[11px]">
             <span className="text-muted-foreground">Progress</span>
             <span className="font-semibold tabular-nums text-foreground">{progress}%</span>
           </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
               className={cn(
                 'h-full rounded-full transition-all',
                 isCompleted ? 'bg-emerald-500' : 'bg-primary',
               )}
-              style={{ width: `${Math.min(progress, 100)}%` }}
+              style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
-          {isCompleted ? 'Review course' : 'Continue'}
+        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary opacity-80 transition-opacity group-hover:opacity-100">
+          {isCompleted ? 'Review course' : 'Continue learning'}
           <ArrowRight className="h-3 w-3" />
         </span>
       </div>

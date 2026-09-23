@@ -1,12 +1,12 @@
 'use client';
 
 import type { DashboardPayload } from '@/types/dashboard.types';
-import { RoleDashboardView } from './role-dashboard-view';
+import { SuperAdminDashboardView } from './home/super-admin-dashboard-view';
 
 interface SuperAdminDashboardProps {
   data: DashboardPayload;
 }
 
 export function SuperAdminDashboard({ data }: SuperAdminDashboardProps) {
-  return <RoleDashboardView data={data} />;
+  return <SuperAdminDashboardView data={data} />;
 }

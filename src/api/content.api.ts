@@ -15,7 +15,9 @@ import type {
   ModuleContentItem,
   ModuleContentMutationResponse,
   ModuleContentsReorderResponse,
+  ReattachStagedContentPayload,
   ReorderModuleContentsPayload,
+  StagedContentItem,
   UpdateDocumentContentPayload,
   UpdateTextContentPayload,
   UpdateVideoContentPayload,
@@ -172,6 +174,36 @@ export async function updateDocumentContent(
   const response = await apiClient.patch<ContentMutationResponse>(
     `/contents/${contentId}/document`,
     payload,
+  );
+  return response.data;
+}
+
+export async function getStagedRevisionContents(courseId: string) {
+  const response = await apiClient.get<{
+    success: boolean;
+    message: string;
+    data: StagedContentItem[];
+  }>(`/courses/${courseId}/revision/staged-contents`);
+  return response.data;
+}
+
+export async function reattachStagedContent(
+  moduleId: string,
+  payload: ReattachStagedContentPayload,
+) {
+  const response = await apiClient.post<ModuleContentMutationResponse>(
+    `/modules/${moduleId}/contents/reattach-staged`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function permanentlyDeleteStagedContent(
+  moduleId: string,
+  contentId: string,
+) {
+  const response = await apiClient.delete<{ success: boolean; message: string }>(
+    `/modules/${moduleId}/contents/${contentId}/staged-permanent`,
   );
   return response.data;
 }

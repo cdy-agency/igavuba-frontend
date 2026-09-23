@@ -320,7 +320,7 @@ html:has(.course-builder-layout-shell) body {
   }
 
   .auth-input {
-    @apply h-12 bg-panel-input border-panel-border text-panel-foreground placeholder:text-panel-muted focus:border-primary focus:ring-1 focus:ring-primary rounded-lg;
+    @apply h-11 rounded-xl border-panel-border bg-panel-input text-white placeholder:text-panel-muted focus:border-primary focus:ring-1 focus:ring-primary;
   }
 
   .auth-label {
@@ -328,7 +328,7 @@ html:has(.course-builder-layout-shell) body {
   }
 
   .auth-btn-primary {
-    @apply w-full h-12 bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary-active text-primary-foreground font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 group border-0;
+    @apply h-11 w-full rounded-xl border-0 bg-gradient-to-r from-primary to-primary-hover font-semibold text-primary-foreground shadow-lg transition-all duration-200 hover:from-primary-hover hover:to-primary-active hover:shadow-xl;
   }
 
   .auth-link {
@@ -909,6 +909,16 @@ html:has(.course-builder-layout-shell) body {
 
   .calendar-event-pill {
     @apply truncate rounded-md bg-primary px-2 py-1 text-left text-[11px] font-medium text-primary-foreground transition-opacity hover:opacity-90;
+  }
+
+  .calendar-event-pill.calendar-event-pill--expired {
+    background-color: color-mix(in srgb, var(--destructive) 14%, transparent) !important;
+    color: var(--destructive) !important;
+    opacity: 1 !important;
+  }
+
+  .calendar-event-pill.calendar-event-pill--expired:hover {
+    background-color: color-mix(in srgb, var(--destructive) 22%, transparent) !important;
   }
 
   .calendar-day-cell--selected {

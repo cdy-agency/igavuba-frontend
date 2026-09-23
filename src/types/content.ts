@@ -69,6 +69,25 @@ export interface ContentRecord {
   assessment: ModuleContentAssessment | null;
 }
 
+export interface StagedContentItem {
+  id: string;
+  moduleId: string;
+  contentId: string;
+  order: number;
+  deletedAt: string;
+  module: {
+    id: string;
+    title: string;
+    slug: string;
+  };
+  content: ContentRecord;
+}
+
+export interface ReattachStagedContentPayload {
+  contentId: string;
+  fromModuleId: string;
+}
+
 export interface ModuleContentItem {
   id: string;
   moduleId: string;

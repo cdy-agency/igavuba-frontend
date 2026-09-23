@@ -48,6 +48,7 @@ export async function startCourseRevision(courseId: string) {
       hasUnpublishedChanges: boolean;
       revisionStatus: CourseRevisionStatus;
       activeRevisionWorkspaceId: string;
+      alreadyExists?: boolean;
     }>
   >(`/courses/${courseId}/start-revision`);
   return response.data;

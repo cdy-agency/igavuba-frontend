@@ -147,6 +147,24 @@ export function EventFormModal({
   });
 
   const scope = form.watch('scope');
+  const startAt = form.watch('startAt');
+
+  useEffect(() => {
+    if (isEdit || !startAt) return;
+
+    const start = new Date(startAt);
+    if (Number.isNaN(start.getTime())) return;
+
+    const suggestedEnd = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+    const currentEnd = form.getValues('endAt');
+    const end = currentEnd ? new Date(currentEnd) : null;
+
+    if (!end || Number.isNaN(end.getTime()) || end <= start) {
+      form.setValue('endAt', toDatetimeLocalValue(suggestedEnd.toISOString()), {
+        shouldValidate: true,
+      });
+    }
+  }, [form, isEdit, startAt]);
 
   useEffect(() => {
     if (!open) {

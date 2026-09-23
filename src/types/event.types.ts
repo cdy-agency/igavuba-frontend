@@ -74,6 +74,7 @@ export interface CalendarItem {
   location?: string | null;
   meetingUrl?: string | null;
   assessmentType?: string;
+  status?: EventStatus;
 }
 
 export interface CreateEventPayload {

@@ -19,6 +19,7 @@ import { useCalendar, useUpcomingCalendar } from '@/hooks/use-calendar';
 import { useDashboard } from '@/contexts/dashboard-context';
 import type { CalendarItem } from '@/types/event.types';
 import { UserRole } from '@/types/enum';
+import { filterUpcomingCalendarItems } from '@/lib/calendar-item-utils';
 import { cn } from '@/lib/utils';
 
 const CALENDAR_ROLES = Object.values(UserRole);
@@ -90,7 +91,7 @@ export function CalendarPage() {
     return map;
   }, [monthItems]);
 
-  const filteredUpcoming = upcomingItems.filter((item) =>
+  const filteredUpcoming = filterUpcomingCalendarItems(upcomingItems).filter((item) =>
     item.title.toLowerCase().includes(searchQuery.trim().toLowerCase()),
   );
 

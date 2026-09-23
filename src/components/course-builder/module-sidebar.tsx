@@ -607,6 +607,25 @@ export function ModuleSidebar({
   }, [modulesData]);
 
   useEffect(() => {
+    if (!modulesData?.length || !selectedModuleId) return;
+    if (modulesData.some((module) => module.id === selectedModuleId)) return;
+
+    const previousModule = localModules.find((module) => module.id === selectedModuleId);
+    const matchedModule = previousModule
+      ? modulesData.find((module) => module.slug === previousModule.slug)
+      : null;
+
+    if (matchedModule) {
+      setSelectedModuleId(matchedModule.id);
+      setExpandedModuleId(matchedModule.id);
+      return;
+    }
+
+    setSelectedModuleId(modulesData[0].id);
+    setExpandedModuleId(modulesData[0].id);
+  }, [modulesData, selectedModuleId, localModules, setSelectedModuleId]);
+
+  useEffect(() => {
     if (!modulesData?.length || selectedModuleId || deepLinkContentId) return;
     setSelectedModuleId(modulesData[0].id);
     setExpandedModuleId(modulesData[0].id);
@@ -808,6 +827,7 @@ export function ModuleSidebar({
 
       {searchModalModuleId ? (
         <ContentSearchModal
+          courseId={courseId}
           isOpen={isSearchModalOpen}
           onClose={() => setIsSearchModalOpen(false)}
           contentId={searchModalModuleId}

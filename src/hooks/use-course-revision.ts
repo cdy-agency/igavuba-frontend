@@ -66,17 +66,28 @@ export function useCourseRevisionComments(courseId: string, enabled = true) {
   });
 }
 
+export type StartCourseRevisionInput = {
+  courseId: string;
+  /** When true, never show a toast (used by builder bootstrap). */
+  silent?: boolean;
+};
+
 export function useStartCourseRevision() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (courseId: string) => startCourseRevision(courseId),
-    onSuccess: (response, courseId) => {
-      toast.success(response.message || 'Draft revision started.');
+    mutationFn: ({ courseId }: StartCourseRevisionInput) => startCourseRevision(courseId),
+    onSuccess: (response, { courseId, silent }) => {
+      const alreadyExists = response.data?.alreadyExists === true;
+      if (!silent && !alreadyExists) {
+        toast.success(response.message || 'Draft revision started.');
+      }
       invalidateRevisionQueries(queryClient, courseId);
     },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Unable to start draft revision.'));
+    onError: (error, { silent }) => {
+      if (!silent) {
+        toast.error(getApiErrorMessage(error, 'Unable to start draft revision.'));
+      }
     },
   });
 }

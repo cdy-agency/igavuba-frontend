@@ -25,7 +25,12 @@ export function DataTableSortSelect({
 }: DataTableSortSelectProps) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className={className ?? 'h-10 w-[12.5rem] shrink-0 gap-2'}>
+      <SelectTrigger
+        className={
+          className ??
+          'h-9 w-[12.5rem] shrink-0 gap-2 border-border/80 shadow-none focus:ring-0 focus:ring-offset-0 focus-visible:border-border/80 focus-visible:ring-0 data-[state=open]:border-border/80 data-[state=open]:ring-0'
+        }
+      >
         <ArrowUpDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>
