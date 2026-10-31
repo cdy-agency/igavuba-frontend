@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ModernStatusBadge } from '@/components/dashboard/shared/modern-table';
+import { isCalendarItemPast, isEventPast } from '@/lib/calendar-item-utils';
 import type { CalendarItem, EventRecord } from '@/types/event.types';
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -36,12 +37,20 @@ export function EventDetailModal({
   const title = event?.title ?? calendarItem?.title ?? 'Event details';
   const startAt = event?.startAt ?? calendarItem?.startAt;
   const endAt = event?.endAt ?? calendarItem?.endAt;
+  const expired = event
+    ? isEventPast(event)
+    : calendarItem
+      ? isCalendarItemPast(calendarItem)
+      : false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <DialogTitle>{title}</DialogTitle>
+            {expired ? <ModernStatusBadge label="Expired" tone="danger" /> : null}
+          </div>
           <DialogDescription>
             {event?.scope
               ? `${event.scope.charAt(0)}${event.scope.slice(1).toLowerCase()} event`

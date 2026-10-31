@@ -33,6 +33,8 @@ import {
   dashboardActionGroupClass,
   getDashboardLabeledActionButtonClass,
 } from '@/lib/dashboard-action-button';
+import { isEventPast } from '@/lib/calendar-item-utils';
+import { cn } from '@/lib/utils';
 
 const TYPE_OPTIONS = [
   { value: 'all', label: 'All types' },
@@ -155,22 +157,30 @@ export function EventsTable({
               <ModernTableHeaderCell className="text-right">Actions</ModernTableHeaderCell>
             </ModernTableHead>
             <ModernTableBody>
-              {events.map((row) => (
-                <ModernTableRow key={row.id}>
+              {events.map((row) => {
+                const expired = isEventPast(row);
+
+                return (
+                <ModernTableRow key={row.id} className={cn(expired && 'bg-destructive/5')}>
                   <ModernTableCell>
                     <button
                       type="button"
                       className="text-left"
                       onClick={() => setSelectedEvent(row)}
                     >
-                      <p className="font-medium text-foreground">{row.title}</p>
+                      <p className={cn('font-medium text-foreground', expired && 'text-destructive')}>
+                        {row.title}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {row.course?.title ?? row.institution?.name ?? 'Personal event'}
                       </p>
                     </button>
                   </ModernTableCell>
                   <ModernTableCell>
-                    <ModernStatusBadge label={row.eventType.replaceAll('_', ' ')} tone="info" />
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <ModernStatusBadge label={row.eventType.replaceAll('_', ' ')} tone="info" />
+                      {expired ? <ModernStatusBadge label="Expired" tone="danger" /> : null}
+                    </div>
                   </ModernTableCell>
                   <ModernTableCell className="capitalize text-muted-foreground">
                     {row.scope.toLowerCase()}
@@ -210,7 +220,8 @@ export function EventsTable({
                     )}
                   </ModernTableCell>
                 </ModernTableRow>
-              ))}
+              );
+              })}
             </ModernTableBody>
           </ModernTable>
         )}

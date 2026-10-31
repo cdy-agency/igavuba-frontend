@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, Suspense } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useCourseDetail, usePublishCourse } from '@/hooks/use-courses';
 import {
@@ -23,6 +23,7 @@ import { UserRole } from '@/types/enum';
 import { Button } from '@/components/ui/button';
 import { CourseBuilderProvider } from '@/components/course-builder/course-builder-context';
 import { CourseBuilderDeepLink } from '@/components/course-builder/course-builder-deep-link';
+import { CourseRevisionBootstrap } from '@/components/course-builder/course-revision-bootstrap';
 import { BuilderHeader } from '@/components/course-builder/builder-header';
 import { ModuleSidebar } from '@/components/course-builder/module-sidebar';
 import { ContentPanel } from '@/components/course-builder/content-panel';
@@ -54,6 +55,10 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
   const { role, user } = useDashboard();
   const [requestChangesOpen, setRequestChangesOpen] = useState(false);
   const [reviewChatOpen, setReviewChatOpen] = useState(false);
+  const [revisionBootstrapReady, setRevisionBootstrapReady] = useState(false);
+  const handleRevisionBootstrapReady = useCallback(() => {
+    setRevisionBootstrapReady(true);
+  }, []);
   const { data: course, isPending, isError, error, refetch } = useCourseDetail(slug, authReady);
   const { selectedModuleId, viewingFinalExam, builderSaveState } = useCourseBuilder();
   const publishMutation = usePublishCourse();
@@ -170,10 +175,25 @@ function CourseBuilderShell({ slug }: CourseBuilderShellProps) {
     approveRevisionMutation.isPending ||
     requestRevisionChangesMutation.isPending;
 
-  if (!authReady || isPending) {
+  const needsRevisionBootstrap =
+    Boolean(course) &&
+    course!.status === CourseLifecycleStatus.PUBLISHED &&
+    isOwner &&
+    !readOnly;
+
+  if (!authReady || isPending || (needsRevisionBootstrap && !revisionBootstrapReady)) {
     return (
       <div className="course-builder-page flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {course && needsRevisionBootstrap ? (
+          <CourseRevisionBootstrap
+            courseId={course.id}
+            courseStatus={course.status}
+            isOwner={isOwner}
+            readOnly={readOnly}
+            onReady={handleRevisionBootstrapReady}
+          />
+        ) : null}
       </div>
     );
   }

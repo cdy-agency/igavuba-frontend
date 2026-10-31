@@ -5,6 +5,7 @@ import { CalendarPlus, Search } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CalendarEventPill } from '@/components/dashboard/calendar/calendar-event-pill';
 import { cn } from '@/lib/utils';
 import type { CalendarItem } from '@/types/event.types';
 import type { CalendarItemSource } from '@/types/event.types';
@@ -162,13 +163,7 @@ export function CalendarSidebar({
             <ul className="space-y-2">
               {filteredAgenda.slice(0, 4).map((item) => (
                 <li key={`${item.source}-${item.id}`}>
-                  <button
-                    type="button"
-                    onClick={() => onItemClick(item)}
-                    className="calendar-event-pill w-full text-left"
-                  >
-                    {item.title}
-                  </button>
+                  <CalendarEventPill item={item} onClick={onItemClick} className="text-left" />
                 </li>
               ))}
             </ul>

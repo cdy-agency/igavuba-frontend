@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronLeft, Sun, Moon, Menu, X, MessagesSquare, Star } from 'lucide-react';
+import { ChevronLeft, Sun, Moon, Menu, X, Star } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { CourseDiscussionSheet } from './CourseDiscussionSheet';
 import { ReviewModal } from '@/components/reviews/ReviewModal';
 import { useCreateOrUpdateReview, useReviewEligibility } from '@/hooks/use-reviews';
 
@@ -13,8 +12,7 @@ interface CourseHeaderProps {
   progress?: number;
   sidebarOpen?: boolean;
   onToggleSidebar?: () => void;
-  courseSlug?: string;
-  courseId?: string; // Added for rating
+  courseId?: string;
 }
 
 export default function CourseHeader({
@@ -23,14 +21,12 @@ export default function CourseHeader({
   progress = 0,
   sidebarOpen = true,
   onToggleSidebar,
-  courseSlug,
   courseId,
 }: CourseHeaderProps) {
   const { theme, setTheme } = useTheme();
-  const [discussionSheetOpen, setDiscussionSheetOpen] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
 
-  const courseKey = courseId || courseSlug || '';
+  const courseKey = courseId ?? '';
   const { data: eligibility, isPending: eligibilityLoading } = useReviewEligibility(
     courseKey,
     Boolean(courseKey),
@@ -176,23 +172,9 @@ export default function CourseHeader({
             {isDark ? <Moon size={20} /> : <Sun size={20} />}
           </button>
 
-          {courseSlug && (
-            <button
-              type="button"
-              onClick={() => setDiscussionSheetOpen(true)}
-              className={`p-2 rounded-lg transition-colors ${
-                isDark
-                  ? 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-              }`}
-              aria-label="Open course discussion"
-            >
-              <MessagesSquare size={20} />
-            </button>
-          )}
         </div>
 
-        {/* Actions - Mobile: next to theme */}
+        {/* Actions - Mobile */}
         <div className="flex sm:hidden items-center gap-1">
           {canReview && (
             <button
@@ -206,27 +188,7 @@ export default function CourseHeader({
               <Star size={18} />
             </button>
           )}
-
-          {courseSlug && (
-            <button
-              type="button"
-              onClick={() => setDiscussionSheetOpen(true)}
-              className={`p-1.5 rounded-lg transition-colors ${
-                isDark ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              aria-label="Open course discussion"
-            >
-              <MessagesSquare size={18} />
-            </button>
-          )}
         </div>
-
-        <CourseDiscussionSheet
-          courseSlug={courseSlug}
-          open={discussionSheetOpen}
-          onOpenChange={setDiscussionSheetOpen}
-          courseTitle={courseTitle}
-        />
       </div>
 
       {canReview && (

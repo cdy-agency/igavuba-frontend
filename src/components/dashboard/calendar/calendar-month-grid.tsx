@@ -15,6 +15,7 @@ import {
 } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { CalendarEventPill } from '@/components/dashboard/calendar/calendar-event-pill';
 import { cn } from '@/lib/utils';
 import type { CalendarItem } from '@/types/event.types';
 
@@ -140,18 +141,11 @@ export function CalendarMonthGrid({
 
                 <div className="space-y-1">
                   {dayItems.slice(0, MAX_VISIBLE_EVENTS).map((item) => (
-                    <button
+                    <CalendarEventPill
                       key={`${item.source}-${item.id}`}
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        onItemClick(item);
-                      }}
-                      className="calendar-event-pill w-full"
-                      title={item.title}
-                    >
-                      {item.title}
-                    </button>
+                      item={item}
+                      onClick={onItemClick}
+                    />
                   ))}
                   {hiddenCount > 0 ? (
                     <span className="block px-1 text-[11px] font-medium text-primary hover:underline">

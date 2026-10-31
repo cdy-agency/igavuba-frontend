@@ -8,7 +8,7 @@ import { LecturerDashboard } from '@/components/dashboard/LecturerDashboard';
 import { SuperAdminDashboard } from '@/components/dashboard/SuperAdminDashboard';
 import { RoleDashboardView } from '@/components/dashboard/role-dashboard-view';
 import { EmptyState } from '@/components/dashboard/shared/empty-state';
-import { OazisDashboardSkeleton } from '@/components/dashboard/shared/oazis-dashboard-skeleton';
+import { ModernDashboardSkeleton } from '@/components/dashboard/shared/modern-dashboard-skeleton';
 import {
   ContentReviewerDashboard,
   DataManagerDashboard,
@@ -19,7 +19,7 @@ export function DashboardHome() {
   const { data, isLoading, isError } = useRoleDashboard();
 
   if (isLoading) {
-    return <OazisDashboardSkeleton />;
+    return <ModernDashboardSkeleton />;
   }
 
   if (isError || !data) {
